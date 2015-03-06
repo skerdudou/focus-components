@@ -3,11 +3,9 @@
 
 //Target
 /*
-<div class="checkbox">
-  <label>
-    <input type="checkbox"> Checkbox
-  </label>
-</div>
+<label>
+  <input type="checkbox"><span class="ripple"></span><span class="check"></span> Checkbox
+</label>
  */
 var builder = require("focus/component/builder");
 var React = window.React;
@@ -59,19 +57,15 @@ var checkBoxMixin = {
 	render: function renderCheckBox() {
 		return React.createElement(
 			"div",
-			{ "class": "checkbox" },
+			{ className: "checkbox" },
 			React.createElement(
 				"label",
 				null,
-				React.createElement("input", { ref: "checkbox",
-					checked: this.state.isChecked,
-					onChange: this._onChange,
-					type: "checkbox" }),
-				" ",
-				this.props.label,
-				" "
-			),
-			" "
+				React.createElement("input", { ref: "checkbox", checked: this.state.isChecked, onChange: this._onChange, type: "checkbox" }),
+				React.createElement("span", { className: "ripple" }),
+				React.createElement("span", { className: "check" }),
+				this.props.label
+			)
 		);
 	}
 };

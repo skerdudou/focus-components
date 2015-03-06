@@ -174,55 +174,56 @@ var React = window.React;
 var builder = require("focus/component/builder");
 /**/
 var buttonMixin = {
-  getDefaultProps: function getInputDefaultProps() {
-    return {
-      type: "submit",
-      action: undefined,
-      isPressed: false
-    };
-  },
-  handleOnClick: function handleOnClick() {
-    if (this.props.handleOnClick) {
-      return this.props.handleOnClick.apply(this, arguments);
-    }
-    if (!this.props.action || !this.action[this.props.action]) {
-      return console.warn("Your button action is not implemented");
-    }
-    return this.action[this.props.action].apply(this, arguments);
-  },
-  getInitialState: function getInitialState() {
-    return {
-      isPressed: this.props.isPressed
-    };
-  },
-  _className: function _className() {
-    return "btn " + (this.props.style ? "btn-" + this.props.style : "");
-  },
-  renderPressedButton: function renderPressedButton() {
-    return React.createElement(
-      "button",
-      null,
-      "Loading..."
-    );
-  },
-  /**
-   * Render the button.
-   * @return {[type]} [description]
-   */
-  render: function renderInput() {
-    if (this.state.isPressed) {
-      return this.renderPressedButton();
-    }
-    return React.createElement(
-      "button",
-      {
-        onClick: this.handleOnClick,
-        type: this.props.type,
-        className: this._className()
-      },
-      this.props.label
-    );
-  }
+	getDefaultProps: function getInputDefaultProps() {
+		return {
+			type: "submit",
+			action: undefined,
+			isPressed: false,
+			style: {}
+		};
+	},
+	handleOnClick: function handleButtonOnclick() {
+		if (this.props.handleOnClick) {
+			return this.props.handleOnClick.apply(this, arguments);
+		}
+		if (!this.props.action || !this.action[this.props.action]) {
+			return console.warn("Your button action is not implemented");
+		}
+		return this.action[this.props.action].apply(this, arguments);
+	},
+	getInitialState: function getInitialState() {
+		return {
+			isPressed: this.props.isPressed
+		};
+	},
+	_className: function buttonClassName() {
+		return "btn " + (this.props.style.className ? "btn-" + this.props.style.className : "");
+	},
+	renderPressedButton: function renderPressedButton() {
+		return React.createElement(
+			"button",
+			null,
+			" Loading... "
+		);
+	},
+	/**
+  * Render the button.
+  * @return {[type]} [description]
+  */
+	render: function renderInput() {
+		if (this.state.isPressed) {
+			return this.renderPressedButton();
+		}
+		return React.createElement(
+			"button",
+			{ onClick: this.handleOnClick,
+				type: this.props.type,
+				className: this._className() },
+			" ",
+			this.props.label,
+			" "
+		);
+	}
 };
 
 module.exports = builder(buttonMixin);

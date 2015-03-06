@@ -22,6 +22,10 @@
 .controller-record {
   background: url("../img/controller-record.svg") no-repeat right center; }
 
-.action-bar .general-action, .action-bar .contextual-action, .action-bar .facet-container {
+.action-bar .general-action, .action-bar .facet-container, .action-bar .contextual-action {
   display: inline-block;
-  padding-right: 50px; }
+  padding: 0 25px 0 25px;
+  height: 30px; }
+.action-bar .facet-container {
+  border-left: solid 2px;
+  border-right: solid 2px; }
