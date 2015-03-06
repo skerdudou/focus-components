@@ -2,18 +2,60 @@
 var builder = require('focus/component/builder');
 var React = require('react');
 var LiveFilterFacet = require('./live-filter-facet').component;
+var type = require('focus/component/types');
+var assign = require('object-assign');
+var omit = require('lodash/object/omit');
 
 var liveFilterMixin = {
+
+    /**
+     * Display name.
+     */
     displayName: "live-filter",
+
+    /**
+     * Init the default properties
+     * @returns {{facetList: {}, selectedFacetList: {}, openedFacetList: {}, config: {}, dataSelectionHandler: undefined}}
+     */
+    getDefaultProps: function() {
+        return {
+            facetList: {},
+            selectedFacetList: {},
+            openedFacetList: {},
+            config: {},
+            dataSelectionHandler: undefined
+        }
+    },
+
+    /**
+     * List property validation.
+     */
+    propTypes:{
+        facetList: type('object'),
+        selectedFacetList: type('object'),
+        openedFacetList: type('object'),
+        config: type('object'),
+        dataSelectionHandler: type('func')
+    },
+
     /**
      * Init the state of the component.
-     * @returns {{isExpanded: boolean, selectedFacets: Array}}
+     * @returns {
+     *  {isExpanded: boolean True if the component is expanded, false if collapsed,
+     *   openedFacetList: Map (key : facetKey, value : true if facet expanded)}
+     *   }
      */
     getInitialState: function(){
+        var openedFacetList = this.props.openedFacetList;
+        if(Object.keys(openedFacetList).length == 0) {
+            for (var key in this.props.facetList) {
+                openedFacetList[key] = true;
+                break;
+            }
+        }
         return {
             isExpanded: true,
-            selectedFacetList: this.props.selectedFacetList || {},
-            openedFacetList: this.props.openedFacetList || {}
+            openedFacetList:  openedFacetList
         };
     },
     /**
@@ -29,6 +71,7 @@ var liveFilterMixin = {
             </div>
         );
     },
+
     /**
      * Render the div title of the component.
      * @Returns Html title code.
@@ -40,6 +83,7 @@ var liveFilterMixin = {
                     <span className="icon" onClick={this.liveFilterTitleClick} >&nbsp;</span>
                 </div>;
     },
+
     /**
      * Render the list of the facets.
      * @Returns Html facets code.
@@ -49,17 +93,15 @@ var liveFilterMixin = {
             return
         }
         var facets = [];
-        var isExpanded = Object.keys(this.state.openedFacetList).length == 0;
         for(var key in this.props.facetList) {
-            var selectedDataKey = this.state.selectedFacetList[key] ? this.state.selectedFacetList[key].key : undefined;
+            var selectedDataKey = this.props.selectedFacetList[key] ? this.props.selectedFacetList[key].key : undefined;
             facets.push(<LiveFilterFacet facetKey={key}
                                                 facet={this.props.facetList[key]}
                                                 selectedDataKey = {selectedDataKey}
-                                                isExpanded={isExpanded || this.state.openedFacetList[key]}
+                                                isExpanded={this.state.openedFacetList[key]}
                                                 expandHandler={this.expandFacetHandler}
                                                 selectHandler={this.selectHandler}
                                                 type={this.props.config[key]}/>);
-            isExpanded = false;
         }
         return <div>{facets}</div>;
     },
@@ -76,33 +118,24 @@ var liveFilterMixin = {
      * Action on facet selection.
      */
     selectHandler : function selectLiverFilterHandler(facetKey, dataKey, data) {
-        var selectedFacetList = this.state.selectedFacetList;
+        var result = {openedFacetList: this.state.openedFacetList};
         if(dataKey == undefined) {
-            delete selectedFacetList[facetKey];
+            result["selectedFacetList"] = omit(this.props.selectedFacetList, facetKey);
         } else {
-            selectedFacetList[facetKey] = {key: dataKey, data: data};
+            result["selectedFacetList"] = assign(this.props.selectedFacetList,  {[facetKey] : {key: dataKey, data: data}});
         }
-        this.setState({selectedFacetList : selectedFacetList});
-
-        this.props.handler(this.state.selectedFacetList);
+        this.props.dataSelectionHandler(result);
     },
+
+    /**
+     * Expand facet action.
+     * @param facetKey Key of the facet.
+     * @param isExpanded true if expand action, false if collapse action.
+     */
     expandFacetHandler: function expandFacetHandler(facetKey, isExpanded) {
         var openedFacetList = this.state.openedFacetList;
         openedFacetList[facetKey] = isExpanded;
         this.setState({openedFacetList: openedFacetList});
-    },
-    getValue: function getValue() {
-        return {
-            selectedFacetList: this.state.selectedFacetList,
-            openedFacetList: this.state.openedFacetList
-        };
-        /*
-        return {
-            selectedFacetList: {
-                "FCT_PAYS": {key: "FRA", data: {label:"France", count:6}}
-            },
-            openedFacetList: ["FCT_STATUS"]
-        };*/
     }
 }
 

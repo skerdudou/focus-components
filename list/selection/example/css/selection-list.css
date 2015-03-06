@@ -1,0 +1,40 @@
+/* Style for the list component*/
+/*variables*/
+/*styles*/
+ul.selection-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  overflow-y: scroll; }
+  ul.selection-list li {
+    padding: 10px;
+    background-color: #FFF;
+    margin: 10px 0; }
+  ul.selection-list li.sl-line {
+    cursor: pointer;
+    padding-left: 60px;
+    position: relative; }
+    ul.selection-list li.sl-line div.sl-selection {
+      width: 32px;
+      height: 32px;
+      top: 0;
+      left: 0;
+      position: absolute; }
+      ul.selection-list li.sl-line div.sl-selection img {
+        width: 32px;
+        height: 32px;
+        /*display: none;*/ }
+    ul.selection-list li.sl-line div.sl-selection {
+      background-color: #FFF;
+      z-index: 1;
+      color: red;
+      height: 100%;
+      width: 50px; }
+    ul.selection-list li.sl-line:hover div.sl-selection.no-selection {
+      background: #FFF url("../img/line-unselected.svg") no-repeat center center;
+      background-size: 32px 32px;
+      border-left: 3px solid green; }
+    ul.selection-list li.sl-line div.sl-selection.selected {
+      background: #FFF url("../img/line-selected.svg") no-repeat center center;
+      background-size: 32px 32px;
+      border-left: 3px solid red; }

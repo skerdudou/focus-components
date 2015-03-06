@@ -1,7 +1,7 @@
 focus-components
 ========================
 
-[![Build Status](https://travis-ci.org/KleeGroup/focus-components.svg)
+![Build Status](https://travis-ci.org/KleeGroup/focus-components.svg)
 
 Components for focus application.
 
@@ -51,3 +51,14 @@ In order to build and test each component alone, there is a build task called `c
 ```
 
 When your component has been added to this list, it will automatically be deployed as a single component and testable through the url: [http://localhost:3000](http://localhost:3000) using the `static-server.js` file. You can launch the examples with the command `npm run example`.
+
+## Unit test
+
+In order to launch unit test: `npm run test`
+
+## Dependencies
+
+In order to install all your dependencies: `npm install --no-optional`
+
+## Lint
+`gulp eslint` in order to see your errors.

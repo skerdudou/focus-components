@@ -7,6 +7,49 @@ var babelify = require("babelify"); //es6
 var browserify = require('browserify'); //build the source
 var source = require('vinyl-source-stream');
 
+
+/**
+ * LINT
+ */
+var sources = ['{spec,search,list,form}/**/*.js'];
+gulp.task('eslint', function() {
+	//gulp eslint 2>lint/lintErrors.txt
+	var eslint = require('gulp-eslint');
+	var options = {
+		"globals": {
+			"jQuery": false,
+			"$": true,
+			"require": true,
+			"Backbone": true,
+			"Fmk": true,
+			"_": true,
+			"Promise": true,
+			"module": true
+		},
+		"env": {
+			"browser": true,
+			"node": true
+		},
+		rules: {
+			"valid-jsdoc": [2, {
+				/*  "prefer": {
+					"return": "return"
+				},*/
+				"requireParamDescription": true
+			}],
+			"quotes": [0]
+		}
+	};
+	var format = "compact"; //"compact", "checkstyle", "jslint-xml", "junit" and "tap".
+	gulp
+		.src(sources)
+		.pipe(eslint(options))
+		//.pipe(eslint.format(undefined, process.stdout))
+		//.pipe(eslint.failOnError())
+		.pipe(eslint.formatEach(format, process.stderr));
+	//.on('error', gutil.log);
+});
+
 /****************************
   JS BUILD
 **********************/
@@ -24,9 +67,13 @@ function jsBuild(directory, options) {
 	return browserify(({
 			entries: [entryFile],
 			extensions: ['.jsx'],
-      standalone: "focus.components." + directory.replace('/', '.')
+			standalone: "focus-components." + directory.replace('/', '.')
 		}))
-		.transform({global:true},literalify.configure({react: 'window.React'}))
+		.transform({
+			global: true
+		}, literalify.configure({
+			react: 'window.React'
+		}))
 		.transform(babelify)
 		.bundle()
 		//Pass desired output filename to vinyl-source-stream
@@ -34,10 +81,16 @@ function jsBuild(directory, options) {
 		.pipe(gulp.dest('./' + directory + '/example/js/'));
 }
 gulp.task('browserify', function() {
+	var literalify = require('literalify');
 	return browserify(({
 			entries: ['./index.js'],
 			extensions: ['.jsx'],
-      standalone: "focus.components"
+			standalone: "focus-components"
+		}))
+		.transform({
+			global: true
+		}, literalify.configure({
+			react: 'window.React'
 		}))
 		.transform(babelify)
 		.bundle()
@@ -60,12 +113,12 @@ gulp.task('componentify-js', function() {
 /*************************************
   STYLE BUILD
 *********************************/
-function styleBuild(directory, options){
+function styleBuild(directory, options) {
 	options = options || {};
 	var sass = require('gulp-sass');
 	var concat = require('gulp-concat');
 	var generatedFile = (options.generatedFile || "component.css");
-  return gulp.src([directory+'/**/*.scss'])
+	return gulp.src([directory + '/**/*.scss'])
 		.pipe(sass())
 		.pipe(concat(generatedFile))
 		.pipe(gulp.dest(directory + '/example/css/'));
@@ -84,21 +137,23 @@ gulp.task('componentify-style', function() {
 gulp.task('style', function() {
 	var sass = require('gulp-sass');
 	var concat = require('gulp-concat');
-	gulp.src(['app/**/*.scss'])
+	gulp.src(['{spec,search,list,form}/**/*.scss'])
 		.pipe(sass())
-		.pipe(concat('custom.css'))
+		.pipe(concat('focus-components.css'))
 		.pipe(gulp.dest('./example/css/'));
 });
 
 
-gulp.task('componentify',['componentify-js', 'componentify-style', 'componentify-img']);
+gulp.task('componentify', ['componentify-js', 'componentify-style',
+	'componentify-img'
+]);
 
 /****************************
   IMAGE BUILD
 ****************************/
-function imgBuild(directory, options){
+function imgBuild(directory, options) {
 	options = options || {};
-	return gulp.src([directory+'/assets/img/*.svg'])
+	return gulp.src([directory + '/assets/img/*.svg'])
 		.pipe(gulp.dest(directory + '/example/img/'));
 }
 gulp.task('componentify-img', function() {
@@ -110,14 +165,18 @@ gulp.task('componentify-img', function() {
 });
 
 //Copy the focus-components directory into another repository.
-gulp.task('focus-app', function(){
+gulp.task('focus-components-npm', ['style', 'browserify'], function() {
 	var react = require('gulp-react');
 	var babel = require('gulp-babel');
 	var gulpif = require('gulp-if');
-  return gulp.src(['package.json', 'index.js','{spec,search,list,form}/**/*.js'])
-				.pipe(gulpif(/[.]js$/, react({harmony: true})))
-				.pipe(gulpif(/[.]js$/, babel()))
-	.pipe(gulp.dest('../rodolphe/app/node_modules/focus-components/'));
+	return gulp.src(['package.json', 'index.js',
+			'{spec,search,list,form,example}/**/*.{js,css}'
+		])
+		.pipe(gulpif(/[.]js$/, react({
+			harmony: true
+		})))
+		.pipe(gulpif(/[.]js$/, babel()))
+		.pipe(gulp.dest('../rodolphe/app/node_modules/focus-components/'));
 });
 
 
