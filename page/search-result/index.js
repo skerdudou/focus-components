@@ -18,7 +18,9 @@ var searchResultMixin = {
         return {
             facetList: {},
             facetConfig:{},
-            orderableColumnList:{}
+            orderableColumnList:{},
+            groupableColumnList:{},
+            operationList:{}
         }
     },
     /**
@@ -31,7 +33,8 @@ var searchResultMixin = {
             openedFacetList: {},
 
             selectionStatus: 0,
-            orderSelected:undefined
+            orderSelected:undefined,
+            groupSelectedKey: undefined
         };
     },
     /**
@@ -53,23 +56,50 @@ var searchResultMixin = {
                                 selectionAction={this.selectionAction}
                                 orderableColumnList={this.props.orderableColumnList}
                                 orderAction={this.orderAction}
-                                orderSelected={this.state.orderSelected}/>
+                                orderSelected={this.state.orderSelected}
+                                groupableColumnList={this.props.groupableColumnList}
+                                groupAction={this.groupAction}
+                                groupSelectedKey={this.state.groupSelectedKey}
+                                facetList={this._getFacetListForBar()}
+                                facetClickAction={this.facetClickAction}
+                                operationList={this.props.operationList} />
                 </div>
             </div>
         );
     },
+    _getFacetListForBar: function() {
+        var facetList = {};
+        for(var key in this.state.selectedFacetList) {
+            var facet = this.state.selectedFacetList[key];
+            facetList[key] = facet.data.label;
+        }
+        return facetList;
+    },
+    facetClickAction: function(key) {
+        var keyLength = key.split("_")[0];
+        var indexLength = keyLength.length + 1;
+        keyLength = parseInt(keyLength);
 
-    /*
+        var selectedFacetList = this.state.selectedFacetList;
+        delete selectedFacetList[key];
 
-     facetList: this.facetList,
-     facetClickAction:this.facetClickAction,
+        console.warn("TODO : implement the search service ");
 
-     groupableColumnList:{col1: "Colonne 1", col2: "Colonne 2"},
-     groupAction: this.groupClick,
-     groupSelectedKey: this.groupSelectedKey,
+        this.setState({
+            facetList: this.state.facetList,
+            selectedFacetList: selectedFacetList,
+            openedFacetList: this.state.openedFacetList
+        });
+    },
+    groupAction: function(key) {
+        console.warn("TODO : implement the search service ");
+        this.setState({
+            groupSelectedKey: key,
+            orderSelected: (key != undefined ? undefined : this.state.orderSelected)
+        });
 
-     operationList: this.operationList
-     */
+        console.log("(GROUPING) Group : " + key);
+    },
 
     orderAction: function(key, order) {
         // Todo call the service
