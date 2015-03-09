@@ -543,14 +543,17 @@ module.exports = {
 },{"./checkbox":9,"./text":11,"./textarea":12}],11:[function(require,module,exports){
 "use strict";
 
+//Dependencies.
 var builder = require("focus/component/builder");
 var React = window.React;
 var type = require("focus/component/types");
+
 /**
  * Input text mixin.
  * @type {Object}
  */
-var inputText = {
+var inputTextMixin = {
+  /** @inheritdoc */
   getDefaultProps: function getInputDefaultProps() {
     return {
       type: "text",
@@ -559,21 +562,24 @@ var inputText = {
       style: {}
     };
   },
-  /**
-   * Properties validation.
-   * @type {Object}
-   */
+  /** @inheritdoc */
   propTypes: {
     type: type("string"),
     value: type(["string", "number"]),
     name: type("string"),
     style: type("object")
   },
+  /** @inheritdoc */
+  getInitialState: function getInitialStateInputText() {
+    return {
+      value: this.props.value
+    };
+  },
   /**
    * Validate the input.
    * @return {object}
    */
-  validate: function validateInput() {
+  validate: function validateInputText() {
     var value = this.getValue();
     if (value === undefined || value === "") {
       return "Le champ " + this.props.name + " est requis";
@@ -585,25 +591,36 @@ var inputText = {
   /**
    * Get the value from the input in the DOM.
    */
-  getValue: function getValue() {
+  getValue: function getInputTextValue() {
     return this.getDOMNode().value;
   },
   /**
+   * Handle the change value of the input.
+   * @param {object} event - The sanitize event of input.
+   */
+  _handleOnChange: function inputOnChange(event) {
+    this.setState({ value: event.target.value });
+    if (this.props.onChange) {
+      return this.props.onChange(event);
+    }
+  },
+  /**
    * Render an input.
-   * @return {[type]} [description]
+   * @return {DOM} - The dom of an input.
    */
   render: function renderInput() {
-    return React.createElement("input", { id: this.props.name,
+    return React.createElement("input", {
+      id: this.props.name,
       name: this.props.name,
-      value: this.props.value,
+      value: this.state.value,
       type: this.props.type,
       className: this.props.style["class"],
-      onChange: this.props.onChange
+      onChange: this._handleOnChange
     });
   }
 };
 
-module.exports = builder(inputText);
+module.exports = builder(inputTextMixin);
 
 },{"focus/component/builder":22,"focus/component/types":23}],12:[function(require,module,exports){
 "use strict";
@@ -763,6 +780,9 @@ var selectActionMixin = {
      * @returns Htm code.
      */
     render: function renderSelectAcion() {
+        if (this.props.operationList.length == 0) {
+            return React.createElement("div", null);
+        }
         var liList = this._getList(this.props.operationList);
         return React.createElement(
             "div",
@@ -1358,9 +1378,8 @@ module.exports = builder(listMixin);
 
 },{"./line":20,"focus/component/builder":22,"focus/component/types":23,"uuid":80}],22:[function(require,module,exports){
 "use strict";
-
 var React = window.React;
-var assign = require("object-assign");
+var assign = require('object-assign');
 //var isObject = require('lodash/lang/isObject');
 //var isFunction = require('lodash/lang/isFunction');
 
@@ -1370,11 +1389,11 @@ var assign = require("object-assign");
  * @param {Boolean} isMixinOnly - define if the component is a mixin only.
  * @return {object} - {component} the built react component.
  */
-function createComponent(mixin, isMixinOnly) {
-  if (isMixinOnly) {
-    return undefined; //Error('Your class publish a mixin only...');
-  }
-  return { component: React.createClass(mixin) };
+function createComponent(mixin, isMixinOnly){
+    if (isMixinOnly){
+      return undefined;//Error('Your class publish a mixin only...');
+    }
+    return {component: React.createClass(mixin)};
 }
 
 /**
@@ -1383,9 +1402,9 @@ function createComponent(mixin, isMixinOnly) {
  * @param {boolean} isMixinOnly - Bolean to set .
  * @return {object} {mixin: 'the component mixin', component: 'the react instanciated component'}
  */
-module.exports = function (componentMixin, isMixinOnly) {
+module.exports = function(componentMixin, isMixinOnly){
 
-  return assign({
+  return assign( {
     mixin: componentMixin
     /*extend: function extendMixin(properties){
       if(isFunction(componentMixin)){
@@ -1398,13 +1417,13 @@ module.exports = function (componentMixin, isMixinOnly) {
     },*/
   }, createComponent(componentMixin, isMixinOnly));
 };
+
 },{"object-assign":78}],23:[function(require,module,exports){
 "use strict";
-
 //Dependencies.
 var React = window.React;
-var isString = require("lodash/lang/isString");
-var isArray = require("lodash/lang/isArray");
+var isString = require('lodash/lang/isString');
+var isArray = require('lodash/lang/isArray');
 
 /**
  * Expose a React type validation for the component properties validation.
@@ -1412,16 +1431,18 @@ var isArray = require("lodash/lang/isArray");
  * @param  {string} type - String or array of the types to use.
  * @return {object} The corresponding react type.
  */
-module.exports = function (type) {
+module.exports = function(type){
   var isStringType = isString(type);
-  if (!isStringType && !isArray(type)) {
-    throw new Error("The type should be a string or an array");
+  if(!isStringType && !isArray(type)){
+    throw new Error('The type should be a string or an array');
   }
-  if (isStringType) {
+  if(isStringType){
     return React.PropTypes[type];
   }
   return React.PropTypes.oneOf(type);
+
 };
+
 },{"lodash/lang/isArray":65,"lodash/lang/isString":68}],24:[function(require,module,exports){
 var baseCallback = require('../internal/baseCallback');
 
@@ -1695,7 +1716,7 @@ function baseDifference(array, values) {
       }
       result.push(value);
     }
-    else if (indexOf(values, value) < 0) {
+    else if (indexOf(values, value, 0) < 0) {
       result.push(value);
     }
   }
@@ -1775,13 +1796,13 @@ var isArguments = require('../lang/isArguments'),
  *
  * @private
  * @param {Array} array The array to flatten.
- * @param {boolean} [isDeep] Specify a deep flatten.
- * @param {boolean} [isStrict] Restrict flattening to arrays and `arguments` objects.
- * @param {number} [fromIndex=0] The index to start from.
+ * @param {boolean} isDeep Specify a deep flatten.
+ * @param {boolean} isStrict Restrict flattening to arrays and `arguments` objects.
+ * @param {number} fromIndex The index to start from.
  * @returns {Array} Returns the new flattened array.
  */
 function baseFlatten(array, isDeep, isStrict, fromIndex) {
-  var index = (fromIndex || 0) - 1,
+  var index = fromIndex - 1,
       length = array.length,
       resIndex = -1,
       result = [];
@@ -1792,7 +1813,7 @@ function baseFlatten(array, isDeep, isStrict, fromIndex) {
     if (isObjectLike(value) && isLength(value.length) && (isArray(value) || isArguments(value))) {
       if (isDeep) {
         // Recursively flatten arrays (susceptible to call stack limits).
-        value = baseFlatten(value, isDeep, isStrict);
+        value = baseFlatten(value, isDeep, isStrict, 0);
       }
       var valIndex = -1,
           valLength = value.length;
@@ -1889,14 +1910,14 @@ var indexOfNaN = require('./indexOfNaN');
  * @private
  * @param {Array} array The array to search.
  * @param {*} value The value to search for.
- * @param {number} [fromIndex=0] The index to search from.
+ * @param {number} fromIndex The index to search from.
  * @returns {number} Returns the index of the matched value, else `-1`.
  */
 function baseIndexOf(array, value, fromIndex) {
   if (value !== value) {
     return indexOfNaN(array, fromIndex);
   }
-  var index = (fromIndex || 0) - 1,
+  var index = fromIndex - 1,
       length = array.length;
 
   while (++index < length) {
@@ -2515,8 +2536,10 @@ function equalObjects(object, other, equalFunc, customizer, isWhere, stackA, sta
         othCtor = other.constructor;
 
     // Non `Object` object instances with different constructors are not equal.
-    if (objCtor != othCtor && ('constructor' in object && 'constructor' in other) &&
-        !(typeof objCtor == 'function' && objCtor instanceof objCtor && typeof othCtor == 'function' && othCtor instanceof othCtor)) {
+    if (objCtor != othCtor &&
+        ('constructor' in object && 'constructor' in other) &&
+        !(typeof objCtor == 'function' && objCtor instanceof objCtor &&
+          typeof othCtor == 'function' && othCtor instanceof othCtor)) {
       return false;
     }
   }
@@ -2532,13 +2555,13 @@ module.exports = equalObjects;
  *
  * @private
  * @param {Array} array The array to search.
- * @param {number} [fromIndex] The index to search from.
+ * @param {number} fromIndex The index to search from.
  * @param {boolean} [fromRight] Specify iterating from right to left.
  * @returns {number} Returns the index of the matched `NaN`, else `-1`.
  */
 function indexOfNaN(array, fromIndex, fromRight) {
   var length = array.length,
-      index = fromRight ? (fromIndex || length) : ((fromIndex || 0) - 1);
+      index = fromIndex + (fromRight ? 0 : -1);
 
   while ((fromRight ? index-- : ++index < length)) {
     var other = array[index];
@@ -2642,7 +2665,7 @@ function isIterateeCall(value, index, object) {
   }
   if (prereq) {
     var other = object[index];
-    return value === value ? value === other : other !== other;
+    return value === value ? (value === other) : (other !== other);
   }
   return false;
 }
@@ -3161,7 +3184,7 @@ var keys = !nativeKeys ? shimKeys : function(object) {
         length = object.length;
   }
   if ((typeof Ctor == 'function' && Ctor.prototype === object) ||
-     (typeof object != 'function' && (length && isLength(length)))) {
+      (typeof object != 'function' && (length && isLength(length)))) {
     return shimKeys(object);
   }
   return isObject(object) ? nativeKeys(object) : [];
@@ -3332,7 +3355,7 @@ var reWords = (function() {
   var upper = '[A-Z\\xc0-\\xd6\\xd8-\\xde]',
       lower = '[a-z\\xdf-\\xf6\\xf8-\\xff]+';
 
-  return RegExp(upper + '{2,}(?=' + upper + lower + ')|' + upper + '?' + lower + '|' + upper + '+|[0-9]+', 'g');
+  return RegExp(upper + '+(?=' + upper + lower + ')|' + upper + '?' + lower + '|' + upper + '+|[0-9]+', 'g');
 }());
 
 /**
@@ -4303,9 +4326,7 @@ var scopeMixin = {
 					value: scope.code,
 					className: "" + selectedValue + " " + scope.style,
 					onClick: _this._handleOnClick },
-				" ",
-				scope.label,
-				" "
+				scope.label
 			);
 		});
 		return React.createElement(

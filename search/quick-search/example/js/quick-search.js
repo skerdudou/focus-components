@@ -5,9 +5,8 @@ module.exports = require("./input");
 
 },{"./input":47}],2:[function(require,module,exports){
 "use strict";
-
 var React = window.React;
-var assign = require("object-assign");
+var assign = require('object-assign');
 //var isObject = require('lodash/lang/isObject');
 //var isFunction = require('lodash/lang/isFunction');
 
@@ -17,11 +16,11 @@ var assign = require("object-assign");
  * @param {Boolean} isMixinOnly - define if the component is a mixin only.
  * @return {object} - {component} the built react component.
  */
-function createComponent(mixin, isMixinOnly) {
-  if (isMixinOnly) {
-    return undefined; //Error('Your class publish a mixin only...');
-  }
-  return { component: React.createClass(mixin) };
+function createComponent(mixin, isMixinOnly){
+    if (isMixinOnly){
+      return undefined;//Error('Your class publish a mixin only...');
+    }
+    return {component: React.createClass(mixin)};
 }
 
 /**
@@ -30,9 +29,9 @@ function createComponent(mixin, isMixinOnly) {
  * @param {boolean} isMixinOnly - Bolean to set .
  * @return {object} {mixin: 'the component mixin', component: 'the react instanciated component'}
  */
-module.exports = function (componentMixin, isMixinOnly) {
+module.exports = function(componentMixin, isMixinOnly){
 
-  return assign({
+  return assign( {
     mixin: componentMixin
     /*extend: function extendMixin(properties){
       if(isFunction(componentMixin)){
@@ -45,13 +44,13 @@ module.exports = function (componentMixin, isMixinOnly) {
     },*/
   }, createComponent(componentMixin, isMixinOnly));
 };
+
 },{"object-assign":44}],3:[function(require,module,exports){
 "use strict";
-
 //Dependencies.
 var React = window.React;
-var isString = require("lodash/lang/isString");
-var isArray = require("lodash/lang/isArray");
+var isString = require('lodash/lang/isString');
+var isArray = require('lodash/lang/isArray');
 
 /**
  * Expose a React type validation for the component properties validation.
@@ -59,16 +58,18 @@ var isArray = require("lodash/lang/isArray");
  * @param  {string} type - String or array of the types to use.
  * @return {object} The corresponding react type.
  */
-module.exports = function (type) {
+module.exports = function(type){
   var isStringType = isString(type);
-  if (!isStringType && !isArray(type)) {
-    throw new Error("The type should be a string or an array");
+  if(!isStringType && !isArray(type)){
+    throw new Error('The type should be a string or an array');
   }
-  if (isStringType) {
+  if(isStringType){
     return React.PropTypes[type];
   }
   return React.PropTypes.oneOf(type);
+
 };
+
 },{"lodash/lang/isArray":33,"lodash/lang/isString":36}],4:[function(require,module,exports){
 var baseCallback = require('../internal/baseCallback');
 
@@ -888,8 +889,10 @@ function equalObjects(object, other, equalFunc, customizer, isWhere, stackA, sta
         othCtor = other.constructor;
 
     // Non `Object` object instances with different constructors are not equal.
-    if (objCtor != othCtor && ('constructor' in object && 'constructor' in other) &&
-        !(typeof objCtor == 'function' && objCtor instanceof objCtor && typeof othCtor == 'function' && othCtor instanceof othCtor)) {
+    if (objCtor != othCtor &&
+        ('constructor' in object && 'constructor' in other) &&
+        !(typeof objCtor == 'function' && objCtor instanceof objCtor &&
+          typeof othCtor == 'function' && othCtor instanceof othCtor)) {
       return false;
     }
   }
@@ -989,7 +992,7 @@ function isIterateeCall(value, index, object) {
   }
   if (prereq) {
     var other = object[index];
-    return value === value ? value === other : other !== other;
+    return value === value ? (value === other) : (other !== other);
   }
   return false;
 }
@@ -1454,7 +1457,7 @@ var keys = !nativeKeys ? shimKeys : function(object) {
         length = object.length;
   }
   if ((typeof Ctor == 'function' && Ctor.prototype === object) ||
-     (typeof object != 'function' && (length && isLength(length)))) {
+      (typeof object != 'function' && (length && isLength(length)))) {
     return shimKeys(object);
   }
   return isObject(object) ? nativeKeys(object) : [];
@@ -1572,7 +1575,7 @@ var reWords = (function() {
   var upper = '[A-Z\\xc0-\\xd6\\xd8-\\xde]',
       lower = '[a-z\\xdf-\\xf6\\xf8-\\xff]+';
 
-  return RegExp(upper + '{2,}(?=' + upper + lower + ')|' + upper + '?' + lower + '|' + upper + '+|[0-9]+', 'g');
+  return RegExp(upper + '+(?=' + upper + lower + ')|' + upper + '?' + lower + '|' + upper + '+|[0-9]+', 'g');
 }());
 
 /**
@@ -2150,9 +2153,7 @@ var scopeMixin = {
 					value: scope.code,
 					className: "" + selectedValue + " " + scope.style,
 					onClick: _this._handleOnClick },
-				" ",
-				scope.label,
-				" "
+				scope.label
 			);
 		});
 		return React.createElement(

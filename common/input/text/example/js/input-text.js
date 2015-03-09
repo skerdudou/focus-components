@@ -1,14 +1,17 @@
 (function(f){if(typeof exports==="object"&&typeof module!=="undefined"){module.exports=f()}else if(typeof define==="function"&&define.amd){define([],f)}else{var g;if(typeof window!=="undefined"){g=window}else if(typeof global!=="undefined"){g=global}else if(typeof self!=="undefined"){g=self}else{g=this}g=(g.focusComponents||(g.focusComponents = {}));g=(g.common||(g.common = {}));g.inputtext = f()}})(function(){var define,module,exports;return (function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);var f=new Error("Cannot find module '"+o+"'");throw f.code="MODULE_NOT_FOUND",f}var l=n[o]={exports:{}};t[o][0].call(l.exports,function(e){var n=t[o][1][e];return s(n?n:e)},l,l.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(require,module,exports){
 "use strict";
 
+//Dependencies.
 var builder = require("focus/component/builder");
 var React = window.React;
 var type = require("focus/component/types");
+
 /**
  * Input text mixin.
  * @type {Object}
  */
-var inputText = {
+var inputTextMixin = {
+  /** @inheritdoc */
   getDefaultProps: function getInputDefaultProps() {
     return {
       type: "text",
@@ -17,21 +20,24 @@ var inputText = {
       style: {}
     };
   },
-  /**
-   * Properties validation.
-   * @type {Object}
-   */
+  /** @inheritdoc */
   propTypes: {
     type: type("string"),
     value: type(["string", "number"]),
     name: type("string"),
     style: type("object")
   },
+  /** @inheritdoc */
+  getInitialState: function getInitialStateInputText() {
+    return {
+      value: this.props.value
+    };
+  },
   /**
    * Validate the input.
    * @return {object}
    */
-  validate: function validateInput() {
+  validate: function validateInputText() {
     var value = this.getValue();
     if (value === undefined || value === "") {
       return "Le champ " + this.props.name + " est requis";
@@ -43,31 +49,41 @@ var inputText = {
   /**
    * Get the value from the input in the DOM.
    */
-  getValue: function getValue() {
+  getValue: function getInputTextValue() {
     return this.getDOMNode().value;
   },
   /**
+   * Handle the change value of the input.
+   * @param {object} event - The sanitize event of input.
+   */
+  _handleOnChange: function inputOnChange(event) {
+    this.setState({ value: event.target.value });
+    if (this.props.onChange) {
+      return this.props.onChange(event);
+    }
+  },
+  /**
    * Render an input.
-   * @return {[type]} [description]
+   * @return {DOM} - The dom of an input.
    */
   render: function renderInput() {
-    return React.createElement("input", { id: this.props.name,
+    return React.createElement("input", {
+      id: this.props.name,
       name: this.props.name,
-      value: this.props.value,
+      value: this.state.value,
       type: this.props.type,
       className: this.props.style["class"],
-      onChange: this.props.onChange
+      onChange: this._handleOnChange
     });
   }
 };
 
-module.exports = builder(inputText);
+module.exports = builder(inputTextMixin);
 
 },{"focus/component/builder":2,"focus/component/types":3}],2:[function(require,module,exports){
 "use strict";
-
 var React = window.React;
-var assign = require("object-assign");
+var assign = require('object-assign');
 //var isObject = require('lodash/lang/isObject');
 //var isFunction = require('lodash/lang/isFunction');
 
@@ -77,11 +93,11 @@ var assign = require("object-assign");
  * @param {Boolean} isMixinOnly - define if the component is a mixin only.
  * @return {object} - {component} the built react component.
  */
-function createComponent(mixin, isMixinOnly) {
-  if (isMixinOnly) {
-    return undefined; //Error('Your class publish a mixin only...');
-  }
-  return { component: React.createClass(mixin) };
+function createComponent(mixin, isMixinOnly){
+    if (isMixinOnly){
+      return undefined;//Error('Your class publish a mixin only...');
+    }
+    return {component: React.createClass(mixin)};
 }
 
 /**
@@ -90,9 +106,9 @@ function createComponent(mixin, isMixinOnly) {
  * @param {boolean} isMixinOnly - Bolean to set .
  * @return {object} {mixin: 'the component mixin', component: 'the react instanciated component'}
  */
-module.exports = function (componentMixin, isMixinOnly) {
+module.exports = function(componentMixin, isMixinOnly){
 
-  return assign({
+  return assign( {
     mixin: componentMixin
     /*extend: function extendMixin(properties){
       if(isFunction(componentMixin)){
@@ -105,13 +121,13 @@ module.exports = function (componentMixin, isMixinOnly) {
     },*/
   }, createComponent(componentMixin, isMixinOnly));
 };
+
 },{"object-assign":11}],3:[function(require,module,exports){
 "use strict";
-
 //Dependencies.
 var React = window.React;
-var isString = require("lodash/lang/isString");
-var isArray = require("lodash/lang/isArray");
+var isString = require('lodash/lang/isString');
+var isArray = require('lodash/lang/isArray');
 
 /**
  * Expose a React type validation for the component properties validation.
@@ -119,16 +135,18 @@ var isArray = require("lodash/lang/isArray");
  * @param  {string} type - String or array of the types to use.
  * @return {object} The corresponding react type.
  */
-module.exports = function (type) {
+module.exports = function(type){
   var isStringType = isString(type);
-  if (!isStringType && !isArray(type)) {
-    throw new Error("The type should be a string or an array");
+  if(!isStringType && !isArray(type)){
+    throw new Error('The type should be a string or an array');
   }
-  if (isStringType) {
+  if(isStringType){
     return React.PropTypes[type];
   }
   return React.PropTypes.oneOf(type);
+
 };
+
 },{"lodash/lang/isArray":7,"lodash/lang/isString":9}],4:[function(require,module,exports){
 /**
  * Converts `value` to a string if it is not one. An empty string is returned

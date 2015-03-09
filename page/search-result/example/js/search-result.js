@@ -21,7 +21,9 @@ var searchResultMixin = {
         return {
             facetList: {},
             facetConfig: {},
-            orderableColumnList: {}
+            orderableColumnList: {},
+            groupableColumnList: {},
+            operationList: {}
         };
     },
     /**
@@ -34,7 +36,8 @@ var searchResultMixin = {
             openedFacetList: {},
 
             selectionStatus: 0,
-            orderSelected: undefined
+            orderSelected: undefined,
+            groupSelectedKey: undefined
         };
     },
     /**
@@ -61,19 +64,49 @@ var searchResultMixin = {
                     selectionAction: this.selectionAction,
                     orderableColumnList: this.props.orderableColumnList,
                     orderAction: this.orderAction,
-                    orderSelected: this.state.orderSelected })
+                    orderSelected: this.state.orderSelected,
+                    groupableColumnList: this.props.groupableColumnList,
+                    groupAction: this.groupAction,
+                    groupSelectedKey: this.state.groupSelectedKey,
+                    facetList: this._getFacetListForBar(),
+                    facetClickAction: this.facetClickAction,
+                    operationList: this.props.operationList })
             )
         );
     },
+    _getFacetListForBar: function _getFacetListForBar() {
+        var facetList = {};
+        for (var key in this.state.selectedFacetList) {
+            var facet = this.state.selectedFacetList[key];
+            facetList[key] = facet.data.label;
+        }
+        return facetList;
+    },
+    facetClickAction: function facetClickAction(key) {
+        var keyLength = key.split("_")[0];
+        var indexLength = keyLength.length + 1;
+        keyLength = parseInt(keyLength);
 
-    /*
-       facetList: this.facetList,
-     facetClickAction:this.facetClickAction,
-       groupableColumnList:{col1: "Colonne 1", col2: "Colonne 2"},
-     groupAction: this.groupClick,
-     groupSelectedKey: this.groupSelectedKey,
-       operationList: this.operationList
-     */
+        var selectedFacetList = this.state.selectedFacetList;
+        delete selectedFacetList[key];
+
+        console.warn("TODO : implement the search service ");
+
+        this.setState({
+            facetList: this.state.facetList,
+            selectedFacetList: selectedFacetList,
+            openedFacetList: this.state.openedFacetList
+        });
+    },
+    groupAction: function groupAction(key) {
+        console.warn("TODO : implement the search service ");
+        this.setState({
+            groupSelectedKey: key,
+            orderSelected: key != undefined ? undefined : this.state.orderSelected
+        });
+
+        console.log("(GROUPING) Group : " + key);
+    },
 
     orderAction: function orderAction(key, order) {
         // Todo call the service
@@ -259,6 +292,9 @@ var selectActionMixin = {
      * @returns Htm code.
      */
     render: function renderSelectAcion() {
+        if (this.props.operationList.length == 0) {
+            return React.createElement("div", null);
+        }
         var liList = this._getList(this.props.operationList);
         return React.createElement(
             "div",
@@ -608,9 +644,8 @@ module.exports = builder(actionContextualMixin);
 
 },{"../../common/button/action":2,"../../common/select-action":4,"focus/component/builder":8,"focus/component/types":9}],8:[function(require,module,exports){
 "use strict";
-
 var React = window.React;
-var assign = require("object-assign");
+var assign = require('object-assign');
 //var isObject = require('lodash/lang/isObject');
 //var isFunction = require('lodash/lang/isFunction');
 
@@ -620,11 +655,11 @@ var assign = require("object-assign");
  * @param {Boolean} isMixinOnly - define if the component is a mixin only.
  * @return {object} - {component} the built react component.
  */
-function createComponent(mixin, isMixinOnly) {
-  if (isMixinOnly) {
-    return undefined; //Error('Your class publish a mixin only...');
-  }
-  return { component: React.createClass(mixin) };
+function createComponent(mixin, isMixinOnly){
+    if (isMixinOnly){
+      return undefined;//Error('Your class publish a mixin only...');
+    }
+    return {component: React.createClass(mixin)};
 }
 
 /**
@@ -633,9 +668,9 @@ function createComponent(mixin, isMixinOnly) {
  * @param {boolean} isMixinOnly - Bolean to set .
  * @return {object} {mixin: 'the component mixin', component: 'the react instanciated component'}
  */
-module.exports = function (componentMixin, isMixinOnly) {
+module.exports = function(componentMixin, isMixinOnly){
 
-  return assign({
+  return assign( {
     mixin: componentMixin
     /*extend: function extendMixin(properties){
       if(isFunction(componentMixin)){
@@ -648,13 +683,13 @@ module.exports = function (componentMixin, isMixinOnly) {
     },*/
   }, createComponent(componentMixin, isMixinOnly));
 };
+
 },{"object-assign":40}],9:[function(require,module,exports){
 "use strict";
-
 //Dependencies.
 var React = window.React;
-var isString = require("lodash/lang/isString");
-var isArray = require("lodash/lang/isArray");
+var isString = require('lodash/lang/isString');
+var isArray = require('lodash/lang/isArray');
 
 /**
  * Expose a React type validation for the component properties validation.
@@ -662,16 +697,18 @@ var isArray = require("lodash/lang/isArray");
  * @param  {string} type - String or array of the types to use.
  * @return {object} The corresponding react type.
  */
-module.exports = function (type) {
+module.exports = function(type){
   var isStringType = isString(type);
-  if (!isStringType && !isArray(type)) {
-    throw new Error("The type should be a string or an array");
+  if(!isStringType && !isArray(type)){
+    throw new Error('The type should be a string or an array');
   }
-  if (isStringType) {
+  if(isStringType){
     return React.PropTypes[type];
   }
   return React.PropTypes.oneOf(type);
+
 };
+
 },{"lodash/lang/isArray":30,"lodash/lang/isString":33}],10:[function(require,module,exports){
 (function (global){
 var cachePush = require('./cachePush'),
@@ -773,7 +810,7 @@ function baseDifference(array, values) {
       }
       result.push(value);
     }
-    else if (indexOf(values, value) < 0) {
+    else if (indexOf(values, value, 0) < 0) {
       result.push(value);
     }
   }
@@ -794,13 +831,13 @@ var isArguments = require('../lang/isArguments'),
  *
  * @private
  * @param {Array} array The array to flatten.
- * @param {boolean} [isDeep] Specify a deep flatten.
- * @param {boolean} [isStrict] Restrict flattening to arrays and `arguments` objects.
- * @param {number} [fromIndex=0] The index to start from.
+ * @param {boolean} isDeep Specify a deep flatten.
+ * @param {boolean} isStrict Restrict flattening to arrays and `arguments` objects.
+ * @param {number} fromIndex The index to start from.
  * @returns {Array} Returns the new flattened array.
  */
 function baseFlatten(array, isDeep, isStrict, fromIndex) {
-  var index = (fromIndex || 0) - 1,
+  var index = fromIndex - 1,
       length = array.length,
       resIndex = -1,
       result = [];
@@ -811,7 +848,7 @@ function baseFlatten(array, isDeep, isStrict, fromIndex) {
     if (isObjectLike(value) && isLength(value.length) && (isArray(value) || isArguments(value))) {
       if (isDeep) {
         // Recursively flatten arrays (susceptible to call stack limits).
-        value = baseFlatten(value, isDeep, isStrict);
+        value = baseFlatten(value, isDeep, isStrict, 0);
       }
       var valIndex = -1,
           valLength = value.length;
@@ -889,14 +926,14 @@ var indexOfNaN = require('./indexOfNaN');
  * @private
  * @param {Array} array The array to search.
  * @param {*} value The value to search for.
- * @param {number} [fromIndex=0] The index to search from.
+ * @param {number} fromIndex The index to search from.
  * @returns {number} Returns the index of the matched value, else `-1`.
  */
 function baseIndexOf(array, value, fromIndex) {
   if (value !== value) {
     return indexOfNaN(array, fromIndex);
   }
-  var index = (fromIndex || 0) - 1,
+  var index = fromIndex - 1,
       length = array.length;
 
   while (++index < length) {
@@ -1044,13 +1081,13 @@ module.exports = createCache;
  *
  * @private
  * @param {Array} array The array to search.
- * @param {number} [fromIndex] The index to search from.
+ * @param {number} fromIndex The index to search from.
  * @param {boolean} [fromRight] Specify iterating from right to left.
  * @returns {number} Returns the index of the matched `NaN`, else `-1`.
  */
 function indexOfNaN(array, fromIndex, fromRight) {
   var length = array.length,
-      index = fromRight ? (fromIndex || length) : ((fromIndex || 0) - 1);
+      index = fromIndex + (fromRight ? 0 : -1);
 
   while ((fromRight ? index-- : ++index < length)) {
     var other = array[index];

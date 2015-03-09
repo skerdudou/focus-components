@@ -33,9 +33,8 @@ module.exports = builder(labelMixin);
 
 },{"focus/component/builder":2}],2:[function(require,module,exports){
 "use strict";
-
 var React = window.React;
-var assign = require("object-assign");
+var assign = require('object-assign');
 //var isObject = require('lodash/lang/isObject');
 //var isFunction = require('lodash/lang/isFunction');
 
@@ -45,11 +44,11 @@ var assign = require("object-assign");
  * @param {Boolean} isMixinOnly - define if the component is a mixin only.
  * @return {object} - {component} the built react component.
  */
-function createComponent(mixin, isMixinOnly) {
-  if (isMixinOnly) {
-    return undefined; //Error('Your class publish a mixin only...');
-  }
-  return { component: React.createClass(mixin) };
+function createComponent(mixin, isMixinOnly){
+    if (isMixinOnly){
+      return undefined;//Error('Your class publish a mixin only...');
+    }
+    return {component: React.createClass(mixin)};
 }
 
 /**
@@ -58,9 +57,9 @@ function createComponent(mixin, isMixinOnly) {
  * @param {boolean} isMixinOnly - Bolean to set .
  * @return {object} {mixin: 'the component mixin', component: 'the react instanciated component'}
  */
-module.exports = function (componentMixin, isMixinOnly) {
+module.exports = function(componentMixin, isMixinOnly){
 
-  return assign({
+  return assign( {
     mixin: componentMixin
     /*extend: function extendMixin(properties){
       if(isFunction(componentMixin)){
@@ -73,6 +72,7 @@ module.exports = function (componentMixin, isMixinOnly) {
     },*/
   }, createComponent(componentMixin, isMixinOnly));
 };
+
 },{"object-assign":3}],3:[function(require,module,exports){
 'use strict';
 
