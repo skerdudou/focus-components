@@ -75,7 +75,7 @@ div.qs-quick-search {
     position: absolute;
     top: 0;
     left: 0; }
-    div.qs-quick-search input[type=search].qs-searching {
+    div.qs-quick-search input[type=search].qs-loading {
       background: #FFF url(../img/loading.gif) no-repeat right center; }
   div.qs-quick-search div.qs-help {
     z-index: 2;

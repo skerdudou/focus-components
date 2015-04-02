@@ -1,0 +1,15 @@
+.popin {
+  position: fixed; }
+  .popin .full {
+    min-height: 100vh;
+    min-width: 50vw; }
+  .popin .centered {
+    height: 80vh; }
+
+.popin.left {
+  top: 0px;
+  left: 0px; }
+
+.popin.right {
+  top: 0px;
+  right: 0px; }

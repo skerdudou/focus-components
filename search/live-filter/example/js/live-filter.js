@@ -4,23 +4,23 @@
 var _defineProperty = function (obj, key, value) { return Object.defineProperty(obj, key, { value: value, enumerable: true, configurable: true, writable: true }); };
 
 /**@jsx*/
-var builder = require("focus/component/builder");
+var builder = window.focus.component.builder;
 var React = window.React;
 var LiveFilterFacet = require("./live-filter-facet").component;
-var type = require("focus/component/types");
+var type = window.focus.component.types;
 var assign = require("object-assign");
 var omit = require("lodash/object/omit");
+var Img = require("../../common/img").component;
 
 var liveFilterMixin = {
-
+    mixins: [require("../../common/i18n/mixin")],
     /**
      * Display name.
      */
     displayName: "live-filter",
-
     /**
      * Init the default properties
-     * @returns {{facetList: {}, selectedFacetList: {}, openedFacetList: {}, config: {}, dataSelectionHandler: undefined}}
+     * @returns {object} Initial properties.
      */
     getDefaultProps: function getDefaultProps() {
         return {
@@ -31,7 +31,6 @@ var liveFilterMixin = {
             dataSelectionHandler: undefined
         };
     },
-
     /**
      * List property validation.
      */
@@ -42,13 +41,9 @@ var liveFilterMixin = {
         config: type("object"),
         dataSelectionHandler: type("func")
     },
-
     /**
      * Init the state of the component.
-     * @returns {
-     *  {isExpanded: boolean True if the component is expanded, false if collapsed,
-     *   openedFacetList: Map (key : facetKey, value : true if facet expanded)}
-     *   }
+     * @returns {object} Iitial state.
      */
     getInitialState: function getInitialState() {
         var openedFacetList = this.props.openedFacetList;
@@ -65,10 +60,16 @@ var liveFilterMixin = {
     },
     /**
      * Render the component.
-     * @returns Html component code.
+     * @returns {XML} Html code.
      */
     render: function renderLiverFilter() {
-        var className = this.state.isExpanded ? "live-filter" : "live-filter collapsed";
+        var className = "panel live-filter";
+        if (this.state.isExpanded) {
+            className += " expanded";
+        } else {
+            className += " collapsed";
+        }
+
         return React.createElement(
             "div",
             { className: className },
@@ -76,51 +77,49 @@ var liveFilterMixin = {
             this.renderFilterFacetList()
         );
     },
-
     /**
      * Render the div title of the component.
-     * @Returns Html title code.
+     * @returns {XML} Hatml content.
      */
     renderLiveFacetTitle: function renderLiveFacetTitle() {
-        var title = this.state.isExpanded ? "live.filter.title" : "";
+        var title = this.state.isExpanded ? this.i18n("live.filter.title") : "";
+        var img = this.state.isExpanded ? "chevron-thin-left" : "chevron-thin-right";
         return React.createElement(
             "div",
-            { className: "header" },
+            { className: "panel-heading" },
             React.createElement(
                 "span",
-                { className: "title" },
+                null,
                 title
             ),
-            React.createElement(
-                "span",
-                { className: "icon", onClick: this.liveFilterTitleClick },
-                " "
-            )
+            React.createElement(Img, { src: img, onClick: this.liveFilterTitleClick })
         );
     },
-
     /**
      * Render the list of the facets.
-     * @Returns Html facets code.
+     * @returns {XML} Html content.
      */
     renderFilterFacetList: function renderFilterFacetList() {
         if (!this.state.isExpanded) {
-            return;
+            return "";
         }
         var facets = [];
         for (var key in this.props.facetList) {
+            var facet = this.props.facetList[key];
             var selectedDataKey = this.props.selectedFacetList[key] ? this.props.selectedFacetList[key].key : undefined;
-            facets.push(React.createElement(LiveFilterFacet, { facetKey: key,
-                facet: this.props.facetList[key],
-                selectedDataKey: selectedDataKey,
-                isExpanded: this.state.openedFacetList[key],
-                expandHandler: this.expandFacetHandler,
-                selectHandler: this.selectHandler,
-                type: this.props.config[key] }));
+            if (selectedDataKey || Object.keys(facet).length > 1) {
+                facets.push(React.createElement(LiveFilterFacet, { facetKey: key, key: key,
+                    facet: facet,
+                    selectedDataKey: selectedDataKey,
+                    isExpanded: this.state.openedFacetList[key],
+                    expandHandler: this.expandFacetHandler,
+                    selectHandler: this.selectHandler,
+                    type: this.props.config[key] }));
+            }
         }
         return React.createElement(
             "div",
-            null,
+            { className: "panel-body" },
             facets
         );
     },
@@ -134,7 +133,10 @@ var liveFilterMixin = {
     },
 
     /**
-     * Action on facet selection.
+     * Facet selection action handler.
+     * @param {string} facetKey Key of the selected facet.
+     * @param {string} dataKey Key of the selceted data.
+     * @param {object} data Content of the selected data facet.
      */
     selectHandler: function selectLiverFilterHandler(facetKey, dataKey, data) {
         var result = { openedFacetList: this.state.openedFacetList };
@@ -147,9 +149,9 @@ var liveFilterMixin = {
     },
 
     /**
-     * Expand facet action.
-     * @param facetKey Key of the facet.
-     * @param isExpanded true if expand action, false if collapse action.
+     * Expand facet action handler.
+     * @param {string} facetKey Key of the facet.
+     * @param {string} isExpanded true if expand action, false if collapse action.
      */
     expandFacetHandler: function expandFacetHandler(facetKey, isExpanded) {
         var openedFacetList = this.state.openedFacetList;
@@ -160,74 +162,123 @@ var liveFilterMixin = {
 
 module.exports = builder(liveFilterMixin);
 
-},{"./live-filter-facet":36,"focus/component/builder":2,"focus/component/types":3,"lodash/object/omit":29,"object-assign":34}],2:[function(require,module,exports){
+},{"../../common/i18n/mixin":2,"../../common/img":3,"./live-filter-facet":37,"lodash/object/omit":30,"object-assign":35}],2:[function(require,module,exports){
+/*global window*/
 "use strict";
+
+module.exports = {
+    /**
+     * Compute the translated label.
+     * @param key {string}- Key in the dictionnary of translations.
+     * @param data {object} - Data to interpole in the translated string.
+     * @returns {string} - Translated string.
+     */
+    i18n: function translate(key, data) {
+        var fn = window.i18n && window.i18n.t ? window.i18n.t : function defaulti18n(trKey) {
+            return trKey;
+        };
+        return fn(key, data);
+    }
+};
+
+},{}],3:[function(require,module,exports){
+"use strict";
+
+var builder = window.focus.component.builder;
 var React = window.React;
-var assign = require('object-assign');
-//var isObject = require('lodash/lang/isObject');
-//var isFunction = require('lodash/lang/isFunction');
+
+var imgMixin = {
+    /**
+     * Display name.
+     */
+    displayName: "img",
+    /**
+     * Default props.
+     * @returns {object} Initial props.
+     */
+    getDefaultProps: function getDefaultProps() {
+        return {
+            src: undefined,
+            onClick: undefined
+        };
+    },
+    /**
+     * Render the img.
+     * @returns {XML} Html code.
+     */
+    render: function renderImg() {
+        var className = "icon " + this.props.src;
+        return React.createElement(
+            "span",
+            { className: className, onClick: this.props.onClick },
+            " "
+        );
+    }
+};
+
+module.exports = builder(imgMixin);
+
+},{}],4:[function(require,module,exports){
+/** Used as the `TypeError` message for "Functions" methods. */
+var FUNC_ERROR_TEXT = 'Expected a function';
+
+/* Native method references for those with the same name as other `lodash` methods. */
+var nativeMax = Math.max;
 
 /**
- * Create a component with a mixin except id the component is mixin only.
- * @param {object}  mixin - The component mixin.
- * @param {Boolean} isMixinOnly - define if the component is a mixin only.
- * @return {object} - {component} the built react component.
+ * Creates a function that invokes `func` with the `this` binding of the
+ * created function and arguments from `start` and beyond provided as an array.
+ *
+ * **Note:** This method is based on the [rest parameter](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Functions/rest_parameters).
+ *
+ * @static
+ * @memberOf _
+ * @category Function
+ * @param {Function} func The function to apply a rest parameter to.
+ * @param {number} [start=func.length-1] The start position of the rest parameter.
+ * @returns {Function} Returns the new function.
+ * @example
+ *
+ * var say = _.restParam(function(what, names) {
+ *   return what + ' ' + _.initial(names).join(', ') +
+ *     (_.size(names) > 1 ? ', & ' : '') + _.last(names);
+ * });
+ *
+ * say('hello', 'fred', 'barney', 'pebbles');
+ * // => 'hello fred, barney, & pebbles'
  */
-function createComponent(mixin, isMixinOnly){
-    if (isMixinOnly){
-      return undefined;//Error('Your class publish a mixin only...');
+function restParam(func, start) {
+  if (typeof func != 'function') {
+    throw new TypeError(FUNC_ERROR_TEXT);
+  }
+  start = nativeMax(typeof start == 'undefined' ? (func.length - 1) : (+start || 0), 0);
+  return function() {
+    var args = arguments,
+        index = -1,
+        length = nativeMax(args.length - start, 0),
+        rest = Array(length);
+
+    while (++index < length) {
+      rest[index] = args[start + index];
     }
-    return {component: React.createClass(mixin)};
+    switch (start) {
+      case 0: return func.call(this, rest);
+      case 1: return func.call(this, args[0], rest);
+      case 2: return func.call(this, args[0], args[1], rest);
+    }
+    var otherArgs = Array(start + 1);
+    index = -1;
+    while (++index < start) {
+      otherArgs[index] = args[index];
+    }
+    otherArgs[start] = rest;
+    return func.apply(this, otherArgs);
+  };
 }
 
-/**
- * Build a module with a mixin and a React component.
- * @param  {object} componentMixin - Mixin of the component.
- * @param {boolean} isMixinOnly - Bolean to set .
- * @return {object} {mixin: 'the component mixin', component: 'the react instanciated component'}
- */
-module.exports = function(componentMixin, isMixinOnly){
+module.exports = restParam;
 
-  return assign( {
-    mixin: componentMixin
-    /*extend: function extendMixin(properties){
-      if(isFunction(componentMixin)){
-        throw new Error('You cannot extend a mixin function');
-      }
-      if(!isObject(properties)){
-        throw new Error('properties should be an object');
-      }
-      return assign({}, componentMixin, properties);
-    },*/
-  }, createComponent(componentMixin, isMixinOnly));
-};
-
-},{"object-assign":34}],3:[function(require,module,exports){
-"use strict";
-//Dependencies.
-var React = window.React;
-var isString = require('lodash/lang/isString');
-var isArray = require('lodash/lang/isArray');
-
-/**
- * Expose a React type validation for the component properties validation.
- * @see http://facebook.github.io/react/docs/reusable-components.html
- * @param  {string} type - String or array of the types to use.
- * @return {object} The corresponding react type.
- */
-module.exports = function(type){
-  var isStringType = isString(type);
-  if(!isStringType && !isArray(type)){
-    throw new Error('The type should be a string or an array');
-  }
-  if(isStringType){
-    return React.PropTypes[type];
-  }
-  return React.PropTypes.oneOf(type);
-
-};
-
-},{"lodash/lang/isArray":24,"lodash/lang/isString":27}],4:[function(require,module,exports){
+},{}],5:[function(require,module,exports){
 (function (global){
 var cachePush = require('./cachePush'),
     isNative = require('../lang/isNative');
@@ -260,10 +311,10 @@ SetCache.prototype.push = cachePush;
 module.exports = SetCache;
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"../lang/isNative":25,"./cachePush":14}],5:[function(require,module,exports){
+},{"../lang/isNative":27,"./cachePush":15}],6:[function(require,module,exports){
 /**
  * A specialized version of `_.map` for arrays without support for callback
- * shorthands or `this` binding.
+ * shorthands and `this` binding.
  *
  * @private
  * @param {Array} array The array to iterate over.
@@ -283,7 +334,7 @@ function arrayMap(array, iteratee) {
 
 module.exports = arrayMap;
 
-},{}],6:[function(require,module,exports){
+},{}],7:[function(require,module,exports){
 var baseIndexOf = require('./baseIndexOf'),
     cacheIndexOf = require('./cacheIndexOf'),
     createCache = require('./createCache');
@@ -337,7 +388,7 @@ function baseDifference(array, values) {
 
 module.exports = baseDifference;
 
-},{"./baseIndexOf":10,"./cacheIndexOf":13,"./createCache":15}],7:[function(require,module,exports){
+},{"./baseIndexOf":11,"./cacheIndexOf":14,"./createCache":17}],8:[function(require,module,exports){
 var isArguments = require('../lang/isArguments'),
     isArray = require('../lang/isArray'),
     isLength = require('./isLength'),
@@ -351,11 +402,10 @@ var isArguments = require('../lang/isArguments'),
  * @param {Array} array The array to flatten.
  * @param {boolean} isDeep Specify a deep flatten.
  * @param {boolean} isStrict Restrict flattening to arrays and `arguments` objects.
- * @param {number} fromIndex The index to start from.
  * @returns {Array} Returns the new flattened array.
  */
-function baseFlatten(array, isDeep, isStrict, fromIndex) {
-  var index = fromIndex - 1,
+function baseFlatten(array, isDeep, isStrict) {
+  var index = -1,
       length = array.length,
       resIndex = -1,
       result = [];
@@ -366,7 +416,7 @@ function baseFlatten(array, isDeep, isStrict, fromIndex) {
     if (isObjectLike(value) && isLength(value.length) && (isArray(value) || isArguments(value))) {
       if (isDeep) {
         // Recursively flatten arrays (susceptible to call stack limits).
-        value = baseFlatten(value, isDeep, isStrict, 0);
+        value = baseFlatten(value, isDeep, isStrict);
       }
       var valIndex = -1,
           valLength = value.length;
@@ -384,8 +434,8 @@ function baseFlatten(array, isDeep, isStrict, fromIndex) {
 
 module.exports = baseFlatten;
 
-},{"../lang/isArguments":23,"../lang/isArray":24,"./isLength":18,"./isObjectLike":19}],8:[function(require,module,exports){
-var toObject = require('./toObject');
+},{"../lang/isArguments":25,"../lang/isArray":26,"./isLength":20,"./isObjectLike":21}],9:[function(require,module,exports){
+var createBaseFor = require('./createBaseFor');
 
 /**
  * The base implementation of `baseForIn` and `baseForOwn` which iterates
@@ -399,24 +449,11 @@ var toObject = require('./toObject');
  * @param {Function} keysFunc The function to get the keys of `object`.
  * @returns {Object} Returns `object`.
  */
-function baseFor(object, iteratee, keysFunc) {
-  var index = -1,
-      iterable = toObject(object),
-      props = keysFunc(object),
-      length = props.length;
-
-  while (++index < length) {
-    var key = props[index];
-    if (iteratee(iterable[key], key, iterable) === false) {
-      break;
-    }
-  }
-  return object;
-}
+var baseFor = createBaseFor();
 
 module.exports = baseFor;
 
-},{"./toObject":22}],9:[function(require,module,exports){
+},{"./createBaseFor":16}],10:[function(require,module,exports){
 var baseFor = require('./baseFor'),
     keysIn = require('../object/keysIn');
 
@@ -435,7 +472,7 @@ function baseForIn(object, iteratee) {
 
 module.exports = baseForIn;
 
-},{"../object/keysIn":28,"./baseFor":8}],10:[function(require,module,exports){
+},{"../object/keysIn":29,"./baseFor":9}],11:[function(require,module,exports){
 var indexOfNaN = require('./indexOfNaN');
 
 /**
@@ -464,7 +501,7 @@ function baseIndexOf(array, value, fromIndex) {
 
 module.exports = baseIndexOf;
 
-},{"./indexOfNaN":16}],11:[function(require,module,exports){
+},{"./indexOfNaN":18}],12:[function(require,module,exports){
 /**
  * Converts `value` to a string if it is not one. An empty string is returned
  * for `null` or `undefined` values.
@@ -482,7 +519,7 @@ function baseToString(value) {
 
 module.exports = baseToString;
 
-},{}],12:[function(require,module,exports){
+},{}],13:[function(require,module,exports){
 var identity = require('../utility/identity');
 
 /**
@@ -523,7 +560,7 @@ function bindCallback(func, thisArg, argCount) {
 
 module.exports = bindCallback;
 
-},{"../utility/identity":33}],13:[function(require,module,exports){
+},{"../utility/identity":34}],14:[function(require,module,exports){
 var isObject = require('../lang/isObject');
 
 /**
@@ -544,7 +581,7 @@ function cacheIndexOf(cache, value) {
 
 module.exports = cacheIndexOf;
 
-},{"../lang/isObject":26}],14:[function(require,module,exports){
+},{"../lang/isObject":28}],15:[function(require,module,exports){
 var isObject = require('../lang/isObject');
 
 /**
@@ -566,7 +603,36 @@ function cachePush(value) {
 
 module.exports = cachePush;
 
-},{"../lang/isObject":26}],15:[function(require,module,exports){
+},{"../lang/isObject":28}],16:[function(require,module,exports){
+var toObject = require('./toObject');
+
+/**
+ * Creates a base function for `_.forIn` or `_.forInRight`.
+ *
+ * @private
+ * @param {boolean} [fromRight] Specify iterating from right to left.
+ * @returns {Function} Returns the new base function.
+ */
+function createBaseFor(fromRight) {
+  return function(object, iteratee, keysFunc) {
+    var iterable = toObject(object),
+        props = keysFunc(object),
+        length = props.length,
+        index = fromRight ? length : -1;
+
+    while ((fromRight ? index-- : ++index < length)) {
+      var key = props[index];
+      if (iteratee(iterable[key], key, iterable) === false) {
+        break;
+      }
+    }
+    return object;
+  };
+}
+
+module.exports = createBaseFor;
+
+},{"./toObject":24}],17:[function(require,module,exports){
 (function (global){
 var SetCache = require('./SetCache'),
     constant = require('../utility/constant'),
@@ -592,10 +658,9 @@ var createCache = !(nativeCreate && Set) ? constant(null) : function(values) {
 module.exports = createCache;
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"../lang/isNative":25,"../utility/constant":32,"./SetCache":4}],16:[function(require,module,exports){
+},{"../lang/isNative":27,"../utility/constant":33,"./SetCache":5}],18:[function(require,module,exports){
 /**
  * Gets the index at which the first occurrence of `NaN` is found in `array`.
- * If `fromRight` is provided elements of `array` are iterated from right to left.
  *
  * @private
  * @param {Array} array The array to search.
@@ -618,11 +683,10 @@ function indexOfNaN(array, fromIndex, fromRight) {
 
 module.exports = indexOfNaN;
 
-},{}],17:[function(require,module,exports){
+},{}],19:[function(require,module,exports){
 /**
- * Used as the maximum length of an array-like value.
- * See the [ES spec](https://people.mozilla.org/~jorendorff/es6-draft.html#sec-number.max_safe_integer)
- * for more details.
+ * Used as the [maximum length](https://people.mozilla.org/~jorendorff/es6-draft.html#sec-number.max_safe_integer)
+ * of an array-like value.
  */
 var MAX_SAFE_INTEGER = Math.pow(2, 53) - 1;
 
@@ -642,20 +706,17 @@ function isIndex(value, length) {
 
 module.exports = isIndex;
 
-},{}],18:[function(require,module,exports){
+},{}],20:[function(require,module,exports){
 /**
- * Used as the maximum length of an array-like value.
- * See the [ES spec](https://people.mozilla.org/~jorendorff/es6-draft.html#sec-number.max_safe_integer)
- * for more details.
+ * Used as the [maximum length](https://people.mozilla.org/~jorendorff/es6-draft.html#sec-number.max_safe_integer)
+ * of an array-like value.
  */
 var MAX_SAFE_INTEGER = Math.pow(2, 53) - 1;
 
 /**
  * Checks if `value` is a valid array-like length.
  *
- * **Note:** This function is based on ES `ToLength`. See the
- * [ES spec](https://people.mozilla.org/~jorendorff/es6-draft.html#sec-tolength)
- * for more details.
+ * **Note:** This function is based on [`ToLength`](https://people.mozilla.org/~jorendorff/es6-draft.html#sec-tolength).
  *
  * @private
  * @param {*} value The value to check.
@@ -667,7 +728,7 @@ function isLength(value) {
 
 module.exports = isLength;
 
-},{}],19:[function(require,module,exports){
+},{}],21:[function(require,module,exports){
 /**
  * Checks if `value` is object-like.
  *
@@ -676,12 +737,12 @@ module.exports = isLength;
  * @returns {boolean} Returns `true` if `value` is object-like, else `false`.
  */
 function isObjectLike(value) {
-  return (value && typeof value == 'object') || false;
+  return !!value && typeof value == 'object';
 }
 
 module.exports = isObjectLike;
 
-},{}],20:[function(require,module,exports){
+},{}],22:[function(require,module,exports){
 var toObject = require('./toObject');
 
 /**
@@ -711,7 +772,7 @@ function pickByArray(object, props) {
 
 module.exports = pickByArray;
 
-},{"./toObject":22}],21:[function(require,module,exports){
+},{"./toObject":24}],23:[function(require,module,exports){
 var baseForIn = require('./baseForIn');
 
 /**
@@ -735,7 +796,7 @@ function pickByCallback(object, predicate) {
 
 module.exports = pickByCallback;
 
-},{"./baseForIn":9}],22:[function(require,module,exports){
+},{"./baseForIn":10}],24:[function(require,module,exports){
 var isObject = require('../lang/isObject');
 
 /**
@@ -751,7 +812,7 @@ function toObject(value) {
 
 module.exports = toObject;
 
-},{"../lang/isObject":26}],23:[function(require,module,exports){
+},{"../lang/isObject":28}],25:[function(require,module,exports){
 var isLength = require('../internal/isLength'),
     isObjectLike = require('../internal/isObjectLike');
 
@@ -762,9 +823,8 @@ var argsTag = '[object Arguments]';
 var objectProto = Object.prototype;
 
 /**
- * Used to resolve the `toStringTag` of values.
- * See the [ES spec](https://people.mozilla.org/~jorendorff/es6-draft.html#sec-object.prototype.tostring)
- * for more details.
+ * Used to resolve the [`toStringTag`](https://people.mozilla.org/~jorendorff/es6-draft.html#sec-object.prototype.tostring)
+ * of values.
  */
 var objToString = objectProto.toString;
 
@@ -786,12 +846,12 @@ var objToString = objectProto.toString;
  */
 function isArguments(value) {
   var length = isObjectLike(value) ? value.length : undefined;
-  return (isLength(length) && objToString.call(value) == argsTag) || false;
+  return isLength(length) && objToString.call(value) == argsTag;
 }
 
 module.exports = isArguments;
 
-},{"../internal/isLength":18,"../internal/isObjectLike":19}],24:[function(require,module,exports){
+},{"../internal/isLength":20,"../internal/isObjectLike":21}],26:[function(require,module,exports){
 var isLength = require('../internal/isLength'),
     isNative = require('./isNative'),
     isObjectLike = require('../internal/isObjectLike');
@@ -803,9 +863,8 @@ var arrayTag = '[object Array]';
 var objectProto = Object.prototype;
 
 /**
- * Used to resolve the `toStringTag` of values.
- * See the [ES spec](https://people.mozilla.org/~jorendorff/es6-draft.html#sec-object.prototype.tostring)
- * for more details.
+ * Used to resolve the [`toStringTag`](https://people.mozilla.org/~jorendorff/es6-draft.html#sec-object.prototype.tostring)
+ * of values.
  */
 var objToString = objectProto.toString;
 
@@ -829,12 +888,12 @@ var nativeIsArray = isNative(nativeIsArray = Array.isArray) && nativeIsArray;
  * // => false
  */
 var isArray = nativeIsArray || function(value) {
-  return (isObjectLike(value) && isLength(value.length) && objToString.call(value) == arrayTag) || false;
+  return isObjectLike(value) && isLength(value.length) && objToString.call(value) == arrayTag;
 };
 
 module.exports = isArray;
 
-},{"../internal/isLength":18,"../internal/isObjectLike":19,"./isNative":25}],25:[function(require,module,exports){
+},{"../internal/isLength":20,"../internal/isObjectLike":21,"./isNative":27}],27:[function(require,module,exports){
 var escapeRegExp = require('../string/escapeRegExp'),
     isObjectLike = require('../internal/isObjectLike');
 
@@ -851,9 +910,8 @@ var objectProto = Object.prototype;
 var fnToString = Function.prototype.toString;
 
 /**
- * Used to resolve the `toStringTag` of values.
- * See the [ES spec](https://people.mozilla.org/~jorendorff/es6-draft.html#sec-object.prototype.tostring)
- * for more details.
+ * Used to resolve the [`toStringTag`](https://people.mozilla.org/~jorendorff/es6-draft.html#sec-object.prototype.tostring)
+ * of values.
  */
 var objToString = objectProto.toString;
 
@@ -886,17 +944,15 @@ function isNative(value) {
   if (objToString.call(value) == funcTag) {
     return reNative.test(fnToString.call(value));
   }
-  return (isObjectLike(value) && reHostCtor.test(value)) || false;
+  return isObjectLike(value) && reHostCtor.test(value);
 }
 
 module.exports = isNative;
 
-},{"../internal/isObjectLike":19,"../string/escapeRegExp":30}],26:[function(require,module,exports){
+},{"../internal/isObjectLike":21,"../string/escapeRegExp":31}],28:[function(require,module,exports){
 /**
- * Checks if `value` is the language type of `Object`.
+ * Checks if `value` is the [language type](https://es5.github.io/#x8) of `Object`.
  * (e.g. arrays, functions, objects, regexes, `new Number(0)`, and `new String('')`)
- *
- * **Note:** See the [ES5 spec](https://es5.github.io/#x8) for more details.
  *
  * @static
  * @memberOf _
@@ -918,50 +974,12 @@ function isObject(value) {
   // Avoid a V8 JIT bug in Chrome 19-20.
   // See https://code.google.com/p/v8/issues/detail?id=2291 for more details.
   var type = typeof value;
-  return type == 'function' || (value && type == 'object') || false;
+  return type == 'function' || (!!value && type == 'object');
 }
 
 module.exports = isObject;
 
-},{}],27:[function(require,module,exports){
-var isObjectLike = require('../internal/isObjectLike');
-
-/** `Object#toString` result references. */
-var stringTag = '[object String]';
-
-/** Used for native method references. */
-var objectProto = Object.prototype;
-
-/**
- * Used to resolve the `toStringTag` of values.
- * See the [ES spec](https://people.mozilla.org/~jorendorff/es6-draft.html#sec-object.prototype.tostring)
- * for more details.
- */
-var objToString = objectProto.toString;
-
-/**
- * Checks if `value` is classified as a `String` primitive or object.
- *
- * @static
- * @memberOf _
- * @category Lang
- * @param {*} value The value to check.
- * @returns {boolean} Returns `true` if `value` is correctly classified, else `false`.
- * @example
- *
- * _.isString('abc');
- * // => true
- *
- * _.isString(1);
- * // => false
- */
-function isString(value) {
-  return typeof value == 'string' || (isObjectLike(value) && objToString.call(value) == stringTag) || false;
-}
-
-module.exports = isString;
-
-},{"../internal/isObjectLike":19}],28:[function(require,module,exports){
+},{}],29:[function(require,module,exports){
 var isArguments = require('../lang/isArguments'),
     isArray = require('../lang/isArray'),
     isIndex = require('../internal/isIndex'),
@@ -1028,14 +1046,15 @@ function keysIn(object) {
 
 module.exports = keysIn;
 
-},{"../internal/isIndex":17,"../internal/isLength":18,"../lang/isArguments":23,"../lang/isArray":24,"../lang/isObject":26,"../support":31}],29:[function(require,module,exports){
+},{"../internal/isIndex":19,"../internal/isLength":20,"../lang/isArguments":25,"../lang/isArray":26,"../lang/isObject":28,"../support":32}],30:[function(require,module,exports){
 var arrayMap = require('../internal/arrayMap'),
     baseDifference = require('../internal/baseDifference'),
     baseFlatten = require('../internal/baseFlatten'),
     bindCallback = require('../internal/bindCallback'),
     keysIn = require('./keysIn'),
     pickByArray = require('../internal/pickByArray'),
-    pickByCallback = require('../internal/pickByCallback');
+    pickByCallback = require('../internal/pickByCallback'),
+    restParam = require('../function/restParam');
 
 /**
  * The opposite of `_.pick`; this method creates an object composed of the
@@ -1043,7 +1062,7 @@ var arrayMap = require('../internal/arrayMap'),
  * Property names may be specified as individual arguments or as arrays of
  * property names. If `predicate` is provided it is invoked for each property
  * of `object` omitting the properties `predicate` returns truthy for. The
- * predicate is bound to `thisArg` and invoked with three arguments;
+ * predicate is bound to `thisArg` and invoked with three arguments:
  * (value, key, object).
  *
  * @static
@@ -1065,36 +1084,36 @@ var arrayMap = require('../internal/arrayMap'),
  * _.omit(object, _.isNumber);
  * // => { 'user': 'fred' }
  */
-function omit(object, predicate, thisArg) {
+var omit = restParam(function(object, props) {
   if (object == null) {
     return {};
   }
-  if (typeof predicate != 'function') {
-    var props = arrayMap(baseFlatten(arguments, false, false, 1), String);
+  if (typeof props[0] != 'function') {
+    var props = arrayMap(baseFlatten(props), String);
     return pickByArray(object, baseDifference(keysIn(object), props));
   }
-  predicate = bindCallback(predicate, thisArg, 3);
+  var predicate = bindCallback(props[0], props[1], 3);
   return pickByCallback(object, function(value, key, object) {
     return !predicate(value, key, object);
   });
-}
+});
 
 module.exports = omit;
 
-},{"../internal/arrayMap":5,"../internal/baseDifference":6,"../internal/baseFlatten":7,"../internal/bindCallback":12,"../internal/pickByArray":20,"../internal/pickByCallback":21,"./keysIn":28}],30:[function(require,module,exports){
+},{"../function/restParam":4,"../internal/arrayMap":6,"../internal/baseDifference":7,"../internal/baseFlatten":8,"../internal/bindCallback":13,"../internal/pickByArray":22,"../internal/pickByCallback":23,"./keysIn":29}],31:[function(require,module,exports){
 var baseToString = require('../internal/baseToString');
 
 /**
- * Used to match `RegExp` special characters.
- * See this [article on `RegExp` characters](http://www.regular-expressions.info/characters.html#special)
- * for more details.
+ * Used to match `RegExp` [special characters](http://www.regular-expressions.info/characters.html#special).
+ * In addition to special characters the forward slash is escaped to allow for
+ * easier `eval` use and `Function` compilation.
  */
 var reRegExpChars = /[.*+?^${}()|[\]\/\\]/g,
     reHasRegExpChars = RegExp(reRegExpChars.source);
 
 /**
- * Escapes the `RegExp` special characters "\", "^", "$", ".", "|", "?", "*",
- * "+", "(", ")", "[", "]", "{" and "}" in `string`.
+ * Escapes the `RegExp` special characters "\", "/", "^", "$", ".", "|", "?",
+ * "*", "+", "(", ")", "[", "]", "{" and "}" in `string`.
  *
  * @static
  * @memberOf _
@@ -1104,7 +1123,7 @@ var reRegExpChars = /[.*+?^${}()|[\]\/\\]/g,
  * @example
  *
  * _.escapeRegExp('[lodash](https://lodash.com/)');
- * // => '\[lodash\]\(https://lodash\.com/\)'
+ * // => '\[lodash\]\(https:\/\/lodash\.com\/\)'
  */
 function escapeRegExp(string) {
   string = baseToString(string);
@@ -1115,13 +1134,8 @@ function escapeRegExp(string) {
 
 module.exports = escapeRegExp;
 
-},{"../internal/baseToString":11}],31:[function(require,module,exports){
+},{"../internal/baseToString":12}],32:[function(require,module,exports){
 (function (global){
-var isNative = require('./lang/isNative');
-
-/** Used to detect functions containing a `this` reference. */
-var reThis = /\bthis\b/;
-
 /** Used for native method references. */
 var objectProto = Object.prototype;
 
@@ -1150,7 +1164,7 @@ var support = {};
    * @memberOf _.support
    * @type boolean
    */
-  support.funcDecomp = !isNative(global.WinRTError) && reThis.test(function() { return this; });
+  support.funcDecomp = /\bthis\b/.test(function() { return this; });
 
   /**
    * Detect if `Function#name` is supported (all but IE).
@@ -1194,7 +1208,7 @@ var support = {};
 module.exports = support;
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"./lang/isNative":25}],32:[function(require,module,exports){
+},{}],33:[function(require,module,exports){
 /**
  * Creates a function that returns `value`.
  *
@@ -1219,7 +1233,7 @@ function constant(value) {
 
 module.exports = constant;
 
-},{}],33:[function(require,module,exports){
+},{}],34:[function(require,module,exports){
 /**
  * This method returns the first argument provided to it.
  *
@@ -1241,7 +1255,7 @@ function identity(value) {
 
 module.exports = identity;
 
-},{}],34:[function(require,module,exports){
+},{}],35:[function(require,module,exports){
 'use strict';
 
 function ToObject(val) {
@@ -1269,11 +1283,11 @@ module.exports = Object.assign || function (target, source) {
 	return to;
 };
 
-},{}],35:[function(require,module,exports){
+},{}],36:[function(require,module,exports){
+/**@jsx*/
 "use strict";
 
-/**@jsx*/
-var builder = require("focus/component/builder");
+var builder = window.focus.component.builder;
 var React = window.React;
 
 var liveFilterDataMixin = {
@@ -1285,7 +1299,7 @@ var liveFilterDataMixin = {
 
     /**
      * Render the component.
-     * @returns Html code of the component.
+     * @returns {XML} Html code of the component.
      */
     render: function renderFacet() {
         return React.createElement(
@@ -1298,7 +1312,7 @@ var liveFilterDataMixin = {
 
     /**
      * Render the data.
-     * @returns Html generated code.
+     * @returns {string} Html generated code.
      */
     renderData: function renderData() {
         if (this.props.type == "text") {
@@ -1306,9 +1320,9 @@ var liveFilterDataMixin = {
         }
         throw new Error("Unknown property type : " + this.props.type);
     },
-
     /**
-     * Action of selection.
+     * Facet selection action handler.
+     * @returns {object} Fsfssd.
      */
     selectFacetData: function selectFacetDetail() {
         return this.props.selectHandler(this.props.dataKey, this.props.data);
@@ -1317,11 +1331,11 @@ var liveFilterDataMixin = {
 
 module.exports = builder(liveFilterDataMixin);
 
-},{"focus/component/builder":2}],36:[function(require,module,exports){
+},{}],37:[function(require,module,exports){
+/**@jsx*/
 "use strict";
 
-/**@jsx*/
-var builder = require("focus/component/builder");
+var builder = window.focus.component.builder;
 var React = window.React;
 var Data = require("./live-filter-data").component;
 
@@ -1334,7 +1348,7 @@ var liveFilterFacetMixin = {
 
     /**
      * Init the component state.
-     * @returns {{isShowAll: true if all the facets must be displayed or just be limited to this.props.nbDefaultDataList }}
+     * @returns {object} Initial state.
      */
     getInitialState: function getInitialState() {
         return {
@@ -1344,7 +1358,7 @@ var liveFilterFacetMixin = {
 
     /**
      * Init the default props.
-     * @returns {{nbDefaultDataList: default number of data facets displayed.}}
+     * @returns {object} Initial state.
      */
     getDefaultProps: function getLiveFilterFacetDefaultProperties() {
         return {
@@ -1354,12 +1368,21 @@ var liveFilterFacetMixin = {
 
     /**
      * Render the component.
-     * @returns Html component code.
+     * @returns {XML} Html component code.
      */
     render: function renderLiverFilterFacet() {
+        /*
         var className = this.props.isExpanded ? "lf-facet" : "lf-facet collapsed";
-        if (this.props.selectedDataKey) {
+        if(this.props.selectedDataKey) {
             className = "lf-facet selected";
+        }*/
+        var className = "panel panel-primary facet";
+        if (this.props.selectedDataKey) {
+            className += "-selected";
+        } else if (this.props.isExpanded) {
+            className += "-expanded";
+        } else {
+            className += "-collapsed";
         }
         return React.createElement(
             "div",
@@ -1371,16 +1394,17 @@ var liveFilterFacetMixin = {
 
     /**
      * Render the component title.
-     * @returns Html component code.
+     * @returns {XML} Html component code.
      */
     renderLiveFilterFacetTitle: function renderLiveFilterFacetTitle() {
         var title = this.props.facetKey;
+        var className = "panel-heading";
         if (this.props.selectedDataKey) {
             title += " : " + this.props.facet[this.props.selectedDataKey].label;
         }
         return React.createElement(
             "div",
-            { className: "title", onClick: this.liveFilterFacetTitleClick },
+            { className: className, onClick: this.liveFilterFacetTitleClick },
             title
         );
     },
@@ -1398,11 +1422,11 @@ var liveFilterFacetMixin = {
 
     /**
      * Render the list of data of the facet.
-     * @returns Html component code.
+     * @returns {XML} Html component code.
      */
     renderLiveFilterDataList: function renderLiveFilterDataList() {
         if (!this.props.isExpanded || this.props.selectedDataKey) {
-            return;
+            return "";
         }
         var facetDetailList = [];
         var i = 0;
@@ -1419,7 +1443,7 @@ var liveFilterFacetMixin = {
         }
         return React.createElement(
             "div",
-            null,
+            { className: "panel-body" },
             React.createElement(
                 "ul",
                 null,
@@ -1432,6 +1456,8 @@ var liveFilterFacetMixin = {
 
     /**
      * Action on facet data selection.
+     * @param {string} dataKey Key of the selected data.
+     * @param {string} data Selected data.
      */
     selectHandler: function selectHandler(dataKey, data) {
         this.props.expandHandler(this.props.facetKey, false);
@@ -1440,13 +1466,13 @@ var liveFilterFacetMixin = {
 
     /**
      * Render all the data facets.
-     * @returns Html component code.
+     * @returns {XML} Html component code.
      */
     renderShowAllDataList: function renderShowAllDataList() {
         if (!this.state.isShowAll && Object.keys(this.props.facet).length > this.props.nbDefaultDataList) {
             return React.createElement(
-                "div",
-                { className: "show-all", onClick: this.showAllHandler },
+                "a",
+                { href: "javascript:void(0);", onClick: this.showAllHandler },
                 " show.alls "
             );
         }
@@ -1462,5 +1488,5 @@ var liveFilterFacetMixin = {
 
 module.exports = builder(liveFilterFacetMixin);
 
-},{"./live-filter-data":35,"focus/component/builder":2}]},{},[1])(1)
+},{"./live-filter-data":36}]},{},[1])(1)
 });

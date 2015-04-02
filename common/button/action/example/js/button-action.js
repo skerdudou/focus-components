@@ -2,7 +2,9 @@
 "use strict";
 
 var React = window.React;
-var builder = require("focus/component/builder");
+var builder = window.focus.component.builder;
+var Img = require("../../img").component;
+
 /**/
 var buttonMixin = {
 	getDefaultProps: function getInputDefaultProps() {
@@ -10,7 +12,9 @@ var buttonMixin = {
 			type: "submit",
 			action: undefined,
 			isPressed: false,
-			style: {}
+			style: {},
+			label: undefined,
+			imgSrc: undefined
 		};
 	},
 	handleOnClick: function handleButtonOnclick() {
@@ -18,7 +22,8 @@ var buttonMixin = {
 			return this.props.handleOnClick.apply(this, arguments);
 		}
 		if (!this.props.action || !this.action[this.props.action]) {
-			return console.warn("Your button action is not implemented");
+			console.warn("Your button action is not implemented");
+			return;
 		}
 		return this.action[this.props.action].apply(this, arguments);
 	},
@@ -28,13 +33,13 @@ var buttonMixin = {
 		};
 	},
 	_className: function buttonClassName() {
-		return "btn " + (this.props.style.className ? "btn-" + this.props.style.className : "");
+		return "btn btn-raised " + (this.props.style.className ? "btn-" + this.props.style.className : "");
 	},
 	renderPressedButton: function renderPressedButton() {
 		return React.createElement(
 			"button",
 			null,
-			" Loading... "
+			"Loading..."
 		);
 	},
 	/**
@@ -45,89 +50,55 @@ var buttonMixin = {
 		if (this.state.isPressed) {
 			return this.renderPressedButton();
 		}
+		if (this.props.imgSrc) {
+			return React.createElement(Img, { src: this.props.imgSrc, onClick: this.handleOnClick });
+		}
 		return React.createElement(
 			"button",
-			{ onClick: this.handleOnClick,
-				type: this.props.type,
-				className: this._className() },
-			" ",
-			this.props.label,
-			" "
+			{ href: "javascript:void(0)", onClick: this.handleOnClick, type: this.props.type, className: this._className() },
+			this.props.label
 		);
 	}
 };
 
 module.exports = builder(buttonMixin);
 
-},{"focus/component/builder":2}],2:[function(require,module,exports){
+},{"../../img":2}],2:[function(require,module,exports){
 "use strict";
+
+var builder = window.focus.component.builder;
 var React = window.React;
-var assign = require('object-assign');
-//var isObject = require('lodash/lang/isObject');
-//var isFunction = require('lodash/lang/isFunction');
 
-/**
- * Create a component with a mixin except id the component is mixin only.
- * @param {object}  mixin - The component mixin.
- * @param {Boolean} isMixinOnly - define if the component is a mixin only.
- * @return {object} - {component} the built react component.
- */
-function createComponent(mixin, isMixinOnly){
-    if (isMixinOnly){
-      return undefined;//Error('Your class publish a mixin only...');
+var imgMixin = {
+    /**
+     * Display name.
+     */
+    displayName: "img",
+    /**
+     * Default props.
+     * @returns {object} Initial props.
+     */
+    getDefaultProps: function getDefaultProps() {
+        return {
+            src: undefined,
+            onClick: undefined
+        };
+    },
+    /**
+     * Render the img.
+     * @returns {XML} Html code.
+     */
+    render: function renderImg() {
+        var className = "icon " + this.props.src;
+        return React.createElement(
+            "span",
+            { className: className, onClick: this.props.onClick },
+            " "
+        );
     }
-    return {component: React.createClass(mixin)};
-}
-
-/**
- * Build a module with a mixin and a React component.
- * @param  {object} componentMixin - Mixin of the component.
- * @param {boolean} isMixinOnly - Bolean to set .
- * @return {object} {mixin: 'the component mixin', component: 'the react instanciated component'}
- */
-module.exports = function(componentMixin, isMixinOnly){
-
-  return assign( {
-    mixin: componentMixin
-    /*extend: function extendMixin(properties){
-      if(isFunction(componentMixin)){
-        throw new Error('You cannot extend a mixin function');
-      }
-      if(!isObject(properties)){
-        throw new Error('properties should be an object');
-      }
-      return assign({}, componentMixin, properties);
-    },*/
-  }, createComponent(componentMixin, isMixinOnly));
 };
 
-},{"object-assign":3}],3:[function(require,module,exports){
-'use strict';
-
-function ToObject(val) {
-	if (val == null) {
-		throw new TypeError('Object.assign cannot be called with null or undefined');
-	}
-
-	return Object(val);
-}
-
-module.exports = Object.assign || function (target, source) {
-	var from;
-	var keys;
-	var to = ToObject(target);
-
-	for (var s = 1; s < arguments.length; s++) {
-		from = arguments[s];
-		keys = Object.keys(Object(from));
-
-		for (var i = 0; i < keys.length; i++) {
-			to[keys[i]] = from[keys[i]];
-		}
-	}
-
-	return to;
-};
+module.exports = builder(imgMixin);
 
 },{}]},{},[1])(1)
 });

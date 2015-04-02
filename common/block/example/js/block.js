@@ -2,23 +2,27 @@
 "use strict";
 
 var React = window.React;
-var builder = require("focus/component/builder");
+var builder = window.focus.component.builder;
+var Title = require("../title").component;
+var i18nMixin = require("../i18n").mixin;
 /**
  * Mixin used in order to create a block.
  * @type {Object}
  */
 var blockMixin = {
+  mixins: [i18nMixin],
+  getDefaultProps: function getDefaultProps() {
+    return {
+      style: {}
+    };
+  },
   /**
    * Header of theblock function.
    * @return {[type]} [description]
    */
   heading: function heading() {
     if (this.props.title) {
-      return React.createElement(
-        "div",
-        { className: "panel-heading" },
-        this.props.title
-      );
+      return this.i18n(this.props.title);
     }
   },
   /**
@@ -28,87 +32,78 @@ var blockMixin = {
   render: function renderBlock() {
     return React.createElement(
       "div",
-      { className: "panel panel-default" },
-      this.heading(),
-      React.createElement(
-        "div",
-        { className: "panel-body" },
-        this.props.children
-      )
+      { className: "block " + this.props.style.className },
+      React.createElement(Title, { id: this.props.style.titleId, title: this.heading() }),
+      this.props.children
     );
   }
 };
 module.exports = builder(blockMixin);
 
-},{"focus/component/builder":2}],2:[function(require,module,exports){
+},{"../i18n":2,"../title":4}],2:[function(require,module,exports){
 "use strict";
-var React = window.React;
-var assign = require('object-assign');
-//var isObject = require('lodash/lang/isObject');
-//var isFunction = require('lodash/lang/isFunction');
 
-/**
- * Create a component with a mixin except id the component is mixin only.
- * @param {object}  mixin - The component mixin.
- * @param {Boolean} isMixinOnly - define if the component is a mixin only.
- * @return {object} - {component} the built react component.
- */
-function createComponent(mixin, isMixinOnly){
-    if (isMixinOnly){
-      return undefined;//Error('Your class publish a mixin only...');
+module.exports = {
+  mixin: require("./mixin")
+};
+
+},{"./mixin":3}],3:[function(require,module,exports){
+/*global window*/
+"use strict";
+
+module.exports = {
+    /**
+     * Compute the translated label.
+     * @param key {string}- Key in the dictionnary of translations.
+     * @param data {object} - Data to interpole in the translated string.
+     * @returns {string} - Translated string.
+     */
+    i18n: function translate(key, data) {
+        var fn = window.i18n && window.i18n.t ? window.i18n.t : function defaulti18n(trKey) {
+            return trKey;
+        };
+        return fn(key, data);
     }
-    return {component: React.createClass(mixin)};
-}
-
-/**
- * Build a module with a mixin and a React component.
- * @param  {object} componentMixin - Mixin of the component.
- * @param {boolean} isMixinOnly - Bolean to set .
- * @return {object} {mixin: 'the component mixin', component: 'the react instanciated component'}
- */
-module.exports = function(componentMixin, isMixinOnly){
-
-  return assign( {
-    mixin: componentMixin
-    /*extend: function extendMixin(properties){
-      if(isFunction(componentMixin)){
-        throw new Error('You cannot extend a mixin function');
-      }
-      if(!isObject(properties)){
-        throw new Error('properties should be an object');
-      }
-      return assign({}, componentMixin, properties);
-    },*/
-  }, createComponent(componentMixin, isMixinOnly));
 };
 
-},{"object-assign":3}],3:[function(require,module,exports){
-'use strict';
+},{}],4:[function(require,module,exports){
+"use strict";
 
-function ToObject(val) {
-	if (val == null) {
-		throw new TypeError('Object.assign cannot be called with null or undefined');
-	}
+var builder = window.focus.component.builder;
 
-	return Object(val);
-}
+var titleMixin = {
 
-module.exports = Object.assign || function (target, source) {
-	var from;
-	var keys;
-	var to = ToObject(target);
+    /**
+     * Display name.
+     */
+    displayName: "title",
 
-	for (var s = 1; s < arguments.length; s++) {
-		from = arguments[s];
-		keys = Object.keys(Object(from));
+    /**
+     * Default propos.
+     * @returns {object} Default props.
+     */
+    getDefaultProps: function getDefaultProps() {
+        return {
+            id: undefined,
+            title: undefined
+        };
+    },
 
-		for (var i = 0; i < keys.length; i++) {
-			to[keys[i]] = from[keys[i]];
-		}
-	}
+    /**
+     * Render the component.
+     * @returns {JSX} Htm code.
+     */
+    render: function renderStickyNavigation() {
+        return React.createElement(
+            "h3",
+            { id: this.props.id, "data-menu": true },
+            this.props.title
+        );
+    }
 
-	return to;
 };
+
+module.exports = builder(titleMixin);
 
 },{}]},{},[1])(1)
 });

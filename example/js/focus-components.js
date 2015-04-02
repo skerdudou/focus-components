@@ -1,33 +1,125 @@
 (function(f){if(typeof exports==="object"&&typeof module!=="undefined"){module.exports=f()}else if(typeof define==="function"&&define.amd){define([],f)}else{var g;if(typeof window!=="undefined"){g=window}else if(typeof global!=="undefined"){g=global}else if(typeof self!=="undefined"){g=self}else{g=this}g.focusComponents = f()}})(function(){var define,module,exports;return (function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);var f=new Error("Cannot find module '"+o+"'");throw f.code="MODULE_NOT_FOUND",f}var l=n[o]={exports:{}};t[o][0].call(l.exports,function(e){var n=t[o][1][e];return s(n?n:e)},l,l.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(require,module,exports){
+//Generator http://patorjk.com/software/taag/#p=display&h=1&f=Banner4&t=Focus-COMPONENTS
+"use strict";
+
+console.log("\n  .########..#######...######..##.....##..######...........######...#######..##.....##.########...#######..##....##.########.##....##.########..######.\n.##.......##.....##.##....##.##.....##.##....##.........##....##.##.....##.###...###.##.....##.##.....##.###...##.##.......###...##....##....##....##\n.##.......##.....##.##.......##.....##.##...............##.......##.....##.####.####.##.....##.##.....##.####..##.##.......####..##....##....##......\n.######...##.....##.##.......##.....##..######..#######.##.......##.....##.##.###.##.########..##.....##.##.##.##.######...##.##.##....##.....######.\n.##.......##.....##.##.......##.....##.......##.........##.......##.....##.##.....##.##........##.....##.##..####.##.......##..####....##..........##\n.##.......##.....##.##....##.##.....##.##....##.........##....##.##.....##.##.....##.##........##.....##.##...###.##.......##...###....##....##....##\n.##........#######...######...#######...######...........######...#######..##.....##.##.........#######..##....##.########.##....##....##.....######.\n");
+var infos = require("./package.json");
+module.exports = {
+  VERSION: infos.version,
+  AUTHORS: infos.author,
+  NAME: infos.name,
+  DOCUMENTATION: function DOCUMENTATION() {
+    console.log("documentation: http://kleegroup.github.io/focus-components");
+    console.log("components available");
+    console.table(infos.components);
+    console.log("repository: " + infos.repository.url);
+    console.log("issues: " + infos.bugs.url);
+  },
+  common: require("./common"),
+  list: require("./list"),
+  search: require("./search"),
+  page: require("./page"),
+  message: require("./message"),
+  application: require("./application")
+};
+
+},{"./application":3,"./common":21,"./list":39,"./message":48,"./package.json":111,"./page":112,"./search":120}],2:[function(require,module,exports){
+"use strict";
+
+module.exports = {};
+
+},{}],3:[function(require,module,exports){
 "use strict";
 
 module.exports = {
-	common: require("./common"),
-	list: require("./list"),
-	search: require("./search")
+  bar: require("./bar"),
+  menu: require("./menu")
 };
 
-},{"./common":8,"./list":18,"./search":81}],2:[function(require,module,exports){
+},{"./bar":2,"./menu":4}],4:[function(require,module,exports){
+"use strict";
+
+var builder = window.focus.component.builder;
+var React = window.React;
+var type = window.focus.component.types;
+
+var menuMixin = {
+  /** @inheritedProps*/
+  getDefaultProps: function getMenuDefaultProps() {
+    return {
+      direction: "vertical", //horizontal
+      position: "left", // top, bottom, right, left
+      links: [],
+      open: false
+    };
+  },
+  /** @inheritedProps*/
+  getInitialState: function getMenuDefaultState() {
+    return {
+      open: this.props.open
+    };
+  },
+  /**
+   * Toggle the state of the menu.
+   */
+  toggle: function toggleOpenMenu() {
+    this.setState({ open: !this.state.open });
+  },
+  /**
+   * Render the links of the menu
+   */
+  renderLinks: function renderLinks() {
+    return this.props.links.map(function (link) {
+      return React.createElement(
+        "a",
+        { href: link.url },
+        link.name
+      );
+    });
+  },
+  /** @inheriteddoc */
+  render: function render() {
+    var className = "menu menu-" + this.props.direction + " menu-" + this.props.position + " menu-" + (this.state.open ? "open" : "");
+    return React.createElement(
+      "nav",
+      { className: className },
+      React.createElement(
+        "h3",
+        null,
+        this.props.title
+      ),
+      this.renderLinks()
+    );
+  }
+};
+
+module.exports = builder(menuMixin);
+
+},{}],5:[function(require,module,exports){
 "use strict";
 
 var React = window.React;
-var builder = require("focus/component/builder");
+var builder = window.focus.component.builder;
+var Title = require("../title").component;
+var i18nMixin = require("../i18n").mixin;
 /**
  * Mixin used in order to create a block.
  * @type {Object}
  */
 var blockMixin = {
+  mixins: [i18nMixin],
+  getDefaultProps: function getDefaultProps() {
+    return {
+      style: {}
+    };
+  },
   /**
    * Header of theblock function.
    * @return {[type]} [description]
    */
   heading: function heading() {
     if (this.props.title) {
-      return React.createElement(
-        "div",
-        { className: "panel-heading" },
-        this.props.title
-      );
+      return this.i18n(this.props.title);
     }
   },
   /**
@@ -37,23 +129,21 @@ var blockMixin = {
   render: function renderBlock() {
     return React.createElement(
       "div",
-      { className: "panel panel-default" },
-      this.heading(),
-      React.createElement(
-        "div",
-        { className: "panel-body" },
-        this.props.children
-      )
+      { className: "block " + this.props.style.className },
+      React.createElement(Title, { id: this.props.style.titleId, title: this.heading() }),
+      this.props.children
     );
   }
 };
 module.exports = builder(blockMixin);
 
-},{"focus/component/builder":22}],3:[function(require,module,exports){
+},{"../i18n":18,"../title":35}],6:[function(require,module,exports){
 "use strict";
 
 var React = window.React;
-var builder = require("focus/component/builder");
+var builder = window.focus.component.builder;
+var Img = require("../../img").component;
+
 /**/
 var buttonMixin = {
 	getDefaultProps: function getInputDefaultProps() {
@@ -61,7 +151,9 @@ var buttonMixin = {
 			type: "submit",
 			action: undefined,
 			isPressed: false,
-			style: {}
+			style: {},
+			label: undefined,
+			imgSrc: undefined
 		};
 	},
 	handleOnClick: function handleButtonOnclick() {
@@ -69,7 +161,8 @@ var buttonMixin = {
 			return this.props.handleOnClick.apply(this, arguments);
 		}
 		if (!this.props.action || !this.action[this.props.action]) {
-			return console.warn("Your button action is not implemented");
+			console.warn("Your button action is not implemented");
+			return;
 		}
 		return this.action[this.props.action].apply(this, arguments);
 	},
@@ -79,13 +172,13 @@ var buttonMixin = {
 		};
 	},
 	_className: function buttonClassName() {
-		return "btn " + (this.props.style.className ? "btn-" + this.props.style.className : "");
+		return "btn btn-raised " + (this.props.style.className ? "btn-" + this.props.style.className : "");
 	},
 	renderPressedButton: function renderPressedButton() {
 		return React.createElement(
 			"button",
 			null,
-			" Loading... "
+			"Loading..."
 		);
 	},
 	/**
@@ -96,318 +189,959 @@ var buttonMixin = {
 		if (this.state.isPressed) {
 			return this.renderPressedButton();
 		}
+		if (this.props.imgSrc) {
+			return React.createElement(Img, { src: this.props.imgSrc, onClick: this.handleOnClick });
+		}
 		return React.createElement(
 			"button",
-			{ onClick: this.handleOnClick,
-				type: this.props.type,
-				className: this._className() },
-			" ",
-			this.props.label,
-			" "
+			{ href: "javascript:void(0)", onClick: this.handleOnClick, type: this.props.type, className: this._className() },
+			this.props.label
 		);
 	}
 };
 
 module.exports = builder(buttonMixin);
 
-},{"focus/component/builder":22}],4:[function(require,module,exports){
+},{"../../img":20}],7:[function(require,module,exports){
 "use strict";
 
 module.exports = {
 	action: require("./action")
 };
 
-},{"./action":3}],5:[function(require,module,exports){
+},{"./action":6}],8:[function(require,module,exports){
+//Dependencies.
 "use strict";
 
-var builder = require("focus/component/builder");
+var builder = window.focus.component.builder;
 var React = window.React;
-var Input = require("../input/text").component;
-var Label = require("../label").component;
+var type = window.focus.component.types;
+
+/**
+ * Input text mixin.
+ * @type {Object}
+ */
+var displayTextMixin = {
+  /** @inheritdoc */
+  getDefaultProps: function getInputDefaultProps() {
+    return {
+      value: undefined,
+      name: undefined,
+      formatter: function formatter(data) {
+        return data;
+      },
+      style: {}
+    };
+  },
+  /** @inheritdoc */
+  propTypes: {
+    type: type("string"),
+    value: type(["string", "number"]),
+    name: type("string"),
+    style: type("object")
+  },
+  renderValue: function renderValueDisplayText() {
+    return this.props.formatter(this.props.value);
+  },
+  /**
+   * Render a display field.
+   * @return {DOM} - The dom of an input.
+   */
+  render: function renderInput() {
+    return React.createElement(
+      "div",
+      {
+        id: this.props.name,
+        name: this.props.name,
+        className: this.props.style["class"]
+      },
+      this.renderValue()
+    );
+  }
+};
+
+module.exports = builder(displayTextMixin);
+
+},{}],9:[function(require,module,exports){
+"use strict";
+
+var builder = window.focus.component.builder;
+var type = window.focus.component.types;
+var React = window.React;
+var valueBehaviour = require("./mixin/value-behaviour");
+var validationBehaviour = require("./mixin/validation-behaviour");
+var builtInComponents = require("./mixin/built-in-components");
 var FieldMixin = {
-	/**
+  mixins: [valueBehaviour, validationBehaviour, builtInComponents],
+  /**
   * Get field default properties.
   */
-	getDefaultProps: function getFieldDefaultProps() {
-		return {
-			hasLabel: true,
-			labelSize: 3,
-			type: "text",
-			value: undefined,
-			name: undefined
-		};
-	},
-	/**
+  getDefaultProps: function getFieldDefaultProps() {
+    return {
+
+      /**
+       * Edition mode of the field.
+       * @type {Boolean}
+       */
+      isEdit: true,
+      /**
+       * Size of the label in the grid system.
+       * @type {Number}
+       */
+      labelSize: 3,
+      /**
+       * HTML input type.
+       * @type {String}
+       */
+      type: "text",
+      /**
+       * Field name.
+       * @type {string}
+       */
+      name: undefined,
+      /**
+       * Css properties of the component.
+       * @type {Object}
+       */
+      style: {}
+    };
+  },
+  /** @inheritdoc */
+  propTypes: {
+    hasLabel: type("bool"),
+    labelSize: type("number"),
+    type: type("string"),
+    name: type("string"),
+    value: type(["string", "number"])
+  },
+
+  /** @inheritdoc */
+  componentWillReceiveProps: function fieldWillReceiveProps(newProps) {
+    this.setState({ value: newProps.value, values: newProps.values });
+  },
+  /**
   * Get the css class of the field component.
   */
-	_className: function _className() {
-		var stateClass = this.props.error ? "has-feedback has-error" : "";
-		return "form-group " + stateClass;
-	},
-	label: function label() {
-		if (this.props.hasLabel) {
-			var labelClassName = "control-label col-sm-" + this.props.labelSize;
-			return React.createElement(
-				"label",
-				{ className: labelClassName,
-					name: this.props.name,
-					key: this.props.name },
-				" ",
-				this.props.name,
-				" "
-			);
-		}
-	},
-	/**
-  * Validate the field.
-  * @return {object} - undefined if valid, {name: "errors"} if not valid.
-  */
-	validate: function validate() {
-		return this.refs.input.validate();
-	},
-	/**
-  * Get the value from the field.
-  */
-	getValue: function getValue() {
-		return this.refs.input.getValue();
-	},
-	input: function input() {
-		var inputClassName = "form-control col-sm-" + (12 - this.props.labelSize);
-		var addOn = function () {
-			"";
-		};
-		var feedBack = function () {
-			"";
-		};
-		return React.createElement(
-			"div",
-			{ className: "input-group" },
-			React.createElement(Input, { style: {
-					"class": inputClassName
-				},
-				id: this.props.name,
-				name: this.props.name,
-				value: this.props.value,
-				type: this.props.type,
-				ref: "input" })
-		);
-	},
-	error: function error() {
-		if (this.props.error) {
-			return (
-				/*<span class="glyphicon glyphicon-remove form-control-feedback" aria-hidden="true"></span>*/
-				React.createElement(
-					"span",
-					{ className: "help-block" },
-					" ",
-					this.props.error,
-					" "
-				)
-			);
-		}
-	},
-	help: function help() {
-		if (this.props.help) {
-			return React.createElement(
-				"span",
-				{ className: "help-block" },
-				" ",
-				this.props.help,
-				" "
-			);
-		}
-	},
-	render: function renderField() {
-		return React.createElement(
-			"div",
-			{ className: this._className() },
-			" ",
-			this.label(),
-			" ",
-			this.input(),
-			" ",
-			this.help(),
-			" ",
-			this.error(),
-			" "
-		);
-	}
+  _className: function _className() {
+    var stateClass = this.state.error ? "has-feedback has-error" : "";
+    return "form-group " + stateClass;
+  },
+
+  render: function renderField() {
+    return React.createElement(
+      "div",
+      { className: this._className() },
+      this.label(),
+      this.props.isEdit ? this.props.values ? this.select() : this.input() : this.display(),
+      this.help(),
+      this.error()
+    );
+  }
 };
 module.exports = builder(FieldMixin);
 
-},{"../input/text":11,"../label":13,"focus/component/builder":22}],6:[function(require,module,exports){
+},{"./mixin/built-in-components":10,"./mixin/validation-behaviour":11,"./mixin/value-behaviour":12}],10:[function(require,module,exports){
+"use strict";
+
+var InputText = require("../../input/text").component;
+var DisplayText = require("../../display/text").component;
+var SelectClassic = require("../../select/classic").component;
+var Label = require("../../label").component;
+
+var fieldBuiltInComponentsMixin = {
+  /** @inheriteDoc */
+  getDefaultProps: function getDefaultPropsBuiltInComponents() {
+    return {
+      /**
+       * Does the component has a Label.
+       * @type {Boolean}
+       */
+      hasLabel: true,
+      /**
+       * Redefine complety the component.
+       * @type {Object}
+       */
+      FieldComponent: undefined,
+      /**
+       * Redefine only the input and label component.
+       * @type {Object}
+       */
+      InputLabelComponent: undefined,
+      /**
+       * Component for the input.
+       * @type {Object}
+       */
+      InputComponent: InputText,
+      /**
+       * Component for the select.
+       * @type {Object}
+       */
+      SelectComponent: SelectClassic,
+      /**
+       * Component for the display.
+       * @type {Object}
+       */
+      DisplayComponent: DisplayText
+    };
+  },
+  /**
+   * Render the label part of the component.
+   * @return {[type]} [description]
+   */
+  label: function fieldLabel() {
+    if (this.props.FieldComponent || this.props.InputLabelComponent) {
+      return;
+    }
+    if (this.props.hasLabel) {
+      var labelClassName = "control-label col-sm-" + this.props.labelSize;
+      return React.createElement(Label, {
+        style: { className: labelClassName },
+        name: this.props.name,
+        key: this.props.name
+      });
+    }
+  },
+  /**
+   * Rendet the input part of the component.
+   * @return {[type]} [description]
+   */
+  input: function renderInput() {
+    if (this.props.FieldComponent || this.props.InputLabelComponent) {
+      return this.renderFieldComponent();
+    }
+    var inputClassName = "form-control col-sm-" + (12 - this.props.labelSize);
+    return React.createElement(
+      "div",
+      { className: "input-group" },
+      React.createElement(this.props.InputComponent, {
+        style: { "class": inputClassName },
+        id: this.props.name,
+        name: this.props.name,
+        value: this.state.value,
+        type: this.props.type,
+        onChange: this.onInputChange,
+        ref: "input"
+      })
+    );
+  },
+  /**
+   * [select description]
+   * @return {[type]} [description]
+   */
+  select: function renderSelect() {
+    if (this.props.FieldComponent || this.props.InputLabelComponent) {
+      return this.renderFieldComponent();
+    }
+    var selectClassName = "form-control col-sm-" + (12 - this.props.labelSize);
+    return React.createElement(
+      "div",
+      { className: "input-group" },
+      React.createElement(this.props.SelectComponent, {
+        style: { "class": selectClassName },
+        id: this.props.name,
+        name: this.props.name,
+        value: this.state.value,
+        values: this.state.values,
+        type: this.props.type,
+        onChange: this.onInputChange,
+        ref: "input"
+      })
+    );
+  },
+  /**
+   * Render the display part of the component.
+   * @return {object} - The display part of the compoennt if the mode is not edit.
+   */
+  display: function renderDisplay() {
+    if (this.props.FieldComponent || this.props.InputLabelComponent) {
+      return this.renderFieldComponent();
+    }
+    var selectClassName = "form-control col-sm-" + (12 - this.props.labelSize);
+    return React.createElement(
+      "div",
+      { className: "input-group" },
+      React.createElement(this.props.DisplayComponent, {
+        style: { "class": selectClassName },
+        id: this.props.name,
+        name: this.props.name,
+        value: this.state.value,
+        type: this.props.type,
+        ref: "display",
+        formatter: this.props.formatter
+      })
+    );
+  },
+  /**
+   * Render the error part of the component.
+   * @return {object} - The error part of the component.
+   */
+  error: function renderError() {
+    if (this.state.error) {
+      if (this.props.FieldComponent) {
+        return;
+      }
+      return (
+        /*<span class="glyphicon glyphicon-remove form-control-feedback" aria-hidden="true"></span>*/
+        React.createElement(
+          "span",
+          { className: "help-block" },
+          this.state.error
+        )
+      );
+    }
+  },
+  /**
+   * Render the help component.
+   * @return {object} - The help part of the component.
+   */
+  help: function renderHelp() {
+    if (this.props.help) {
+      if (this.props.FieldComponent) {
+        return;
+      }
+      return React.createElement(
+        "span",
+        { className: "help-block" },
+        this.props.help
+      );
+    }
+  },
+  /**
+   * Render the field component if it is overriden in the component definition.
+   */
+  renderFieldComponent: function renderFieldComponent() {
+    var Component = this.props.FieldComponent || this.props.InputLabelComponent;
+    return React.createElement(Component, {
+      id: this.props.name,
+      name: this.props.name,
+      label: this.props.name,
+      value: this.state.value,
+      type: this.props.type,
+      style: this.props.style.input,
+      error: this.state.error,
+      help: this.props.help,
+      onChange: this.onInputChange,
+      ref: "input"
+    });
+  }
+};
+
+module.exports = fieldBuiltInComponentsMixin;
+
+},{"../../display/text":8,"../../input/text":25,"../../label":28,"../../select/classic":32}],11:[function(require,module,exports){
+"use strict";
+
+var validationMixin = {
+  /** @inheritdoc */
+  getDefaultProps: function getDefaultProps() {
+    return {
+      isRequired: false,
+      validator: undefined
+    };
+  },
+  /**
+   * Validate the input.
+   * @return {object}
+   */
+  validateInput: function validateInputText() {
+    var value = this.getValue();
+    if (this.props.isRequired && (value === undefined || value === "")) {
+      return "Le champ " + this.props.name + " est requis";
+    }
+    if (this.props.validator) {
+      return this.props.validator(value);
+    }
+    return true;
+  },
+  /**
+  * Validate the field.
+  * @return {object} - undefined if valid, {name: "errors"} if not valid.
+  */
+  validate: function validateField() {
+    var validationStatus = this.validateInput();
+    if (validationStatus !== true) {
+      this.setState({ error: validationStatus });
+      return validationStatus;
+    }
+    return;
+  }
+};
+module.exports = validationMixin;
+
+},{}],12:[function(require,module,exports){
+"use strict";
+
+var valueBehaviourMixin = {
+  /** @inheritdoc */
+  getDefaultProps: function getDefaultValueBehaviourProps() {
+    return {
+      error: undefined,
+      value: undefined
+    };
+  },
+  /** @inheritdoc */
+  getInitialState: function getFieldInitialState() {
+    return {
+      error: this.props.error,
+      value: this.props.value
+    };
+  },
+  /**
+  * Get the value from the field.
+  */
+  getValue: function getValue() {
+    return this.refs.input.getValue();
+  },
+  /**
+   * Handler called when the input Change its value.
+   * @param {event} event - The event to set.
+   */
+  onInputChange: function fieldOnInputChanges(event) {
+    this.setState({ error: undefined, value: this.getValue() });
+  }
+};
+
+module.exports = valueBehaviourMixin;
+
+},{}],13:[function(require,module,exports){
 "use strict";
 
 var _defineProperty = function (obj, key, value) { return Object.defineProperty(obj, key, { value: value, enumerable: true, configurable: true, writable: true }); };
 
-var builder = require("focus/component/builder");
+var builder = window.focus.component.builder;
 var React = window.React;
-var Field = require("../field").component;
-var Button = require("../button/action").component;
 var assign = require("object-assign");
+var getEntityDefinition = window.focus.definition.entity.builder.getEntityInformations;
+var builtInComponents = require("./mixin/built-in-components");
+var referenceBehaviour = require("./mixin/reference-behaviour");
+var storeBehaviour = require("./mixin/store-behaviour");
+var actionBehaviour = require("./mixin/action-behaviour");
+
+var isEmpty = require("lodash/lang/isEmpty");
 /**
  * Mixin to create a block for the rendering.
  * @type {Object}
  */
 var formMixin = {
-	/**
-  * Get default property for the form.
-  */
-	getDefaultProps: function getFormDefaultProps() {
-		return {
-			hasEdit: true,
-			isEdit: false
-		};
-	},
-	/**
-  * Create a field for the given property metadata.
-  * @param {string} name - property name.
-  */
-	fieldFor: function fieldFor(name) {
-		return React.createElement(Field, {
-			name: name,
-			ref: name,
-			value: this.state[name],
-			error: this.state.error ? this.state.error[name] : undefined
-		});
-	},
-	/**
-  * Creates select field.
-  * @param {[type]} name [description]
-  */
-	selectFor: function selectFor(name) {
-		//Todo: implement it
-		return React.createElement(Select, {
-			name: name
-		});
-	},
-	/**
-  * Save button/
-  */
-	buttonSave: function buttonSave() {
-		return React.createElement(Button, {
-			label: "save",
-			type: "submit",
-			css: "primary"
-		});
-	},
-	getInitialState: function getInitialState() {
-		return {
-			id: this.props.id
-		};
-	},
-	_getStateFromStores: function _getStateFromStores() {
-		var _this = this;
+  mixins: [referenceBehaviour, storeBehaviour, actionBehaviour, builtInComponents],
+  /** @inheritdoc */
+  getDefaultProps: function getFormDefaultProps() {
+    return {
+      /**
+       * Defines it the form can have  an edit mode.
+       * @type {Boolean}
+       */
+      hasEdit: true,
+      /**
+       * Defines
+       * @type {Boolean}
+       */
+      isEdit: false,
+      /**
+       * Style of the component.
+       * @type {Object}
+       */
+      style: {}
+    };
+  },
+  /** @inheritdoc */
+  getInitialState: function getFormInitialState() {
+    return {
+      /**
+       * Identifier of the entity.
+       * @type {[type]}
+       */
+      id: this.props.id,
+      isEdit: this.props.isEdit
+    };
+  },
+  /**
+   * Event handler for 'change' events coming from the stores
+   */
+  _onChange: function onFormStoreChangeHandler() {
+    this.setState(this._getStateFromStores());
+  },
+  /** @inheritdoc */
+  callMountedActions: function formCallMountedActions() {
+    this._loadData();
+    this._loadReference();
+  },
+  /** @inheritdoc */
+  componentWillMount: function formWillMount() {
+    this._buildDefinition();
+    this._buildReference();
+  },
+  /** @inheritdoc */
+  componentDidMount: function formDidMount() {
+    //Build the definitions.
+    this._registerListeners();
+    if (this.registerListeners) {
+      this.registerListeners();
+    }
+    if (this.callMountedActions) {
+      this.callMountedActions();
+    }
+  },
+  /** @inheritdoc */
+  componentWillUnmount: function formWillMount() {
+    this._unRegisterListeners();
+    if (this.unregisterListeners) {
+      this.unregisterListeners();
+    }
+  },
+  /**
+   * Build the entity definition givent the path of the definition.
+   */
+  _buildDefinition: function buildFormDefinition() {
+    if (!this.definitionPath) {
+      throw new Error("the definition path should be defined to know the domain of your entity property.");
+    }
+    this.definition = getEntityDefinition(this.definitionPath, this.additionalDefinition);
+  },
+  /**
+   * Validate the form information by information.
+   * In case of errors the state is modified.
+   * @returns {boolean} - A boolean ttue if the
+   */
+  validate: function validateForm() {
+    var validationMap = {};
+    for (var inptKey in this.refs) {
+      var validationRes = this.refs[inptKey].validate();
+      if (validationRes !== undefined) {
+        assign(validationMap, _defineProperty({}, inptKey, validationRes));
+      }
+    }
+    if (isEmpty(validationMap)) {
+      return true;
+    }
 
-		if (this.getStateFromStore) {
-			return this.getStateFromStore();
-		}
-		if (this.stores.length === 1) {
-			return this.stores[0].value.get(this.props.id);
-		}
-		var newState = {};
-		this.stores.map(function (store) {
-			newState[store.name] = store.value.get(_this.props.id);
-		});
-		return newState;
-	},
-	/**
-  * Event handler for 'change' events coming from the stores
-  */
-	_onChange: function _onChange() {
-		this.setState(this._getStateFromStores());
-	},
-	callMountedActions: function callMountedActions() {
-		this._loadData();
-	},
-	_registerListeners: function _registerListeners() {
-		var _this = this;
-
-		if (this.stores) {
-			this.stores.map(function (store) {
-				store.value.addChangeListener(_this._onChange);
-			});
-		}
-	},
-	_unRegisterListeners: function _unRegisterListeners() {
-		var _this = this;
-
-		if (this.stores) {
-			this.stores.map(function (store) {
-				store.value.removeChangeListener(_this._onChange);
-			});
-		}
-	},
-	componentDidMount: function componentDidMount() {
-		this._registerListeners();
-		if (this.registerListeners) {
-			this.registerListeners();
-		}
-		if (this.callMountedActions) {
-			this.callMountedActions();
-		}
-	},
-	componentWillUnmount: function componentWillUnmount() {
-		this._unRegisterListeners();
-		if (this.unregisterListeners) {
-			this.unregisterListeners();
-		}
-	},
-	_getId: function _getId() {
-		return this.state.id;
-	},
-	_loadData: function _loadData() {
-		this.actions.load(this._getId());
-	},
-	_className: function _className() {
-		return "form-horizontal";
-	},
-	_getEntity: function _getEntity() {
-		return {
-			login: "pierr",
-			password: "pierre"
-		};
-	},
-	_handleSubmitForm: function handleSumbitForm(e) {
-		e.preventDefault();
-		console.log("submit", this.refs);
-		this.validate();
-		this.actions.save(this._getEntity());
-		return false;
-	},
-	validate: function validateForm() {
-		var validationMap = {};
-		for (var inptKey in this.refs) {
-			assign(validationMap, _defineProperty({}, inptKey, this.refs[inptKey].validate()));
-		}
-		this.setState({
-			error: validationMap
-		});
-		//console.log(validationMap);
-	},
-	render: function render() {
-		return React.createElement(
-			"form",
-			{ onSubmit: this._handleSubmitForm,
-				className: this._className() },
-			React.createElement(
-				"fieldset",
-				null,
-				" ",
-				this.renderContent(),
-				" "
-			),
-			" "
-		);
-	}
+    return false;
+  },
+  _editClass: function _editClass() {
+    if (this.editClass) {
+      return this.editClass();
+    }
+    return "form-" + (this.state.isEdit ? "edit" : "consult");
+  },
+  _className: function formClassName() {
+    return "form-horizontal " + this.props.style.className + " " + this._editClass();
+  },
+  _renderActions: function renderActions() {
+    if (this.renderActions) {
+      return this.renderActions();
+    }
+    if (this.state.isEdit) {
+      return this._renderEditActions();
+    }
+    return this._renderConsultActions();
+  },
+  _renderEditActions: function _renderEditActions() {
+    if (this.renderEditActions) {
+      return this.renderEditActions();
+    }
+    return React.createElement(
+      "div",
+      { className: "button-bar" },
+      this.buttonCancel(),
+      this.buttonSave()
+    );
+  },
+  _renderConsultActions: function _renderConsultActions() {
+    if (this.renderConsultActions) {
+      return this.renderConsultActions();
+    }
+    return this.buttonEdit();
+  },
+  /**
+   * Handle the form submission.
+   * @param {Event} e - React sanityze event from the form submit.
+   */
+  _handleSubmitForm: function handleSumbitForm(e) {
+    e.preventDefault();
+    if (this.validate()) {
+      this.action.save(this._getEntity());
+    }
+    //return false;
+  },
+  /** @inheritdoc */
+  render: function renderForm() {
+    return React.createElement(
+      "form",
+      {
+        onSubmit: this._handleSubmitForm,
+        className: this._className()
+      },
+      React.createElement(
+        "fieldset",
+        null,
+        this.renderContent()
+      )
+    );
+  }
 };
 
 module.exports = builder(formMixin);
 
-},{"../button/action":3,"../field":5,"focus/component/builder":22,"object-assign":78}],7:[function(require,module,exports){
+},{"./mixin/action-behaviour":14,"./mixin/built-in-components":15,"./mixin/reference-behaviour":16,"./mixin/store-behaviour":17,"lodash/lang/isEmpty":93,"object-assign":108}],14:[function(require,module,exports){
 "use strict";
 
-var builder = require("focus/component/builder");
+var assign = require("object-assign");
+var actionMixin = {
+
+  /**
+     * Get the entity identifier for the form loading.
+     * @returns {object} - The identifier of the entity.
+     */
+  _getId: function formGetId() {
+    if (this.getId) {
+      return this.getId();
+    }
+    return this.state.id;
+  },
+  /**
+   * Get the constructed entity from the state.
+   * @returns {object} - the entity informations.
+   */
+  _getEntity: function formGetEntity() {
+    if (this.getEntity) {
+      return this.getEntity();
+    }
+    //Build the entity value from the ref getVaue.
+    var htmlData = {};
+    for (var r in this.refs) {
+      htmlData[r] = this.refs[r].getValue();
+    }
+    return assign({}, this.state, htmlData);
+  },
+  /**
+   * Load data action call.
+   */
+  _loadData: function formLoadData() {
+    this.action.load(this._getId());
+  }
+};
+
+module.exports = actionMixin;
+
+},{"object-assign":108}],15:[function(require,module,exports){
+"use strict";
+
+var React = window.React;
+var Field = require("../../field").component;
+var Button = require("../../button/action").component;
+var List = require("../../list");
+module.exports = {
+  /**
+   * Create a field for the given property metadata.
+   * @param {string} name - property name.
+   * @param {object} options - An object which contains all options for the built of the field.
+   * @returns {object} - A React Field.
+   */
+  fieldFor: function fieldFor(name, options) {
+    var def = this.definition && this.definition[name] ? this.definition[name] : {};
+    options = options || {};
+    var isEdit = options.isEdit !== undefined ? options.isEdit : this.state.isEdit;
+    //Maybe allow to overrife fieldFor here such as def.fieldFor?.
+    return React.createElement(Field, {
+      name: "" + this.definitionPath + "." + name,
+      ref: name,
+      value: this.state[name],
+      error: this.state.error ? this.state.error[name] : undefined,
+      validator: def.validator,
+      FieldComponent: def.FieldComponent,
+      InputLabelComponent: def.InputLabelComponent,
+      InputComponent: def.InputComponent,
+      isEdit: isEdit,
+      formatter: def.formatter
+    });
+  },
+  /**
+   * Select component for the component.
+   * @param {string} name - property name.
+   * @param {string} listName - list name.
+   * @param {object} options - options object.
+   * @returns {object} - A React Field.
+   */
+  selectFor: function selectFor(name, listName, options) {
+    options = options || {};
+    var def = this.definition && this.definition[name] ? this.definition[name] : {};
+    listName = listName || def.listName;
+    var isEdit = options.idEdit || true;
+    //Check listName
+
+    return React.createElement(Field, {
+      name: name,
+      ref: name,
+      value: this.state[name],
+      error: this.state.error ? this.state.error[name] : undefined,
+      validator: def.validator,
+      values: this.state.reference[listName], //Options to be rendered.
+      FieldComponent: def.FieldComponent,
+      InputLabelComponent: def.InputLabelComponent,
+      isEdit: isEdit
+    });
+  },
+  /**
+   * Display a field.
+   * @param {string} name - property name.
+   * @param {object} options - options object.
+   * @returns {object} - A React Field.
+   */
+  displayFor: function displayFor(name, options) {
+    options = options || {};
+    var def = this.definition && this.definition[name] ? this.definition[name] : {};
+    var listName = options.listName || def.listName;
+    return React.createElement(Field, {
+      name: name,
+      ref: name,
+      value: this.state[name],
+      values: this.state.reference ? this.state.reference[listName] : undefined, //Options to be rendered.
+      FieldComponent: def.FieldComponent,
+      InputLabelComponent: def.InputLabelComponent,
+      isEdit: false
+    });
+  },
+  /**
+   * Display a list component.
+   * @param {string} name - Property name.
+   * @param {object} options - Options object.
+   * @returns {object} - The react component for the line.
+   */
+  listFor: function listFor(name, options) {
+    options = options || {};
+    return React.createElement(List, {
+      data: this.state[name],
+      line: options.LineComponent || this.props.LineComponent || this.LineComponent,
+      perPage: options.perPage || 5
+    });
+  },
+  /**
+   * Button delete generation.
+   * @returns {object} - A Reacte button.
+   */
+  buttonDelete: function buttonDelete() {
+    return React.createElement(Button, {
+      label: "delete",
+      type: "button",
+      css: "delete"
+    });
+  },
+  buttonEdit: function buttonEdit() {
+    var form = this;
+    return React.createElement(Button, {
+      label: "edit",
+      type: "button",
+      css: "edit",
+      handleOnClick: function handleOnClickEdit() {
+        form.setState({ isEdit: !form.state.isEdit });
+      }
+    });
+  },
+  buttonCancel: function buttonCancel() {
+    var form = this;
+    return React.createElement(Button, {
+      label: "cancel",
+      type: "button",
+      css: "cancel",
+      handleOnClick: function handleOnClickCancel() {
+        console.log("cancel");
+        form.setState({ isEdit: !form.state.isEdit });
+      }
+    });
+  },
+  /**
+   * Button save generation.
+   * @returns {object} - A React button.
+   */
+  buttonSave: function buttonSave() {
+    var form = this;
+
+    return React.createElement(Button, {
+      label: "save",
+      type: "submit",
+      css: "primary" });
+  } };
+
+/*handleOnClick: function(e){
+  if(form.validate()){
+    form.action.save(form._getEntity());
+  }
+  return;
+}*/
+
+},{"../../button/action":6,"../../field":9,"../../list":29}],16:[function(require,module,exports){
+//focus.reference.builder.loadListByName('papas').then(function(data){focus.dispatcher.dispatch({action: {type: "update",data: {papas: data}}})})
+
+"use strict";
+
+var builtInRefStoreAccessor = window.focus.reference.builtInStore;
+var builtInActionReferenceLoader = window.focus.reference.builtInAction;
+var isEmpty = require("lodash/lang/isEmpty");
+var referenceMixin = {
+  /** @inheritdoc */
+  /*  getDefaultProps: function getReferenceDefaultProps(){
+      return {*/
+  /**
+   * Array which contains all the reference lists.
+   * If the referenceNames are set into the object, they are set into the default props.
+   * @type {Array}
+   */
+  /*  referenceNames: this.referenceNames || []
+  };
+  },*/
+  getInitialState: function getInitialState() {
+    return { reference: {} };
+  },
+  /**
+   * Build actions associated to the reference.
+   */
+  _buildReferenceActions: function _buildReferenceActions() {
+    this.action = this.action || {};
+    this.action.loadReference = builtInActionReferenceLoader(this.referenceNames);
+  },
+  _loadReference: function _loadReference() {
+    return this.action.loadReference();
+  },
+  /**
+   * Build the reference names and set the store into the application.
+   */
+  _buildReferenceStoreConfig: function _buildReferenceStoreConfig() {
+    //Get the store for references.
+    var referenceStore = builtInRefStoreAccessor();
+
+    //If the reference store is empty don't do anything.
+    if (isEmpty(this.referenceNames)) {
+      return;
+    }
+    this.stores = this.stores || [];
+    //Set as referencestore the referencestore of the application.
+    this.stores.push({
+      store: referenceStore,
+      properties: this.referenceNames
+    });
+  },
+  /**
+   * Build store and actions related to the reference.
+   */
+  _buildReference: function buildReference() {
+    this._buildReferenceStoreConfig();
+    this._buildReferenceActions();
+  }
+};
+
+module.exports = referenceMixin;
+
+},{"lodash/lang/isEmpty":93}],17:[function(require,module,exports){
+"use strict";
+
+var _defineProperty = function (obj, key, value) { return Object.defineProperty(obj, key, { value: value, enumerable: true, configurable: true, writable: true }); };
+
+var capitalize = require("lodash/string/capitalize");
+var assign = require("object-assign");
+var isArray = require("lodash/lang/isArray");
+
+var storeMixin = {
+  /**
+   * Get the state informations from the store.
+   * @returns {object} - The js object constructed from store data.
+   */
+  _getStateFromStores: function formGetStateFromStore() {
+    if (this.getStateFromStore) {
+      return this.getStateFromStore();
+    }
+    var newState = {};
+    this.stores.map(function (storeConf) {
+      storeConf.properties.map(function (property) {
+        newState[property] = storeConf.store["get" + capitalize(property)]();
+      });
+    });
+    return this._computeEntityFromStoresData(newState);
+  },
+  /**
+   * Compute the data given from the stores.
+   * @param {object} data -  The data ordered by store.
+   * @returns {object} - The js object transformed from store data.
+   */
+  _computeEntityFromStoresData: function _computeEntityFromStoresData(data) {
+    if (this.computeEntityFromStoresData) {
+      return this.computeEntityFromStoresData(data);
+    }
+    var entity = { reference: {} };
+    for (var key in data) {
+      if (this.referenceNames && this.referenceNames.indexOf(key) !== -1) {
+        entity.reference[key] = data[key];
+      } else {
+        var d = data[key];
+        if (isArray(d)) {
+          d = _defineProperty({}, key, d);
+        }
+        assign(entity, d);
+      }
+    }
+    return entity;
+  },
+  /**
+   * Register all the listeners related to the page.
+   */
+  _registerListeners: function _registerListeners() {
+    var _this = this;
+
+    if (this.stores) {
+      this.stores.map(function (storeConf) {
+        storeConf.properties.map(function (property) {
+          storeConf.store["add" + capitalize(property) + "ChangeListener"](_this._onChange);
+        });
+      });
+    }
+  },
+  /**
+  * Unregister all the listeners related to the page.
+  */
+  _unRegisterListeners: function _unRegisterListeners() {
+    var _this = this;
+
+    if (this.stores) {
+      this.stores.map(function (storeConf) {
+        storeConf.properties.map(function (property) {
+          storeConf.store["remove" + capitalize(property) + "ChangeListener"](_this._onChange);
+        });
+      });
+    }
+  }
+};
+
+module.exports = storeMixin;
+
+},{"lodash/lang/isArray":92,"lodash/string/capitalize":102,"object-assign":108}],18:[function(require,module,exports){
+"use strict";
+
+module.exports = {
+  mixin: require("./mixin")
+};
+
+},{"./mixin":19}],19:[function(require,module,exports){
+/*global window*/
+"use strict";
+
+module.exports = {
+    /**
+     * Compute the translated label.
+     * @param key {string}- Key in the dictionnary of translations.
+     * @param data {object} - Data to interpole in the translated string.
+     * @returns {string} - Translated string.
+     */
+    i18n: function translate(key, data) {
+        var fn = window.i18n && window.i18n.t ? window.i18n.t : function defaulti18n(trKey) {
+            return trKey;
+        };
+        return fn(key, data);
+    }
+};
+
+},{}],20:[function(require,module,exports){
+"use strict";
+
+var builder = window.focus.component.builder;
 var React = window.React;
 
 var imgMixin = {
@@ -417,7 +1151,7 @@ var imgMixin = {
     displayName: "img",
     /**
      * Default props.
-     * @returns {{src: name of the picture, onClick: action handler on click.}}
+     * @returns {object} Initial props.
      */
     getDefaultProps: function getDefaultProps() {
         return {
@@ -427,7 +1161,7 @@ var imgMixin = {
     },
     /**
      * Render the img.
-     * @returns Html code.
+     * @returns {XML} Html code.
      */
     render: function renderImg() {
         var className = "icon " + this.props.src;
@@ -441,112 +1175,157 @@ var imgMixin = {
 
 module.exports = builder(imgMixin);
 
-},{"focus/component/builder":22}],8:[function(require,module,exports){
+},{}],21:[function(require,module,exports){
 "use strict";
 
 module.exports = {
-	block: require("./block"),
-	button: require("./button"),
-	field: require("./field"),
-	form: require("./form"),
-	img: require("./img"),
-	input: require("./input"),
-	label: require("./label"),
-	selectAction: require("./select-action")
+  block: require("./block"),
+  button: require("./button"),
+  field: require("./field"),
+  form: require("./form"),
+  img: require("./img"),
+  input: require("./input"),
+  label: require("./label"),
+  panel: require("./panel"),
+  select: require("./select"),
+  selectAction: require("./select-action"),
+  stickyNavigation: require("./sticky-navigation"),
+  title: require("./title"),
+  topicDisplayer: require("./topic-displayer")
 };
 
-},{"./block":2,"./button":4,"./field":5,"./form":6,"./img":7,"./input":10,"./label":13,"./select-action":14}],9:[function(require,module,exports){
-"use strict";
-
+},{"./block":5,"./button":7,"./field":9,"./form":13,"./img":20,"./input":24,"./label":28,"./panel":30,"./select":33,"./select-action":31,"./sticky-navigation":34,"./title":35,"./topic-displayer":36}],22:[function(require,module,exports){
 //Target
 /*
 <label>
   <input type="checkbox"><span class="ripple"></span><span class="check"></span> Checkbox
 </label>
  */
-var builder = require("focus/component/builder");
+"use strict";
+
+var builder = window.focus.component.builder;
 var React = window.React;
-var type = require("focus/component/types");
+var type = window.focus.component.types;
 
 var checkBoxMixin = {
-	/**
-  * Get the checkbox default attributes.
-  */
-	getDefaultProps: function getInputDefaultProps() {
-		return {
-			value: undefined,
-			label: undefined,
-			style: {}
-		};
-	},
-	/**
-  * Properties validation.
-  * @type {Object}
-  */
-	propTypes: {
-		value: type("bool"),
-		label: type("string"),
-		style: type("object")
-	},
-	getInitialState: function getInitialState() {
-		return {
-			isChecked: this.props.value
-		};
-	},
-	_onChange: function onChange(event) {
-		this.setState({
-			isChecked: !this.state.isChecked
-		});
-		if (this.props.onChange) {
-			this.props.onChange(event);
-		}
-	},
-	/**
-  * Get the value from the input in the DOM.
-  */
-	getValue: function getValue() {
-		return this.getDOMNode().value;
-	},
-	/**
-  * Render the Checkbox HTML.
-  * @return {VirtualDOM} - The virtual DOM of the checkbox.
-  */
-	render: function renderCheckBox() {
-		return React.createElement(
-			"div",
-			{ className: "checkbox" },
-			React.createElement(
-				"label",
-				null,
-				React.createElement("input", { ref: "checkbox", checked: this.state.isChecked, onChange: this._onChange, type: "checkbox" }),
-				React.createElement("span", { className: "ripple" }),
-				React.createElement("span", { className: "check" }),
-				this.props.label
-			)
-		);
-	}
+  /**
+   * Get the checkbox default attributes.
+   */
+  getDefaultProps: function getInputDefaultProps() {
+    return {
+      value: undefined,
+      label: undefined,
+      style: {}
+    };
+  },
+  /**
+   * Properties validation.
+   * @type {Object}
+   */
+  propTypes: {
+    value: type("bool"),
+    label: type("string"),
+    style: type("object")
+  },
+  getInitialState: function getInitialState() {
+    return {
+      isChecked: this.props.value
+    };
+  },
+  _onChange: function onChange(event) {
+    this.setState({
+      isChecked: !this.state.isChecked
+    });
+    if (this.props.onChange) {
+      this.props.onChange(event);
+    }
+  },
+  /**
+   * Get the value from the input in  the DOM.
+   */
+  getValue: function getValue() {
+    return this.getDOMNode().value;
+  },
+  /**
+   * Render the Checkbox HTML.
+   * @return {VirtualDOM} - The virtual DOM of the checkbox.
+   */
+  render: function renderCheckBox() {
+    return React.createElement(
+      "div",
+      { className: "checkbox" },
+      React.createElement(
+        "label",
+        null,
+        React.createElement("input", { ref: "checkbox", checked: this.state.isChecked, onChange: this._onChange, type: "checkbox" }),
+        React.createElement("span", { className: "ripple" }),
+        React.createElement("span", { className: "check" }),
+        this.props.label ? this.props.label : ""
+      )
+    );
+  },
+  /** @inheritedDoc*/
+  componentWillReceiveProps: function checkBoxWillreceiveProps(nextProps) {
+    if (nextProps.value !== undefined) {
+      this.setState({ isChecked: nextProps.value });
+    }
+  }
 };
 
 module.exports = builder(checkBoxMixin);
 
-},{"focus/component/builder":22,"focus/component/types":23}],10:[function(require,module,exports){
+},{}],23:[function(require,module,exports){
+"use strict";
+
+var jQuery = window.jQuery;
+//Dependencies.
+////http://www.daterangepicker.com/#ex2
+var builder = window.focus.component.builder;
+var React = window.React;
+var inputTextMixin = require("../text").mixin;
+
+/**
+ * Input text mixin.
+ * @type {Object}
+ */
+var inputDateMixin = {
+  /** @inheritdoc */
+  mixins: [inputTextMixin],
+  /** @inheritdoc */
+  componentDidMount: function inputDateDidMount() {
+    var component = this;
+    jQuery(this.getDOMNode()).pickadate({
+      /**
+       * Handler called when the date change its value.
+       * @param {object} context - The event triggered by the plugin.
+       */
+      onSet: function onSetDate(context) {
+        component._handleOnChange(context);
+      }
+    });
+  }
+};
+
+module.exports = builder(inputDateMixin);
+
+},{"../text":25}],24:[function(require,module,exports){
 "use strict";
 
 module.exports = {
-	text: require("./text"),
-	checkbox: require("./checkbox"),
-	textarea: require("./textarea")
-	/*,
-   date: require('./date')*/
+  checkbox: require("./checkbox"),
+  date: require("./date"),
+  text: require("./text"),
+  textarea: require("./textarea"),
+  toggle: require("./toggle")
 };
 
-},{"./checkbox":9,"./text":11,"./textarea":12}],11:[function(require,module,exports){
+},{"./checkbox":22,"./date":23,"./text":25,"./textarea":26,"./toggle":27}],25:[function(require,module,exports){
+//Dependencies.
 "use strict";
 
-//Dependencies.
-var builder = require("focus/component/builder");
+var builder = window.focus.component.builder;
 var React = window.React;
-var type = require("focus/component/types");
+var type = window.focus.component.types;
 
 /**
  * Input text mixin.
@@ -576,17 +1355,11 @@ var inputTextMixin = {
     };
   },
   /**
-   * Validate the input.
-   * @return {object}
+   * Update the component.
+   * @param {object} newProps - The new props to update.
    */
-  validate: function validateInputText() {
-    var value = this.getValue();
-    if (value === undefined || value === "") {
-      return "Le champ " + this.props.name + " est requis";
-    }
-    if (this.props.validator) {
-      return this.props.validator(value);
-    }
+  componentWillReceiveProps: function inputWillReceiveProps(newProps) {
+    this.setState({ value: newProps.value });
   },
   /**
    * Get the value from the input in the DOM.
@@ -599,9 +1372,12 @@ var inputTextMixin = {
    * @param {object} event - The sanitize event of input.
    */
   _handleOnChange: function inputOnChange(event) {
-    this.setState({ value: event.target.value });
+    //On change handler.
     if (this.props.onChange) {
       return this.props.onChange(event);
+    } else {
+      //Set the state then call the change handler.
+      this.setState({ value: event.target.value });
     }
   },
   /**
@@ -622,9 +1398,7 @@ var inputTextMixin = {
 
 module.exports = builder(inputTextMixin);
 
-},{"focus/component/builder":22,"focus/component/types":23}],12:[function(require,module,exports){
-"use strict";
-
+},{}],26:[function(require,module,exports){
 //Target
 /*
 <div class="checkbox">
@@ -633,11 +1407,16 @@ module.exports = builder(inputTextMixin);
   </label>
 </div>
  */
-var builder = require("focus/component/builder");
-var React = window.React;
-var type = require("focus/component/types");
+"use strict";
 
-var checkBoxMixin = {
+var builder = window.focus.component.builder;
+var React = window.React;
+var type = window.focus.component.types;
+/**
+*
+* @type {Object}
+*/
+var textAreaMixin = {
   /**
    * Get the checkbox default attributes.
    */
@@ -647,11 +1426,10 @@ var checkBoxMixin = {
       maxlength: undefined,
       wrap: "soft",
       required: false,
-      value: undefined,
       label: undefined,
       style: {},
-      rows: undefined,
-      cols: undefined
+      rows: 5,
+      cols: 50
     };
   },
   /**
@@ -669,18 +1447,99 @@ var checkBoxMixin = {
     rows: type("number"),
     cols: type("number")
   },
-  getInitialState: function getInitialState() {
+  /** inheritedDoc */
+  getInitialState: function getTextAreaInitialState() {
     return {
-      isChecked: this.props.value
+      value: this.props.value
     };
   },
+  /**
+   * On change handler.
+   * @param {object} event - Sanitize event.
+   */
   _onChange: function onChange(event) {
+    this.setState({ value: event.target.value });
     if (this.props.onChange) {
       this.props.onChange(event);
     }
   },
   /**
    * Get the value from the input in the DOM.
+   */
+  getValue: function getTextAreaValue() {
+    return this.getDOMNode().value;
+  },
+  /**
+   * Render the Checkbox HTML.
+   * @return {VirtualDOM} - The virtual DOM of the checkbox.
+   */
+  render: function renderTextArea() {
+    return React.createElement(
+      "textarea",
+      {
+        ref: "textarea",
+        onChange: this._onChange,
+        cols: this.props.cols,
+        rows: this.props.rows,
+        minlength: this.props.minlength,
+        maxlength: this.props.maxlength,
+        className: this.props.style.className
+      },
+      this.state.value
+    );
+  }
+};
+
+module.exports = builder(textAreaMixin);
+
+},{}],27:[function(require,module,exports){
+//Target
+/*
+<label>
+  <input type="checkbox"><span class="ripple"></span><span class="check"></span> Checkbox
+</label>
+ */
+"use strict";
+
+var builder = window.focus.component.builder;
+var React = window.React;
+var type = window.focus.component.types;
+
+var toggleMixin = {
+  /**
+   * Get the checkbox default attributes.
+   */
+  getDefaultProps: function getInputDefaultProps() {
+    return {
+      value: undefined,
+      label: undefined,
+      style: {}
+    };
+  },
+  /**
+   * Properties validation.
+   * @type {Object}
+   */
+  propTypes: {
+    value: type("bool"),
+    label: type("string"),
+    style: type("object")
+  },
+  getInitialState: function getInitialState() {
+    return {
+      isChecked: this.props.value
+    };
+  },
+  _onChange: function onChange(event) {
+    this.setState({
+      isChecked: !this.state.isChecked
+    });
+    if (this.props.onChange) {
+      this.props.onChange(event);
+    }
+  },
+  /**
+   * Get the value from the input in  the DOM.
    */
   getValue: function getValue() {
     return this.getDOMNode().value;
@@ -689,61 +1548,168 @@ var checkBoxMixin = {
    * Render the Checkbox HTML.
    * @return {VirtualDOM} - The virtual DOM of the checkbox.
    */
-  render: function renderCheckBox() {
+  render: function renderToggle() {
     return React.createElement(
-      "textarea",
-      { ref: "textarea",
-        onChange: this._onChange,
-        cols: this.props.cols,
-        rows: this.props.rows,
-        minlength: this.props.minlength,
-        maxlength: this.props.maxlength },
-      " ",
-      this.props.value,
-      " "
+      "div",
+      { className: "togglebutton" },
+      React.createElement(
+        "label",
+        null,
+        this.props.label ? this.props.label : "",
+        React.createElement("input", { ref: "checkbox", checked: this.state.isChecked, onChange: this._onChange, type: "checkbox" })
+      )
     );
+  },
+  /** @inheritedDoc*/
+  componentWillReceiveProps: function toggleWillreceiveProps(nextProps) {
+    if (nextProps.value !== undefined) {
+      this.setState({ isChecked: nextProps.value });
+    }
   }
 };
 
-module.exports = builder(checkBoxMixin);
+module.exports = builder(toggleMixin);
 
-},{"focus/component/builder":22,"focus/component/types":23}],13:[function(require,module,exports){
+},{}],28:[function(require,module,exports){
 "use strict";
 
-var builder = require("focus/component/builder");
+var builder = window.focus.component.builder;
 var React = window.React;
 /**
  * Label mixin for form.
  * @type {Object}
  */
 var labelMixin = {
-	getDefaultProps: function getDefaultProps() {
-		return {
-			name: undefined,
-			key: undefined
-		};
-	},
-	i18n: function i18n(prop) {
-		return prop;
-	},
-	render: function render() {
-		return React.createElement(
-			"label",
-			{ className: this.props.css,
-				htmlFor: this.props.name },
-			" ",
-			this.i18n(this.props.value),
-			" "
-		);
-	}
+  mixins: [require("../i18n/mixin")],
+  getDefaultProps: function getDefaultProps() {
+    return {
+      name: undefined,
+      key: undefined,
+      style: { className: "" }
+    };
+  },
+  render: function render() {
+    return React.createElement(
+      "label",
+      { className: this.props.style.className, htmlFor: this.props.name },
+      this.i18n(this.props.name)
+    );
+  }
 };
 
 module.exports = builder(labelMixin);
 
-},{"focus/component/builder":22}],14:[function(require,module,exports){
+},{"../i18n/mixin":19}],29:[function(require,module,exports){
+
+//var SelectionList = focus.components.list.selection.list.component;
 "use strict";
 
-var builder = require("focus/component/builder");
+var builder = window.focus.component.builder;
+var React = window.React;
+var Button = require("../button/action").component;
+var selectionListMixin = require("../../list/selection/list").mixin;
+var assign = require("object-assign");
+//Pour étendre SelectionList
+//TODO Comment étendre une méthode d'un mixin d'une meilleur façon que celle la ?
+var MySelectionList = React.createClass(assign(selectionListMixin, {
+  _renderManualFetch: function renderManualFetch() {
+    if (this.props.isManualFetch && this.props.hasMoreData) {
+      var style = { className: "primary" };
+      return React.createElement(
+        "li",
+        { className: "sl-button" },
+        React.createElement(Button, { label: "Next",
+          type: "button",
+          handleOnClick: this._handleShowMore,
+          style: style })
+      );
+    }
+  }
+}));
+
+module.exports = React.createClass({
+  displayName: "exports",
+
+  /** @inheritdoc */
+  getDefaultProps: function getDefaultProps() {
+    return {
+      data: []
+    };
+  },
+  /** @inheritdoc */
+  getInitialState: function getInitialState() {
+    return { maxElements: this.props.perPage * page };
+  },
+  fetchNextPage: function fetchNextPage(page) {
+    /** @inheritdoc */
+    this.setState({ maxElements: this.props.perPage * page });
+  },
+  /** @inheritdoc */
+  getDataToUse: function getDataToUse() {
+    if (!this.props.data) {
+      return [];
+    }
+    return this.props.data.slice(0, this.state.maxElements ? this.state.maxElements : this.props.perPage);
+  },
+  /** @inheritdoc */
+  render: function renderFormList() {
+    var data = this.props.data || [];
+    var hasMoreData = data.length > (this.state.maxElements ? this.state.maxElements : this.props.perPage);
+    return React.createElement(MySelectionList, { data: this.getDataToUse(), hasMoreData: hasMoreData, lineComponent: this.props.line, isSelection: false, isManualFetch: true, fetchNextPage: this.fetchNextPage });
+  }
+});
+
+},{"../../list/selection/list":43,"../button/action":6,"object-assign":108}],30:[function(require,module,exports){
+"use strict";
+
+var React = window.React;
+var builder = window.focus.component.builder;
+/**
+ * Mixin used in order to create a block.
+ * @type {Object}
+ */
+var panelMixin = {
+  getDefaultProps: function getDefaultProps() {
+    return {
+      style: {}
+    };
+  },
+  /**
+   * Header of theblock function.
+   * @return {[type]} [description]
+   */
+  heading: function heading() {
+    if (this.props.title) {
+      return React.createElement(
+        "div",
+        { className: "panel-heading" },
+        this.props.title
+      );
+    }
+  },
+  /**
+   * Render the a block container and the cild content of the block.
+   * @return {DOM}
+   */
+  render: function renderBlock() {
+    return React.createElement(
+      "div",
+      { className: "panel panel-default " + this.props.style.className },
+      this.heading(),
+      React.createElement(
+        "div",
+        { className: "panel-body" },
+        this.props.children
+      )
+    );
+  }
+};
+module.exports = builder(panelMixin);
+
+},{}],31:[function(require,module,exports){
+"use strict";
+
+var builder = window.focus.component.builder;
 var React = window.React;
 var Img = require("../img").component;
 
@@ -755,29 +1721,75 @@ var selectActionMixin = {
     displayName: "select-action",
     /**
      * Default props.
-     * @returns {{isExpanded: true if list of action is expanded.,
-     *              operationList: list of operations,
-     *              style: css class of the selector.}}
+     * @returns {object} Defauilt props.
      */
     getDefaultProps: function getDefaultProps() {
         return {
-            isExpanded: false,
             operationList: [],
             style: "dots-three-vertical"
         };
     },
+
     /**
-     * Define defautl state.
-     * @returns {{isExpanded: true if list of action is expanded}}
+     * Handle action on selected item.
+     * @param {function} action Action to call
+     * @returns {function} Function called when item is selected.
+     * @private
      */
-    getInitialState: function getInitialState() {
-        return {
-            isExpanded: this.props.isExpanded
+    _handleAction: function _handleAction(action) {
+        var _this = this;
+
+        return function (event) {
+            if (event) {
+                event.preventDefault();
+            }
+            if (_this.props.operationParam) {
+                action(_this.props.operationParam);
+            } else {
+                action();
+            }
         };
     },
+
+    /**
+     * Generate the list of actions.
+     * @param {object} operationList List of operations.
+     * @returns {Array} List of action in li component.
+     * @private
+     */
+    _getList: function _getList(operationList) {
+        var liList = [];
+        for (var key in operationList) {
+            var operation = operationList[key];
+
+            liList.push(React.createElement(
+                "li",
+                { key: key, onClick: this._handleAction(operation.action), className: operation.style },
+                React.createElement(
+                    "a",
+                    { href: "javascript:void(0)" },
+                    operation.label
+                )
+            ));
+            if (operation.childOperationList) {
+                var subKey = "sub_" + key;
+                liList.push(React.createElement(
+                    "li",
+                    { key: subKey },
+                    React.createElement(
+                        "ul",
+                        null,
+                        this._getList(operation.childOperationList)
+                    )
+                ));
+            }
+        }
+        return liList;
+    },
+
     /**
      * Render the component.
-     * @returns Htm code.
+     * @returns  {XML} Htm code.
      */
     render: function renderSelectAcion() {
         if (this.props.operationList.length == 0) {
@@ -786,57 +1798,282 @@ var selectActionMixin = {
         var liList = this._getList(this.props.operationList);
         return React.createElement(
             "div",
-            { className: "select-action" },
-            React.createElement(Img, { onClick: this.expandHandler, src: this.props.style }),
-            React.createElement("br", null),
+            { className: "select-action btn-group" },
+            React.createElement(
+                "a",
+                { href: window.location.pathname, "data-target": "#", className: "dropdown-toggle", "data-toggle": "dropdown" },
+                React.createElement(Img, { src: this.props.style })
+            ),
             React.createElement(
                 "ul",
-                null,
+                { className: "dropdown-menu" },
                 liList
             )
         );
-    },
-
-    _getList: function _getList(operationList) {
-        var liList = [];
-        if (this.state.isExpanded) {
-            for (var key in operationList) {
-                var operation = operationList[key];
-                liList.push(React.createElement(
-                    "li",
-                    { onClick: operation.action, className: operation.style },
-                    operation.label
-                ));
-                if (operation.childOperationList) {
-                    liList.push(React.createElement(
-                        "li",
-                        null,
-                        React.createElement(
-                            "ul",
-                            null,
-                            this._getList(operation.childOperationList)
-                        )
-                    ));
-                }
-            }
-        }
-        return liList;
-    },
-
-    /**
-     * Action on the root click.
-     */
-    expandHandler: function expandHandler() {
-        this.setState({ isExpanded: !this.state.isExpanded });
     }
+
 };
 
 module.exports = builder(selectActionMixin);
 
-},{"../img":7,"focus/component/builder":22}],15:[function(require,module,exports){
+},{"../img":20}],32:[function(require,module,exports){
+//Dependencies.
 "use strict";
 
-var builder = require("focus/component/builder");
+var builder = window.focus.component.builder;
+var React = window.React;
+var type = window.focus.component.types;
+
+/**
+ * Input text mixin.
+ * @type {Object}
+ */
+var inputTextMixin = {
+  /** @inheritdoc */
+  getDefaultProps: function getInputDefaultProps() {
+    return {
+      multiple: false,
+      value: undefined,
+      values: [],
+      valueKey: "value",
+      labelKey: "code",
+      name: undefined,
+      style: {}
+    };
+  },
+  /** @inheritdoc */
+  propTypes: {
+    multiple: type("bool"),
+    value: type(["number", "string"]),
+    values: type("array"),
+    valueKey: type("string"),
+    labelKey: type("string"),
+    name: type("string"),
+    style: type("object")
+  },
+  /** @inheritdoc */
+  getInitialState: function getInitialStateSelect() {
+    return {
+      value: this.props.value
+    };
+  },
+  /** @inheritdoc */
+  componentWillReceiveProps: function selectWillReceiveProps(newProps) {
+    this.setState({ value: newProps.value });
+  },
+  /**
+   * Get the value from the select in the DOM.
+   */
+  getValue: function getSelectTextValue() {
+    return this.getDOMNode().value;
+  },
+  /**
+   * Handle the change value of the input.
+   * @param {object} event - The sanitize event of input.
+   */
+  _handleOnChange: function selectOnChange(event) {
+    //On change handler.
+    if (this.props.onChange) {
+      return this.props.onChange(event);
+    } else {
+      //Set the state then call the change handler.
+      this.setState({ value: event.target.value });
+    }
+  },
+  /**
+   * Render options.
+   */
+  renderOptions: function renderOptions() {
+    var _this = this;
+
+    return this.props.values.map(function (val) {
+      var value = val[_this.props.valueKey];
+      return React.createElement(
+        "option",
+        { key: value, value: value },
+        val[_this.props.labelKey]
+      );
+    });
+  },
+  /**
+   * Render an input.
+   * @return {DOM} - The dom of an input.
+   */
+  render: function renderSelect() {
+    return React.createElement(
+      "select",
+      {
+        multiple: this.props.multiple,
+        value: this.state.value,
+        onChange: this._handleOnChange },
+      this.renderOptions()
+    );
+  }
+};
+
+module.exports = builder(inputTextMixin);
+
+},{}],33:[function(require,module,exports){
+"use strict";
+
+module.exports = {
+  classic: require("./classic")
+};
+
+},{"./classic":32}],34:[function(require,module,exports){
+"use strict";
+
+var builder = window.focus.component.builder;
+var type = window.focus.component.types;
+/**
+ * Mixin component for the sticky navigation.
+ * @type {Object}
+ */
+var stickyNavigationMixin = {
+
+    /** @inheritedDoc */
+    displayName: "sticky-navigation",
+
+    /** @inheritedDoc */
+    getDefaultProps: function getDefaultProps() {
+        return {
+            /**
+             * Selector for the content to be watched.
+             * @type {String}
+             */
+            contentSelector: undefined,
+            /**
+             * Identifier of the Navbar created for the sticky navigation.
+             * @type {String}
+             */
+            navBarId: "navbar",
+            /**
+             * Selector for the title elements to display in the sticky navigation.
+             * @type {String}
+             */
+            titleSelector: "[data-menu]",
+            /**
+             * Style informations such as the className.
+             * @type {Object}
+             */
+            style: {}
+        };
+    },
+    /** @inheritedDoc */
+    propTypes: {
+        contentSelector: type("string"),
+        navBarId: type("string"),
+        titleSelector: type("string"),
+        style: type("object")
+    },
+    /** @inheritedDoc */
+    getInitialState: function getStickyNavigationInitialState() {
+        return { menuList: [] };
+    },
+    /** @inheritedDoc */
+    componentDidMount: function stickyNavigationDidMount() {
+        //The list is processed only when the component is mounted.
+        this._buildMenuList();
+        //Set bootstrap data attributes to register the spy.
+        this._registerScrollSpyAttributes();
+    },
+    /**
+     * Build the menu list from the title attributes read in the selector.
+     */
+    _buildMenuList: function buildMenuList() {
+        //Get all title elements form the DOM elements read in the selector.
+        var titleListElements = document.querySelectorAll(this.props.titleSelector);
+        var menuList = [];
+        for (var key in titleListElements) {
+            menuList.push(this._renderLink(titleListElements[key]));
+        }
+        //Update the menu list into the state.
+        this.setState({ menuList: menuList });
+    },
+    _registerScrollSpyAttributes: function registerScrollSpyAttributes() {
+        var content = document.querySelector(this.props.contentSelector);
+        content.setAttribute("data-spy", "scroll");
+        content.setAttribute("data-target", "#" + this.props.navBarId);
+    },
+    /** @inheritedDoc */
+    render: function renderStickyNavigation() {
+        var className = "sticky-navigation bs-docs-sidebar hidden-print hidden-xs hidden-sm affix " + this.props.style.className;
+        return React.createElement(
+            "nav",
+            { className: className, id: this.props.navBarId },
+            React.createElement(
+                "ul",
+                { className: "nav bs-docs-sidenav", role: "tablist" },
+                this.state.menuList
+            )
+        );
+    },
+    /**
+     * Render the list of links.
+     * @param anchor
+     * @returns {JSX}
+     */
+    _renderLink: function renderLink(title) {
+        if (title.getAttribute) {
+            var link = "#" + title.getAttribute("id");
+            return React.createElement(
+                "li",
+                null,
+                React.createElement(
+                    "a",
+                    { href: link },
+                    title.innerText
+                )
+            );
+        }
+    }
+};
+
+module.exports = builder(stickyNavigationMixin);
+
+},{}],35:[function(require,module,exports){
+"use strict";
+
+var builder = window.focus.component.builder;
+
+var titleMixin = {
+
+    /**
+     * Display name.
+     */
+    displayName: "title",
+
+    /**
+     * Default propos.
+     * @returns {object} Default props.
+     */
+    getDefaultProps: function getDefaultProps() {
+        return {
+            id: undefined,
+            title: undefined
+        };
+    },
+
+    /**
+     * Render the component.
+     * @returns {JSX} Htm code.
+     */
+    render: function renderStickyNavigation() {
+        return React.createElement(
+            "h3",
+            { id: this.props.id, "data-menu": true },
+            this.props.title
+        );
+    }
+
+};
+
+module.exports = builder(titleMixin);
+
+},{}],36:[function(require,module,exports){
+"use strict";
+
+var builder = window.focus.component.builder;
 var React = window.React;
 
 var topicDisplayerMixin = {
@@ -848,6 +2085,7 @@ var topicDisplayerMixin = {
 
     /**
      * Default props.
+     * @returns {object} Defautl props.
      */
     getDefaultProps: function getDefaultProps() {
         return {
@@ -859,51 +2097,51 @@ var topicDisplayerMixin = {
 
     /**
      * Render the component.
-     * @returns Htm code.
+     * @returns {JSX} Htm code.
      */
     render: function renderSelectAcion() {
-        var liList = [];
+        var topicList = [];
+        var className = "btn btn-primary btn-raised topic";
         for (var key in this.props.topicList) {
-            liList.push(React.createElement(
-                "li",
-                { className: "topic" },
-                React.createElement(
-                    "span",
-                    { onClick: this.topicClickHandler(this.props.topicClickAction, key) },
-                    this.props.topicList[key]
-                )
+            topicList.push(React.createElement(
+                "a",
+                { key: key, href: "javascript:void(0)", onClick: this.topicClickHandler(key), className: className },
+                this.props.topicList[key]
             ));
         }
-        var style = "topic-displayer ";
+        var style = "topic-displayer bs-component ";
         if (this.props.style) {
             style += this.props.style;
         }
         return React.createElement(
-            "div",
+            "p",
             { className: style },
-            liList
+            topicList
         );
     },
 
     /**
      * Action on the topic click.
      */
-    topicClickHandler: function topicClickHandler(func, key) {
-        return function () {
-            func(key);
+    topicClickHandler: function topicClickHandler(key) {
+        var _this = this;
+
+        return function (event) {
+            if (event) {
+                event.preventDefault();
+            }
+            _this.props.topicClickAction(key);
         };
     }
 };
 
 module.exports = builder(topicDisplayerMixin);
 
-},{"focus/component/builder":22}],16:[function(require,module,exports){
+},{}],37:[function(require,module,exports){
+/**@jsx*/
 "use strict";
 
-/**@jsx*/
-var builder = require("focus/component/builder");
-var React = window.React;
-var type = require("focus/component/types");
+var builder = window.focus.component.builder;
 var SelectAction = require("../../common/select-action").component;
 var ActionContextual = require("../action-contextual").component;
 var TopicDisplayer = require("../../common/topic-displayer").component;
@@ -917,31 +2155,133 @@ var actionBarMixin = {
 
     /**
      * INit default props
-     * @returns Defautkl props.
+     * @returns {object} Defautkl props.
      */
     getDefaultProps: function getDefaultProps() {
         return {
-            selectionStatus: 0, // 0=> None, 1 => All, other value =>  some
-            selectionAction: function selectionAction(selectionStatus) {}, // Action on selection click
-
-            orderableColumnList: {}, // [{key:"columnKey", label:"columnLabel"}]
-            orderAction: function orderAction(key, order) {}, // Action on click on order function
+            selectionStatus: "none", // none, selected, partial
+            selectionAction: function selectionAction(selectionStatus) {
+                console.warn(selectionStatus);
+            }, // Action on selection click
+            orderableColumnList: undefined, // [{key:"columnKey", label:"columnLabel"}]
+            orderAction: function orderAction(key, order) {
+                console.warn(key + "-" + order);
+            }, // Action on click on order function
             orderSelected: {},
-
-            facetClickAction: function facetClickAction(key) {}, // Action when click on facet
+            facetClickAction: function facetClickAction(key) {
+                console.warn(key);
+            }, // Action when click on facet
             facetList: {}, // {facet1: "Label of facet one", facet2:"Label of facet 2"} List of facets
-
             groupableColumnList: {}, // {col1: "Label1", col2: "Label2"}
-            groupAction: function groupAction(key) {}, // Action on group function
+            groupAction: function groupAction(key) {
+                console.warn(key);
+            }, // Action on group function
             groupSelectedKey: undefined, // Defautl grouped key.
-
             operationList: [] // List of contextual operations
         };
     },
 
     /**
+     * @returns {JSX} Selection component.
+     * @private
+     */
+    _getSelectionObject: function _getSelectionObject() {
+        // Selection datas
+        var selectionOperationList = [{ action: this._selectionFunction("selected"), label: "all", style: this._getSelectedStyle(this.props.selectionStatus, "selected") }, { action: this._selectionFunction("none"), label: "none", style: this._getSelectedStyle(this.props.selectionStatus, "none") }];
+        return React.createElement(SelectAction, { style: this._getSelectionObjectStyle(), operationList: selectionOperationList });
+    },
+
+    /**
+     * @returns {JSX} Order component.
+     * @private
+     */
+    _getOrderObject: function _getOrderObject() {
+        if (this.props.orderableColumnList) {
+            var orderSelectedParsedKey = this.props.orderSelected.key + this.props.orderSelected.order;
+            var orderOperationList = []; // [{key:"columnKey", order:"asc", label:"columnLabel"}]
+            for (var key in this.props.orderableColumnList) {
+                var description = this.props.orderableColumnList[key];
+                orderOperationList.push({
+                    action: this._orderFunction(description.key, description.order),
+                    label: description.label,
+                    style: this._getSelectedStyle(description.key + description.order, orderSelectedParsedKey)
+                });
+            }
+            var orderStyle = this.props.orderSelected.order ? "circle-up" : "chevron-up";
+            return React.createElement(SelectAction, { key: "down", style: orderStyle, operationList: orderOperationList });
+        }
+        return "";
+    },
+
+    /**
+     * @returns {JSX} Grouping component.
+     * @private
+     */
+    _getGroupObject: function _getGroupObject() {
+        var groupList = [];
+        for (var key in this.props.groupableColumnList) {
+            groupList.push({
+                action: this._groupFunction(key),
+                label: this.props.groupableColumnList[key],
+                style: this._getSelectedStyle(key, this.props.groupSelectedKey)
+            });
+        }
+        var groupOperationList = [{ label: "action.group", childOperationList: groupList }, { label: "action.ungroup", action: this._groupFunction(null) }];
+        var groupStyle = this.props.groupSelectedKey ? "controller-record" : "dots-three-vertical";
+        return React.createElement(SelectAction, { style: groupStyle, operationList: groupOperationList });
+    },
+
+    /**
+     * @param {string} currentKey Current selected key.
+     * @param {string} selectedKey Key corresponding to the selected one.
+     * @returns {string} Class selected if currentKey corresponds to the selectedKey.
+     * @private
+     */
+    _getSelectedStyle: function _getSelectedStyle(currentKey, selectedKey) {
+        if (currentKey == selectedKey) {
+            return " selected ";
+        }
+        return undefined;
+    },
+
+    /**
+     * @return {string} Class of the selection component icon.
+     * @private
+     */
+    _getSelectionObjectStyle: function _getSelectionObjectStyle() {
+        if (this.props.selectionStatus == "none") {
+            return "checkbox-unchecked";
+        } else if (this.props.selectionStatus == "selected") {
+            return "checkbox-checked";
+        }
+        return "notification";
+    },
+
+    _selectionFunction: function _selectionFunction(selectionStatus) {
+        var _this = this;
+
+        return function () {
+            _this.props.selectionAction(selectionStatus);
+        };
+    },
+    _orderFunction: function _orderFunction(key, order) {
+        var _this = this;
+
+        return function () {
+            _this.props.orderAction(key, order);
+        };
+    },
+    _groupFunction: function _groupFunction(key) {
+        var _this = this;
+
+        return function () {
+            _this.props.groupAction(key);
+        };
+    },
+
+    /**
      * Render the html
-     * @returns {XML}
+     * @returns {JSX} Htm content.
      */
     render: function renderActionBar() {
         return React.createElement(
@@ -951,7 +2291,9 @@ var actionBarMixin = {
                 "div",
                 { className: "general-action" },
                 this._getSelectionObject(),
+                " ",
                 this._getOrderObject(),
+                " ",
                 this._getGroupObject()
             ),
             React.createElement(
@@ -965,114 +2307,18 @@ var actionBarMixin = {
                 React.createElement(ActionContextual, { operationList: this.props.operationList })
             )
         );
-    },
-
-    /**
-     * @returns Selection component.
-     * @private
-     */
-    _getSelectionObject: function _getSelectionObject() {
-        // Selection datas
-        var selectionOperationList = [{ action: this._selectionFunction(this.props.selectionAction, 1), label: "all" }, { action: this._selectionFunction(this.props.selectionAction, 0), label: "none" }];
-        return React.createElement(SelectAction, { style: this._getSelectionObjectStyle(), operationList: selectionOperationList });
-    },
-
-    /**
-     * @returns Order component.
-     * @private
-     */
-    _getOrderObject: function _getOrderObject() {
-        // Order
-        var orderDescOperationList = [];
-        var orderAscOperationList = [];
-        var orderSelectedParsedKey = this.props.orderSelected.key + this.props.orderSelected.order;
-        for (var key in this.props.orderableColumnList) {
-            orderDescOperationList.push({ action: this._orderFunction(this.props.orderAction, key, "desc"), label: this.props.orderableColumnList[key], style: this._getSelectedStyle(key + "desc", orderSelectedParsedKey) });
-            orderAscOperationList.push({ action: this._orderFunction(this.props.orderAction, key, "asc"), label: this.props.orderableColumnList[key], style: this._getSelectedStyle(key + "asc", orderSelectedParsedKey) });
-        }
-        var downStyle = this.props.orderSelected.order == "desc" ? "circle-down" : "chevron-down";
-        var upStyle = this.props.orderSelected.order == "asc" ? "circle-up" : "chevron-up";
-        return [React.createElement(SelectAction, { style: downStyle, operationList: orderDescOperationList }), React.createElement(SelectAction, { style: upStyle, operationList: orderAscOperationList })];
-    },
-
-    /**
-     * @returns Grouping component.
-     * @private
-     */
-    _getGroupObject: function _getGroupObject() {
-        var groupList = [];
-        for (var key in this.props.groupableColumnList) {
-            groupList.push({ action: this._groupFunction(this.props.groupAction, key), label: this.props.groupableColumnList[key],
-                style: this._getSelectedStyle(key, this.props.groupSelectedKey) });
-        }
-        var groupOperationList = [{ label: "action.group", childOperationList: groupList }, { label: "action.ungroup", action: this._groupFunction(this.props.groupAction, null) }];
-        var groupStyle = this.props.groupSelectedKey ? "controller-record" : "dots-three-vertical";
-        return React.createElement(SelectAction, { style: groupStyle, operationList: groupOperationList });
-    },
-
-    /**
-     * @param currentKey
-     * @param selectedKey
-     * @returns Class selected if currentKey corresponds to the selectedKey.
-     * @private
-     */
-    _getSelectedStyle: function _getSelectedStyle(currentKey, selectedKey) {
-        if (currentKey == selectedKey) {
-            return " selected ";
-        }
-        return undefined;
-    },
-
-    /**
-     * @returns Style of the selection compoent icon.
-     * @private
-     */
-    _getSelectionObjectStyle: function _getSelectionObjectStyle() {
-        if (this.props.selectionStatus == 0) {
-            return "checkbox-unchecked";
-        } else if (this.props.selectionStatus == 1) {
-            return "checkbox-checked";
-        }
-        return "notification";
-    },
-
-    /**
-     * Created to avoid closure problems.
-     */
-    _selectionFunction: function _selectionFunction(func, selectionStatus) {
-        return function () {
-            func(selectionStatus);
-        };
-    },
-    /**
-     * Created to avoid closure problems.
-     */
-    _orderFunction: function _orderFunction(func, key, order) {
-        return function () {
-            func(key, order);
-        };
-    },
-    /**
-     * Created to avoid closure problems.
-     */
-    _groupFunction: function _groupFunction(func, key) {
-        return function () {
-            func(key);
-        };
     }
 };
 
 module.exports = builder(actionBarMixin);
 
-},{"../../common/select-action":14,"../../common/topic-displayer":15,"../action-contextual":17,"focus/component/builder":22,"focus/component/types":23}],17:[function(require,module,exports){
+},{"../../common/select-action":31,"../../common/topic-displayer":36,"../action-contextual":38}],38:[function(require,module,exports){
+/**@jsx*/
 "use strict";
 
-/**@jsx*/
-var builder = require("focus/component/builder");
-var React = window.React;
+var builder = window.focus.component.builder;
 var Button = require("../../common/button/action").component;
 var SelectAction = require("../../common/select-action").component;
-var type = require("focus/component/types");
 
 var actionContextualMixin = {
 
@@ -1083,25 +2329,44 @@ var actionContextualMixin = {
 
     /**
      * Init default props.
-     * @returns {{operationList: List of operations.}}
+     * @returns {object} Default props.
      */
     getDefaultProps: function getDefaultProps() {
         return {
-            operationList: []
+            operationList: [],
+            operationParam: undefined
         };
     },
     /**
      * Init default state.
-     * @returns {{isSecondaryActionListExpanded: true if secondary actionList is expanded.}}
+     * @returns {oject} Initial state.
      */
     getInitialState: function getInitialState() {
         return {
-            isSecondaryActionListExpanded: false
+            isSecondaryActionListExpanded: false // true if secondary actionList is expanded.
         };
     },
+
+    /**
+     * handle contextual action on click.
+     * @param {string} key Action key.
+     */
+    _handleAction: function handleContextualAction(key) {
+        var _this = this;
+
+        return function (event) {
+            event.preventDefault();
+            if (_this.props.operationParam) {
+                _this.props.operationList[key].action(_this.props.operationParam);
+            } else {
+                _this.props.operationList[key].action();
+            }
+        };
+    },
+
     /**
      * render the component.
-     * @returns Html code.
+     * @returns {JSX} Html code.
      */
     render: function renderContextualAction() {
         var primaryActionList = [];
@@ -1109,7 +2374,7 @@ var actionContextualMixin = {
         for (var key in this.props.operationList) {
             var operation = this.props.operationList[key];
             if (operation.priority === 1) {
-                primaryActionList.push(React.createElement(Button, { style: operation.style, handleOnClick: operation.action, label: operation.label }));
+                primaryActionList.push(React.createElement(Button, { key: key, style: operation.style, handleOnClick: this._handleAction(key), label: operation.label }));
             } else {
                 secondaryActionList.push(operation);
             }
@@ -1123,23 +2388,25 @@ var actionContextualMixin = {
                 " ",
                 primaryActionList
             ),
-            React.createElement(SelectAction, { operationList: secondaryActionList, isExpanded: this.state.isSecondaryActionListExpanded })
+            React.createElement(SelectAction, { operationList: secondaryActionList, operationParam: this.props.operationParam, isExpanded: this.state.isSecondaryActionListExpanded })
         );
     }
 };
 
 module.exports = builder(actionContextualMixin);
 
-},{"../../common/button/action":3,"../../common/select-action":14,"focus/component/builder":22,"focus/component/types":23}],18:[function(require,module,exports){
+},{"../../common/button/action":6,"../../common/select-action":31}],39:[function(require,module,exports){
 "use strict";
 
 module.exports = {
 	actionBar: require("./action-bar"),
 	actionContextual: require("./action-contextual"),
-	selection: require("./selection")
+	selection: require("./selection"),
+	summary: require("./summary"),
+	timeline: require("./timeline")
 };
 
-},{"./action-bar":16,"./action-contextual":17,"./selection":19}],19:[function(require,module,exports){
+},{"./action-bar":37,"./action-contextual":38,"./selection":40,"./summary":44,"./timeline":45}],40:[function(require,module,exports){
 "use strict";
 
 module.exports = {
@@ -1147,21 +2414,139 @@ module.exports = {
     list: require("./list")
 };
 
-},{"./line":20,"./list":21}],20:[function(require,module,exports){
+},{"./line":42,"./list":43}],41:[function(require,module,exports){
 "use strict";
 
+var topOfElement = (function (_topOfElement) {
+    var _topOfElementWrapper = function topOfElement(_x) {
+        return _topOfElement.apply(this, arguments);
+    };
+
+    _topOfElementWrapper.toString = function () {
+        return _topOfElement.toString();
+    };
+
+    return _topOfElementWrapper;
+})(function (element) {
+    if (!element) {
+        return 0;
+    }
+    return element.offsetTop + topOfElement(element.offsetParent);
+});
+/**
+ *
+ * Mixin which add infinite scroll behavior.
+ */
+var InfiniteScrollMixin = {
+    /**
+     * defaults props for the mixin.
+     * @returns {{isInfiniteScroll: boolean, initialPage: number, offset: number}}
+     */
+    getDefaultProps: function getDefaultProps() {
+        return {
+            isInfiniteScroll: true,
+            initialPage: 1,
+            offset: 250
+        };
+    },
+
+    /**
+     * Before component mount
+     */
+    componentWillMount: function componentWillMount() {
+        this.nextPage = this.props.initialPage;
+        this.parentNode = this.props.parentSelector ? document.querySelector(this.props.parentSelector) : window;
+    },
+
+    /**
+     * Before component unmount.
+     */
+    componentWillUnmount: function componentWillUnmount() {
+        if (!this.props.isManualFetch) {
+            this.detachScrollListener();
+        }
+    },
+
+    /**
+     * After component Mount.
+     */
+    componentDidMount: function componentDidMount() {
+        if (!this.props.isManualFetch) {
+            this.attachScrollListener();
+        }
+    },
+
+    /**
+     * after component update.
+     */
+    componentDidUpdate: function componentDidUpdate() {
+        if (!this.props.isLoading && !this.props.isManualFetch) {
+            this.attachScrollListener();
+        }
+    },
+
+    /**
+     * Handler for the scroll event.
+     */
+    scrollListener: function scrollListener() {
+        var el = this.getDOMNode();
+        var scrollTop = this.parentNode.pageYOffset !== undefined ? this.parentNode.pageYOffset : this.parentNode.scrollTop;
+        if (topOfElement(el) + el.offsetHeight - scrollTop - (window.innerHeight || this.parentNode.offsetHeight) < this.props.offset) {
+            this.detachScrollListener();
+            this.fetchNextPage(this.nextPage++);
+        }
+
+        //calculate visible index in the list
+        /*var topHeader = topOfElement(el);
+        var pageHeight = topHeader+el.offsetHeight;
+        var scrollHeader = (topHeader / pageHeight)*window.innerHeight;
+        //console.log((scrollTop - (topHeader / pageHeight) / (el.offsetHeight - topHeader) * this.state.data.length);
+        var visibleIndex = (scrollTop - topHeader) / (el.offsetHeight) * this.state.data.length;
+        console.log(visibleIndex);*/
+    },
+
+    /**
+     * Attach scroll listener on the component.
+     */
+    attachScrollListener: function attachScrollListener() {
+        if (!this.props.hasMoreData) {
+            return;
+        }
+        this.parentNode.addEventListener("scroll", this.scrollListener);
+        this.parentNode.addEventListener("resize", this.scrollListener);
+        this.scrollListener();
+    },
+
+    /**
+     * detach scroll listener on the component
+     */
+    detachScrollListener: function detachScrollListener() {
+        this.parentNode.removeEventListener("scroll", this.scrollListener);
+        this.parentNode.removeEventListener("resize", this.scrollListener);
+    }
+};
+
+module.exports = { mixin: InfiniteScrollMixin };
+
+},{}],42:[function(require,module,exports){
 /**@jsx*/
+"use strict";
+
 var React = window.React;
-var builder = require("focus/component/builder");
-var type = require("focus/component/types");
+var builder = window.focus.component.builder;
+var type = window.focus.component.types;
+var ContextualActions = require("../action-contextual").component;
+var CheckBox = require("../../common/input/checkbox").component;
 var lineMixin = {
+    displayName: "selection-line",
     /**
      * Default properties for the line.
      * @returns {{isSelection: boolean}}
      */
     getDefaultProps: function getLineDefaultProps() {
         return {
-            isSelection: true
+            isSelection: true,
+            operationList: []
         };
     },
 
@@ -1174,7 +2559,8 @@ var lineMixin = {
         isSelection: type("bool"),
         isSelected: type("bool"),
         onLineClick: type("func"),
-        onSelection: type("func")
+        onSelection: type("func"),
+        operationList: type("array")
     },
 
     /**
@@ -1185,6 +2571,16 @@ var lineMixin = {
         return {
             isSelected: this.props.isSelected || false
         };
+    },
+
+    /**
+     * Update properties on component.
+     * @param nextProps next properties
+     */
+    componentWillReceiveProps: function componentWillReceiveProps(nextProps) {
+        if (nextProps.isSelected !== undefined) {
+            this.setState({ isSelected: nextProps.isSelected });
+        }
     },
 
     /**
@@ -1203,11 +2599,11 @@ var lineMixin = {
      * @param event
      */
     _handleSelectionClick: function handleSelectionClick(event) {
-        if (this.props.onSelection) {
-            this.props.onSelection(this.props.data);
-        }
         var select = !this.state.isSelected;
         this.setState({ isSelected: select });
+        if (this.props.onSelection) {
+            this.props.onSelection(this.props.data, select);
+        }
     },
 
     /**
@@ -1215,7 +2611,9 @@ var lineMixin = {
      * @param event
      */
     _handleLineClick: function handleLineClick(event) {
-        this.props.onLineClick(this.props.data);
+        if (this.props.onLineClick) {
+            this.props.onLineClick(this.props.data);
+        }
     },
 
     /**
@@ -1226,7 +2624,11 @@ var lineMixin = {
         if (this.props.isSelection) {
             var selectionClass = this.state.isSelected ? "selected" : "no-selection";
             //var image = this.state.isSelected? undefined : <img src={this.state.lineItem[this.props.iconfield]}/>
-            return React.createElement("div", { className: "sl-selection " + selectionClass, onClick: this._handleSelectionClick });
+            return React.createElement(
+                "div",
+                { className: "sl-selection " + selectionClass },
+                React.createElement(CheckBox, { value: this.state.isSelected, onChange: this._handleSelectionClick })
+            );
         }
         return null;
     },
@@ -1257,6 +2659,19 @@ var lineMixin = {
     },
 
     /**
+     * Render actions wich can be applied on the line
+     */
+    _renderActions: function renderLineActions() {
+        if (this.props.operationList.length > 0) {
+            return React.createElement(
+                "div",
+                { className: "sl-actions" },
+                React.createElement(ContextualActions, { operationList: this.props.operationList, operationParam: this.props.data })
+            );
+        }
+    },
+
+    /**
      * Render line in list.
      * @returns {*}
      */
@@ -1272,7 +2687,8 @@ var lineMixin = {
                     "div",
                     { className: "sl-content", onClick: this._handleLineClick },
                     this._renderLineContent()
-                )
+                ),
+                this._renderActions()
             );
         }
     }
@@ -1280,17 +2696,19 @@ var lineMixin = {
 
 module.exports = { mixin: lineMixin };
 
-},{"focus/component/builder":22,"focus/component/types":23}],21:[function(require,module,exports){
+},{"../../common/input/checkbox":22,"../action-contextual":38}],43:[function(require,module,exports){
+/**@jsx*/
 "use strict";
 
-/**@jsx*/
-var builder = require("focus/component/builder");
+var builder = window.focus.component.builder;
 var React = window.React;
 var Line = require("./line").mixin;
-var uuid = require("uuid");
-var type = require("focus/component/types");
+var Button = require("../../common/button/action").component;
+var type = window.focus.component.types;
+var InfiniteScrollMixin = require("./infinite-scroll").mixin;
 
 var listMixin = {
+    mixins: [InfiniteScrollMixin],
     /**
      * Display name.
      */
@@ -1298,12 +2716,18 @@ var listMixin = {
 
     /**
      * Default properties for the list.
-     * @returns {{isSelection: boolean}}
+     * @returns {{isSelection: boolean}} the default properties
      */
     getDefaultProps: function getLineDefaultProps() {
         return {
             isSelection: true,
-            isAllSelected: false
+            isAllSelected: false,
+            selectionStatus: "partial",
+            isLoading: false,
+            hasMoreData: false,
+            operationList: [],
+            isManualFetch: false,
+            idField: "id"
         };
     },
 
@@ -1312,15 +2736,22 @@ var listMixin = {
      * @type {Object}
      */
     propTypes: {
-        data: type("object"),
+        data: type("array"),
         isSelection: type("bool"),
         isAllSelected: type("bool"),
         onSelection: type("func"),
-        onLineClick: type("func")
+        onLineClick: type("func"),
+        isLoading: type("bool"),
+        loader: type("func"),
+        FetchNextPage: type("func"),
+        operationList: type("array"),
+        isManualFetch: type("bool"),
+        idField: type("string")
     },
 
     /**
      * Return selected items in the list.
+     * @return {Array} selected items
      */
     getSelectedItems: function getListSelectedItems() {
         var selected = [];
@@ -1335,29 +2766,344 @@ var listMixin = {
     },
 
     /**
+     * Fetch the next page.
+     * @param {number} page the page to fetch
+     * @return {*}
+     */
+    fetchNextPage: function fetchNextPage(page) {
+        if (!this.props.hasMoreData) {
+            return;
+        }
+        if (this.props.fetchNextPage) {
+            return this.props.fetchNextPage(page);
+        }
+    },
+
+    /**
+     * handle manual fetch.
+     * @param {object} event event received
+     */
+    _handleShowMore: function handleShowMore(event) {
+        this.nextPage++;
+        this.fetchNextPage(this.nextPage);
+    },
+
+    /**
+     * Render lines of the list.
+     * @returns {*} DOM for lines
+     */
+    _renderLines: function renderLines() {
+        var _this = this;
+
+        var lineCount = 1;
+        var LineComponent = this.props.lineComponent || React.createClass(Line);
+        return this.props.data.map(function (line) {
+            var isSelected;
+            switch (_this.props.selectionStatus) {
+                case "none":
+                    isSelected = false;
+                    break;
+                case "selected":
+                    isSelected = true;
+                    break;
+                case "partial":
+                    isSelected = undefined;
+                    break;
+                default:
+                    isSelected = false;
+            }
+            return React.createElement(LineComponent, {
+                key: line[_this.props.idField],
+                data: line,
+                ref: "line" + lineCount++,
+                isSelection: _this.props.isSelection,
+                isSelected: isSelected,
+                onSelection: _this.props.onSelection,
+                onLineClick: _this.props.onLineClick,
+                operationList: _this.props.operationList
+            });
+        });
+    },
+    _renderLoading: function renderLoading() {
+        if (this.props.isLoading) {
+            if (this.props.loader) {
+                return this.props.loader();
+            }
+            return React.createElement(
+                "li",
+                { className: "sl-loading" },
+                "Loading ..."
+            );
+        }
+    },
+
+    _renderManualFetch: function renderManualFetch() {
+        if (this.props.isManualFetch && this.props.hasMoreData) {
+            var style = { className: "primary" };
+            return React.createElement(
+                "li",
+                { className: "sl-button" },
+                React.createElement(Button, { label: "list.selection.button.showMore",
+                    type: "button",
+                    handleOnClick: this._handleShowMore,
+                    style: style })
+            );
+        }
+    },
+
+    /**
+     * Render the list.
+     * @returns {XML} DOM of the component
+     */
+    render: function renderList() {
+        return React.createElement(
+            "ul",
+            { className: "selection-list" },
+            this._renderLines(),
+            this._renderLoading(),
+            this._renderManualFetch()
+        );
+    }
+};
+
+module.exports = builder(listMixin);
+
+},{"../../common/button/action":6,"./infinite-scroll":41,"./line":42}],44:[function(require,module,exports){
+/**@jsx*/
+"use strict";
+
+var builder = window.focus.component.builder;
+var TopicDisplayer = require("../../common/topic-displayer").component;
+var Button = require("../../common/button/action").component;
+
+var listSummaryMixin = {
+    mixins: [require("../../common/i18n/mixin")],
+    /**
+     * Display name.
+     */
+    displayName: "list-summary",
+
+    /**
+     * Init the default props.
+     * @returns {objet} default props.
+     */
+    getDefaultProps: function getDefaultProps() {
+        return {
+            nb: undefined,
+            queryText: undefined,
+            scopeList: {},
+            scopeClickAction: function scopeClickAction(scopeKey) {},
+            exportAction: function exportAction() {}
+        };
+    },
+
+    /**
+     * Render the html.
+     * @returns {JSX} Html rendering.
+     */
+    render: function renderActionBar() {
+        if (this.props.nb) {
+            var nbResult = React.createElement(
+                "div",
+                { className: "nb-result" },
+                React.createElement(
+                    "b",
+                    null,
+                    this.props.nb
+                ),
+                " ",
+                this.i18n("result.for"),
+                " \"",
+                this.props.queryText,
+                "\""
+            );
+        } else {
+            var nbResult = React.createElement("div", { className: "nb-result" });
+        }
+        return React.createElement(
+            "div",
+            { className: "list-summary" },
+            nbResult,
+            React.createElement(
+                "div",
+                { className: "scope" },
+                React.createElement(TopicDisplayer, { topicList: this.props.scopeList, topicClickAction: this.props.scopeClickAction })
+            ),
+            React.createElement(
+                "div",
+                { className: "print" },
+                React.createElement(Button, { imgSrc: "print", handleOnClick: this.props.exportAction })
+            )
+        );
+    }
+};
+
+module.exports = builder(listSummaryMixin);
+
+},{"../../common/button/action":6,"../../common/i18n/mixin":19,"../../common/topic-displayer":36}],45:[function(require,module,exports){
+"use strict";
+
+module.exports = {
+    line: require("./line"),
+    list: require("./list")
+};
+
+},{"./line":46,"./list":47}],46:[function(require,module,exports){
+/**@jsx*/
+"use strict";
+
+var React = window.React;
+var builder = window.focus.component.builder;
+var type = window.focus.component.types;
+var lineMixin = {
+    displayName: "timeline-line",
+
+    /**
+     * line property validation.
+     * @type {Object}
+     */
+    propTypes: {
+        data: type("object"),
+        dateField: type("string"),
+        dateComponent: type("object"),
+        onLineClick: type("func")
+    },
+
+    /**
+     * Get the line value.
+     * @returns {{item: *}}
+     */
+    getValue: function getLineValue() {
+        return {
+            item: this.props.data
+        };
+    },
+
+    /**
+     * Line Click handler.
+     * @param event
+     */
+    _handleLineClick: function handleLineClick(event) {
+        if (this.props.onLineClick) {
+            this.props.onLineClick(this.props.data);
+        }
+    },
+
+    /**
+     * render content for a line.
+     * @returns {*}
+     */
+    _renderLineContent: function renderLineContent() {
+        if (this.renderLineContent) {
+            return this.renderLineContent(this.props.data);
+        } else {
+            return React.createElement(
+                "div",
+                null,
+                React.createElement(
+                    "div",
+                    { className: "timeline-heading" },
+                    React.createElement(
+                        "h4",
+                        { className: "timeline-title" },
+                        this.props.data.title
+                    )
+                ),
+                React.createElement(
+                    "div",
+                    { className: "timeline-body" },
+                    React.createElement(
+                        "p",
+                        null,
+                        this.props.data.body
+                    )
+                )
+            );
+        }
+    },
+
+    /**
+     * Render line in list.
+     * @returns {*}
+     */
+    render: function renderLine() {
+        if (this.renderLine) {
+            return this.renderLine();
+        } else {
+            return React.createElement(
+                "li",
+                null,
+                React.createElement(
+                    "div",
+                    { className: "timeline-date" },
+                    "02/06/1982"
+                ),
+                React.createElement("div", { className: "timeline-badge" }),
+                React.createElement(
+                    "div",
+                    { className: "timeline-panel", onClick: this._handleLineClick },
+                    this._renderLineContent()
+                )
+            );
+        }
+    }
+};
+
+module.exports = { mixin: lineMixin };
+
+},{}],47:[function(require,module,exports){
+"use strict";
+
+var builder = window.focus.component.builder;
+var React = window.React;
+var type = window.focus.component.types;
+var Line = require("./line").mixin;
+var uuid = require("uuid");
+
+var listMixin = {
+    /**
+     * Tag name
+     */
+    displayName: "timeline",
+
+    /**
+     * Default properties for the list.
+     */
+    getDefaultProps: function getDefaultProps() {
+        return {
+            idField: "id",
+            dateField: "date"
+        };
+    },
+
+    /**
+     * list property validation.
+     */
+    propTypes: {
+        date: type("array"),
+        idField: type("string"),
+        dateField: type("string"),
+        dateComponent: type("object"),
+        lineComponent: type("object")
+    },
+
+    /**
      * Render lines of the list.
      * @returns {*}
      */
-    renderLines: function renderLines() {
+    _renderLines: function renderLines() {
         var _this = this;
 
         var lineCount = 1;
         var LineComponent = this.props.lineComponent || React.createClass(Line);
         return this.props.data.map(function (line) {
             return React.createElement(LineComponent, {
-                key: line.id || uuid.v4(),
+                key: line[_this.props.idField] || uuid.v4(),
                 data: line,
                 ref: "line" + lineCount++,
-                isSelection: _this.props.isSelection,
-                isSelected: _this.props.isAllSelected,
-                onSelection: _this.props.onSelection,
+                dateField: _this.props.dateField,
                 onLineClick: _this.props.onLineClick
             });
-            /*<Line key={line.id || uuid.v4()}
-             data={line} ref={"line" + lineCount++}
-             isSelected={this.props.isAllSelected}
-             onSelection={this.props.onSelection}
-             onLineClick={this.props.onLineClick}/>;*/
         });
     },
 
@@ -1368,158 +3114,83 @@ var listMixin = {
     render: function renderList() {
         return React.createElement(
             "ul",
-            { className: "selection-list" },
-            this.renderLines()
+            { className: "timeline" },
+            this._renderLines()
         );
     }
 };
 
 module.exports = builder(listMixin);
 
-},{"./line":20,"focus/component/builder":22,"focus/component/types":23,"uuid":80}],22:[function(require,module,exports){
+},{"./line":46,"uuid":110}],48:[function(require,module,exports){
 "use strict";
-var React = window.React;
-var assign = require('object-assign');
-//var isObject = require('lodash/lang/isObject');
-//var isFunction = require('lodash/lang/isFunction');
 
-/**
- * Create a component with a mixin except id the component is mixin only.
- * @param {object}  mixin - The component mixin.
- * @param {Boolean} isMixinOnly - define if the component is a mixin only.
- * @return {object} - {component} the built react component.
- */
-function createComponent(mixin, isMixinOnly){
-    if (isMixinOnly){
-      return undefined;//Error('Your class publish a mixin only...');
-    }
-    return {component: React.createClass(mixin)};
-}
-
-/**
- * Build a module with a mixin and a React component.
- * @param  {object} componentMixin - Mixin of the component.
- * @param {boolean} isMixinOnly - Bolean to set .
- * @return {object} {mixin: 'the component mixin', component: 'the react instanciated component'}
- */
-module.exports = function(componentMixin, isMixinOnly){
-
-  return assign( {
-    mixin: componentMixin
-    /*extend: function extendMixin(properties){
-      if(isFunction(componentMixin)){
-        throw new Error('You cannot extend a mixin function');
-      }
-      if(!isObject(properties)){
-        throw new Error('properties should be an object');
-      }
-      return assign({}, componentMixin, properties);
-    },*/
-  }, createComponent(componentMixin, isMixinOnly));
+var builder = window.focus.component.builder;
+var type = window.focus.component.types;
+var messageMixin = {
+  /** @inheritedDoc */
+  getDefaultProps: function getMessageDefaultProps() {
+    return {
+      title: undefined,
+      content: undefined,
+      type: "info",
+      ttl: undefined,
+      style: {}
+    };
+  },
+  /** @inheritedDoc */
+  propTypes: {
+    title: type("string"),
+    content: type("string"),
+    type: type("string"),
+    ttl: type("number"),
+    style: type("object")
+  },
+  /**
+   * Handle click on the dismiss button.
+   * @param {Event} event - Sanitize event.
+   */
+  _handleOnClick: function handleOnClickMessageDismiss(event) {
+    //Maybe it is not the best way to do it.
+    React.unmountComponentAtNode(this.getDOMNode().parentNode);
+  },
+  /**
+   * Render an alert.
+   * @return {JSX} The jsx.
+   */
+  render: function renderAlert() {
+    var cssClass = "alert alert-dismissable alert-" + this.props.type + " " + this.props.style.className;
+    return React.createElement(
+      "div",
+      { className: cssClass },
+      React.createElement(
+        "button",
+        { type: "button", className: "close", "data-dismiss": "alert", onClick: this._handleOnClick },
+        "×"
+      ),
+      React.createElement(
+        "h4",
+        null,
+        this.props.title
+      ),
+      React.createElement(
+        "p",
+        null,
+        this.props.content
+      )
+    );
+  }
 };
+module.exports = builder(messageMixin);
 
-},{"object-assign":78}],23:[function(require,module,exports){
-"use strict";
-//Dependencies.
-var React = window.React;
-var isString = require('lodash/lang/isString');
-var isArray = require('lodash/lang/isArray');
-
-/**
- * Expose a React type validation for the component properties validation.
- * @see http://facebook.github.io/react/docs/reusable-components.html
- * @param  {string} type - String or array of the types to use.
- * @return {object} The corresponding react type.
- */
-module.exports = function(type){
-  var isStringType = isString(type);
-  if(!isStringType && !isArray(type)){
-    throw new Error('The type should be a string or an array');
-  }
-  if(isStringType){
-    return React.PropTypes[type];
-  }
-  return React.PropTypes.oneOf(type);
-
-};
-
-},{"lodash/lang/isArray":65,"lodash/lang/isString":68}],24:[function(require,module,exports){
-var baseCallback = require('../internal/baseCallback');
-
-/**
- * This method is like `_.find` except that it returns the index of the first
- * element `predicate` returns truthy for, instead of the element itself.
- *
- * If a property name is provided for `predicate` the created `_.property`
- * style callback returns the property value of the given element.
- *
- * If a value is also provided for `thisArg` the created `_.matchesProperty`
- * style callback returns `true` for elements that have a matching property
- * value, else `false`.
- *
- * If an object is provided for `predicate` the created `_.matches` style
- * callback returns `true` for elements that have the properties of the given
- * object, else `false`.
- *
- * @static
- * @memberOf _
- * @category Array
- * @param {Array} array The array to search.
- * @param {Function|Object|string} [predicate=_.identity] The function invoked
- *  per iteration.
- * @param {*} [thisArg] The `this` binding of `predicate`.
- * @returns {number} Returns the index of the found element, else `-1`.
- * @example
- *
- * var users = [
- *   { 'user': 'barney',  'active': false },
- *   { 'user': 'fred',    'active': false },
- *   { 'user': 'pebbles', 'active': true }
- * ];
- *
- * _.findIndex(users, function(chr) {
- *   return chr.user == 'barney';
- * });
- * // => 0
- *
- * // using the `_.matches` callback shorthand
- * _.findIndex(users, { 'user': 'fred', 'active': false });
- * // => 1
- *
- * // using the `_.matchesProperty` callback shorthand
- * _.findIndex(users, 'active', false);
- * // => 0
- *
- * // using the `_.property` callback shorthand
- * _.findIndex(users, 'active');
- * // => 2
- */
-function findIndex(array, predicate, thisArg) {
-  var index = -1,
-      length = array ? array.length : 0;
-
-  predicate = baseCallback(predicate, thisArg, 3);
-  while (++index < length) {
-    if (predicate(array[index], index, array)) {
-      return index;
-    }
-  }
-  return -1;
-}
-
-module.exports = findIndex;
-
-},{"../internal/baseCallback":28}],25:[function(require,module,exports){
-var baseCallback = require('../internal/baseCallback'),
-    baseEach = require('../internal/baseEach'),
-    baseFind = require('../internal/baseFind'),
-    findIndex = require('../array/findIndex'),
-    isArray = require('../lang/isArray');
+},{}],49:[function(require,module,exports){
+var baseEach = require('../internal/baseEach'),
+    createFind = require('../internal/createFind');
 
 /**
  * Iterates over elements of `collection`, returning the first element
  * `predicate` returns truthy for. The predicate is bound to `thisArg` and
- * invoked with three arguments; (value, index|key, collection).
+ * invoked with three arguments: (value, index|key, collection).
  *
  * If a property name is provided for `predicate` the created `_.property`
  * style callback returns the property value of the given element.
@@ -1566,18 +3237,71 @@ var baseCallback = require('../internal/baseCallback'),
  * _.result(_.find(users, 'active'), 'user');
  * // => 'barney'
  */
-function find(collection, predicate, thisArg) {
-  if (isArray(collection)) {
-    var index = findIndex(collection, predicate, thisArg);
-    return index > -1 ? collection[index] : undefined;
-  }
-  predicate = baseCallback(predicate, thisArg, 3);
-  return baseFind(collection, predicate, baseEach);
-}
+var find = createFind(baseEach);
 
 module.exports = find;
 
-},{"../array/findIndex":24,"../internal/baseCallback":28,"../internal/baseEach":30,"../internal/baseFind":31,"../lang/isArray":65}],26:[function(require,module,exports){
+},{"../internal/baseEach":55,"../internal/createFind":77}],50:[function(require,module,exports){
+/** Used as the `TypeError` message for "Functions" methods. */
+var FUNC_ERROR_TEXT = 'Expected a function';
+
+/* Native method references for those with the same name as other `lodash` methods. */
+var nativeMax = Math.max;
+
+/**
+ * Creates a function that invokes `func` with the `this` binding of the
+ * created function and arguments from `start` and beyond provided as an array.
+ *
+ * **Note:** This method is based on the [rest parameter](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Functions/rest_parameters).
+ *
+ * @static
+ * @memberOf _
+ * @category Function
+ * @param {Function} func The function to apply a rest parameter to.
+ * @param {number} [start=func.length-1] The start position of the rest parameter.
+ * @returns {Function} Returns the new function.
+ * @example
+ *
+ * var say = _.restParam(function(what, names) {
+ *   return what + ' ' + _.initial(names).join(', ') +
+ *     (_.size(names) > 1 ? ', & ' : '') + _.last(names);
+ * });
+ *
+ * say('hello', 'fred', 'barney', 'pebbles');
+ * // => 'hello fred, barney, & pebbles'
+ */
+function restParam(func, start) {
+  if (typeof func != 'function') {
+    throw new TypeError(FUNC_ERROR_TEXT);
+  }
+  start = nativeMax(typeof start == 'undefined' ? (func.length - 1) : (+start || 0), 0);
+  return function() {
+    var args = arguments,
+        index = -1,
+        length = nativeMax(args.length - start, 0),
+        rest = Array(length);
+
+    while (++index < length) {
+      rest[index] = args[start + index];
+    }
+    switch (start) {
+      case 0: return func.call(this, rest);
+      case 1: return func.call(this, args[0], rest);
+      case 2: return func.call(this, args[0], args[1], rest);
+    }
+    var otherArgs = Array(start + 1);
+    index = -1;
+    while (++index < start) {
+      otherArgs[index] = args[index];
+    }
+    otherArgs[start] = rest;
+    return func.apply(this, otherArgs);
+  };
+}
+
+module.exports = restParam;
+
+},{}],51:[function(require,module,exports){
 (function (global){
 var cachePush = require('./cachePush'),
     isNative = require('../lang/isNative');
@@ -1610,10 +3334,10 @@ SetCache.prototype.push = cachePush;
 module.exports = SetCache;
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"../lang/isNative":66,"./cachePush":47}],27:[function(require,module,exports){
+},{"../lang/isNative":95,"./cachePush":73}],52:[function(require,module,exports){
 /**
  * A specialized version of `_.map` for arrays without support for callback
- * shorthands or `this` binding.
+ * shorthands and `this` binding.
  *
  * @private
  * @param {Array} array The array to iterate over.
@@ -1633,13 +3357,12 @@ function arrayMap(array, iteratee) {
 
 module.exports = arrayMap;
 
-},{}],28:[function(require,module,exports){
+},{}],53:[function(require,module,exports){
 var baseMatches = require('./baseMatches'),
     baseMatchesProperty = require('./baseMatchesProperty'),
     baseProperty = require('./baseProperty'),
     bindCallback = require('./bindCallback'),
-    identity = require('../utility/identity'),
-    isBindable = require('./isBindable');
+    identity = require('../utility/identity');
 
 /**
  * The base implementation of `_.callback` which supports specifying the
@@ -1654,9 +3377,9 @@ var baseMatches = require('./baseMatches'),
 function baseCallback(func, thisArg, argCount) {
   var type = typeof func;
   if (type == 'function') {
-    return (typeof thisArg != 'undefined' && isBindable(func))
-      ? bindCallback(func, thisArg, argCount)
-      : func;
+    return typeof thisArg == 'undefined'
+      ? func
+      : bindCallback(func, thisArg, argCount);
   }
   if (func == null) {
     return identity;
@@ -1671,7 +3394,7 @@ function baseCallback(func, thisArg, argCount) {
 
 module.exports = baseCallback;
 
-},{"../utility/identity":77,"./baseMatches":40,"./baseMatchesProperty":41,"./baseProperty":42,"./bindCallback":45,"./isBindable":53}],29:[function(require,module,exports){
+},{"../utility/identity":107,"./baseMatches":67,"./baseMatchesProperty":68,"./baseProperty":69,"./bindCallback":71}],54:[function(require,module,exports){
 var baseIndexOf = require('./baseIndexOf'),
     cacheIndexOf = require('./cacheIndexOf'),
     createCache = require('./createCache');
@@ -1725,10 +3448,9 @@ function baseDifference(array, values) {
 
 module.exports = baseDifference;
 
-},{"./baseIndexOf":36,"./cacheIndexOf":46,"./createCache":48}],30:[function(require,module,exports){
+},{"./baseIndexOf":62,"./cacheIndexOf":72,"./createCache":76}],55:[function(require,module,exports){
 var baseForOwn = require('./baseForOwn'),
-    isLength = require('./isLength'),
-    toObject = require('./toObject');
+    createBaseEach = require('./createBaseEach');
 
 /**
  * The base implementation of `_.forEach` without support for callback
@@ -1739,25 +3461,11 @@ var baseForOwn = require('./baseForOwn'),
  * @param {Function} iteratee The function invoked per iteration.
  * @returns {Array|Object|string} Returns `collection`.
  */
-function baseEach(collection, iteratee) {
-  var length = collection ? collection.length : 0;
-  if (!isLength(length)) {
-    return baseForOwn(collection, iteratee);
-  }
-  var index = -1,
-      iterable = toObject(collection);
-
-  while (++index < length) {
-    if (iteratee(iterable[index], index, iterable) === false) {
-      break;
-    }
-  }
-  return collection;
-}
+var baseEach = createBaseEach(baseForOwn);
 
 module.exports = baseEach;
 
-},{"./baseForOwn":35,"./isLength":56,"./toObject":63}],31:[function(require,module,exports){
+},{"./baseForOwn":61,"./createBaseEach":74}],56:[function(require,module,exports){
 /**
  * The base implementation of `_.find`, `_.findLast`, `_.findKey`, and `_.findLastKey`,
  * without support for callback shorthands and `this` binding, which iterates
@@ -1784,7 +3492,32 @@ function baseFind(collection, predicate, eachFunc, retKey) {
 
 module.exports = baseFind;
 
-},{}],32:[function(require,module,exports){
+},{}],57:[function(require,module,exports){
+/**
+ * The base implementation of `_.findIndex` and `_.findLastIndex` without
+ * support for callback shorthands and `this` binding.
+ *
+ * @private
+ * @param {Array} array The array to search.
+ * @param {Function} predicate The function invoked per iteration.
+ * @param {boolean} [fromRight] Specify iterating from right to left.
+ * @returns {number} Returns the index of the matched value, else `-1`.
+ */
+function baseFindIndex(array, predicate, fromRight) {
+  var length = array.length,
+      index = fromRight ? length : -1;
+
+  while ((fromRight ? index-- : ++index < length)) {
+    if (predicate(array[index], index, array)) {
+      return index;
+    }
+  }
+  return -1;
+}
+
+module.exports = baseFindIndex;
+
+},{}],58:[function(require,module,exports){
 var isArguments = require('../lang/isArguments'),
     isArray = require('../lang/isArray'),
     isLength = require('./isLength'),
@@ -1798,11 +3531,10 @@ var isArguments = require('../lang/isArguments'),
  * @param {Array} array The array to flatten.
  * @param {boolean} isDeep Specify a deep flatten.
  * @param {boolean} isStrict Restrict flattening to arrays and `arguments` objects.
- * @param {number} fromIndex The index to start from.
  * @returns {Array} Returns the new flattened array.
  */
-function baseFlatten(array, isDeep, isStrict, fromIndex) {
-  var index = fromIndex - 1,
+function baseFlatten(array, isDeep, isStrict) {
+  var index = -1,
       length = array.length,
       resIndex = -1,
       result = [];
@@ -1813,7 +3545,7 @@ function baseFlatten(array, isDeep, isStrict, fromIndex) {
     if (isObjectLike(value) && isLength(value.length) && (isArray(value) || isArguments(value))) {
       if (isDeep) {
         // Recursively flatten arrays (susceptible to call stack limits).
-        value = baseFlatten(value, isDeep, isStrict, 0);
+        value = baseFlatten(value, isDeep, isStrict);
       }
       var valIndex = -1,
           valLength = value.length;
@@ -1831,8 +3563,8 @@ function baseFlatten(array, isDeep, isStrict, fromIndex) {
 
 module.exports = baseFlatten;
 
-},{"../lang/isArguments":64,"../lang/isArray":65,"./isLength":56,"./isObjectLike":57}],33:[function(require,module,exports){
-var toObject = require('./toObject');
+},{"../lang/isArguments":91,"../lang/isArray":92,"./isLength":84,"./isObjectLike":85}],59:[function(require,module,exports){
+var createBaseFor = require('./createBaseFor');
 
 /**
  * The base implementation of `baseForIn` and `baseForOwn` which iterates
@@ -1846,24 +3578,11 @@ var toObject = require('./toObject');
  * @param {Function} keysFunc The function to get the keys of `object`.
  * @returns {Object} Returns `object`.
  */
-function baseFor(object, iteratee, keysFunc) {
-  var index = -1,
-      iterable = toObject(object),
-      props = keysFunc(object),
-      length = props.length;
-
-  while (++index < length) {
-    var key = props[index];
-    if (iteratee(iterable[key], key, iterable) === false) {
-      break;
-    }
-  }
-  return object;
-}
+var baseFor = createBaseFor();
 
 module.exports = baseFor;
 
-},{"./toObject":63}],34:[function(require,module,exports){
+},{"./createBaseFor":75}],60:[function(require,module,exports){
 var baseFor = require('./baseFor'),
     keysIn = require('../object/keysIn');
 
@@ -1882,7 +3601,7 @@ function baseForIn(object, iteratee) {
 
 module.exports = baseForIn;
 
-},{"../object/keysIn":71,"./baseFor":33}],35:[function(require,module,exports){
+},{"../object/keysIn":100,"./baseFor":59}],61:[function(require,module,exports){
 var baseFor = require('./baseFor'),
     keys = require('../object/keys');
 
@@ -1901,7 +3620,7 @@ function baseForOwn(object, iteratee) {
 
 module.exports = baseForOwn;
 
-},{"../object/keys":70,"./baseFor":33}],36:[function(require,module,exports){
+},{"../object/keys":99,"./baseFor":59}],62:[function(require,module,exports){
 var indexOfNaN = require('./indexOfNaN');
 
 /**
@@ -1930,7 +3649,7 @@ function baseIndexOf(array, value, fromIndex) {
 
 module.exports = baseIndexOf;
 
-},{"./indexOfNaN":52}],37:[function(require,module,exports){
+},{"./indexOfNaN":81}],63:[function(require,module,exports){
 var baseIsEqualDeep = require('./baseIsEqualDeep');
 
 /**
@@ -1941,12 +3660,12 @@ var baseIsEqualDeep = require('./baseIsEqualDeep');
  * @param {*} value The value to compare.
  * @param {*} other The other value to compare.
  * @param {Function} [customizer] The function to customize comparing values.
- * @param {boolean} [isWhere] Specify performing partial comparisons.
+ * @param {boolean} [isLoose] Specify performing partial comparisons.
  * @param {Array} [stackA] Tracks traversed `value` objects.
  * @param {Array} [stackB] Tracks traversed `other` objects.
  * @returns {boolean} Returns `true` if the values are equivalent, else `false`.
  */
-function baseIsEqual(value, other, customizer, isWhere, stackA, stackB) {
+function baseIsEqual(value, other, customizer, isLoose, stackA, stackB) {
   // Exit early for identical values.
   if (value === other) {
     // Treat `+0` vs. `-0` as not equal.
@@ -1961,12 +3680,12 @@ function baseIsEqual(value, other, customizer, isWhere, stackA, stackB) {
     // Return `false` unless both values are `NaN`.
     return value !== value && other !== other;
   }
-  return baseIsEqualDeep(value, other, baseIsEqual, customizer, isWhere, stackA, stackB);
+  return baseIsEqualDeep(value, other, baseIsEqual, customizer, isLoose, stackA, stackB);
 }
 
 module.exports = baseIsEqual;
 
-},{"./baseIsEqualDeep":38}],38:[function(require,module,exports){
+},{"./baseIsEqualDeep":64}],64:[function(require,module,exports){
 var equalArrays = require('./equalArrays'),
     equalByTag = require('./equalByTag'),
     equalObjects = require('./equalObjects'),
@@ -1976,6 +3695,7 @@ var equalArrays = require('./equalArrays'),
 /** `Object#toString` result references. */
 var argsTag = '[object Arguments]',
     arrayTag = '[object Array]',
+    funcTag = '[object Function]',
     objectTag = '[object Object]';
 
 /** Used for native method references. */
@@ -1985,9 +3705,8 @@ var objectProto = Object.prototype;
 var hasOwnProperty = objectProto.hasOwnProperty;
 
 /**
- * Used to resolve the `toStringTag` of values.
- * See the [ES spec](https://people.mozilla.org/~jorendorff/es6-draft.html#sec-object.prototype.tostring)
- * for more details.
+ * Used to resolve the [`toStringTag`](https://people.mozilla.org/~jorendorff/es6-draft.html#sec-object.prototype.tostring)
+ * of values.
  */
 var objToString = objectProto.toString;
 
@@ -2001,12 +3720,12 @@ var objToString = objectProto.toString;
  * @param {Object} other The other object to compare.
  * @param {Function} equalFunc The function to determine equivalents of values.
  * @param {Function} [customizer] The function to customize comparing objects.
- * @param {boolean} [isWhere] Specify performing partial comparisons.
+ * @param {boolean} [isLoose] Specify performing partial comparisons.
  * @param {Array} [stackA=[]] Tracks traversed `value` objects.
  * @param {Array} [stackB=[]] Tracks traversed `other` objects.
  * @returns {boolean} Returns `true` if the objects are equivalent, else `false`.
  */
-function baseIsEqualDeep(object, other, equalFunc, customizer, isWhere, stackA, stackB) {
+function baseIsEqualDeep(object, other, equalFunc, customizer, isLoose, stackA, stackB) {
   var objIsArr = isArray(object),
       othIsArr = isArray(other),
       objTag = arrayTag,
@@ -2028,21 +3747,27 @@ function baseIsEqualDeep(object, other, equalFunc, customizer, isWhere, stackA, 
       othIsArr = isTypedArray(other);
     }
   }
-  var objIsObj = objTag == objectTag,
-      othIsObj = othTag == objectTag,
+  var objIsObj = (objTag == objectTag || (isLoose && objTag == funcTag)),
+      othIsObj = (othTag == objectTag || (isLoose && othTag == funcTag)),
       isSameTag = objTag == othTag;
 
   if (isSameTag && !(objIsArr || objIsObj)) {
     return equalByTag(object, other, objTag);
   }
-  var valWrapped = objIsObj && hasOwnProperty.call(object, '__wrapped__'),
-      othWrapped = othIsObj && hasOwnProperty.call(other, '__wrapped__');
+  if (isLoose) {
+    if (!isSameTag && !(objIsObj && othIsObj)) {
+      return false;
+    }
+  } else {
+    var valWrapped = objIsObj && hasOwnProperty.call(object, '__wrapped__'),
+        othWrapped = othIsObj && hasOwnProperty.call(other, '__wrapped__');
 
-  if (valWrapped || othWrapped) {
-    return equalFunc(valWrapped ? object.value() : object, othWrapped ? other.value() : other, customizer, isWhere, stackA, stackB);
-  }
-  if (!isSameTag) {
-    return false;
+    if (valWrapped || othWrapped) {
+      return equalFunc(valWrapped ? object.value() : object, othWrapped ? other.value() : other, customizer, isLoose, stackA, stackB);
+    }
+    if (!isSameTag) {
+      return false;
+    }
   }
   // Assume cyclic values are equal.
   // For more information on detecting circular references see https://es5.github.io/#JO.
@@ -2059,7 +3784,7 @@ function baseIsEqualDeep(object, other, equalFunc, customizer, isWhere, stackA, 
   stackA.push(object);
   stackB.push(other);
 
-  var result = (objIsArr ? equalArrays : equalObjects)(object, other, equalFunc, customizer, isWhere, stackA, stackB);
+  var result = (objIsArr ? equalArrays : equalObjects)(object, other, equalFunc, customizer, isLoose, stackA, stackB);
 
   stackA.pop();
   stackB.pop();
@@ -2069,18 +3794,29 @@ function baseIsEqualDeep(object, other, equalFunc, customizer, isWhere, stackA, 
 
 module.exports = baseIsEqualDeep;
 
-},{"../lang/isArray":65,"../lang/isTypedArray":69,"./equalArrays":49,"./equalByTag":50,"./equalObjects":51}],39:[function(require,module,exports){
+},{"../lang/isArray":92,"../lang/isTypedArray":98,"./equalArrays":78,"./equalByTag":79,"./equalObjects":80}],65:[function(require,module,exports){
+/**
+ * The base implementation of `_.isFunction` without support for environments
+ * with incorrect `typeof` results.
+ *
+ * @private
+ * @param {*} value The value to check.
+ * @returns {boolean} Returns `true` if `value` is correctly classified, else `false`.
+ */
+function baseIsFunction(value) {
+  // Avoid a Chakra JIT bug in compatibility modes of IE 11.
+  // See https://github.com/jashkenas/underscore/issues/1621 for more details.
+  return typeof value == 'function' || false;
+}
+
+module.exports = baseIsFunction;
+
+},{}],66:[function(require,module,exports){
 var baseIsEqual = require('./baseIsEqual');
-
-/** Used for native method references. */
-var objectProto = Object.prototype;
-
-/** Used to check objects for own properties. */
-var hasOwnProperty = objectProto.hasOwnProperty;
 
 /**
  * The base implementation of `_.isMatch` without support for callback
- * shorthands or `this` binding.
+ * shorthands and `this` binding.
  *
  * @private
  * @param {Object} object The object to inspect.
@@ -2091,30 +3827,27 @@ var hasOwnProperty = objectProto.hasOwnProperty;
  * @returns {boolean} Returns `true` if `object` is a match, else `false`.
  */
 function baseIsMatch(object, props, values, strictCompareFlags, customizer) {
-  var length = props.length;
-  if (object == null) {
-    return !length;
-  }
   var index = -1,
+      length = props.length,
       noCustomizer = !customizer;
 
   while (++index < length) {
     if ((noCustomizer && strictCompareFlags[index])
           ? values[index] !== object[props[index]]
-          : !hasOwnProperty.call(object, props[index])
+          : !(props[index] in object)
         ) {
       return false;
     }
   }
   index = -1;
   while (++index < length) {
-    var key = props[index];
-    if (noCustomizer && strictCompareFlags[index]) {
-      var result = hasOwnProperty.call(object, key);
-    } else {
-      var objValue = object[key],
-          srcValue = values[index];
+    var key = props[index],
+        objValue = object[key],
+        srcValue = values[index];
 
+    if (noCustomizer && strictCompareFlags[index]) {
+      var result = typeof objValue != 'undefined' || (key in object);
+    } else {
       result = customizer ? customizer(objValue, srcValue, key) : undefined;
       if (typeof result == 'undefined') {
         result = baseIsEqual(srcValue, objValue, customizer, true);
@@ -2129,16 +3862,12 @@ function baseIsMatch(object, props, values, strictCompareFlags, customizer) {
 
 module.exports = baseIsMatch;
 
-},{"./baseIsEqual":37}],40:[function(require,module,exports){
+},{"./baseIsEqual":63}],67:[function(require,module,exports){
 var baseIsMatch = require('./baseIsMatch'),
+    constant = require('../utility/constant'),
     isStrictComparable = require('./isStrictComparable'),
-    keys = require('../object/keys');
-
-/** Used for native method references. */
-var objectProto = Object.prototype;
-
-/** Used to check objects for own properties. */
-var hasOwnProperty = objectProto.hasOwnProperty;
+    keys = require('../object/keys'),
+    toObject = require('./toObject');
 
 /**
  * The base implementation of `_.matches` which does not clone `source`.
@@ -2151,13 +3880,17 @@ function baseMatches(source) {
   var props = keys(source),
       length = props.length;
 
+  if (!length) {
+    return constant(true);
+  }
   if (length == 1) {
     var key = props[0],
         value = source[key];
 
     if (isStrictComparable(value)) {
       return function(object) {
-        return object != null && object[key] === value && hasOwnProperty.call(object, key);
+        return object != null && object[key] === value &&
+          (typeof value != 'undefined' || (key in toObject(object)));
       };
     }
   }
@@ -2170,15 +3903,16 @@ function baseMatches(source) {
     strictCompareFlags[length] = isStrictComparable(value);
   }
   return function(object) {
-    return baseIsMatch(object, props, values, strictCompareFlags);
+    return object != null && baseIsMatch(toObject(object), props, values, strictCompareFlags);
   };
 }
 
 module.exports = baseMatches;
 
-},{"../object/keys":70,"./baseIsMatch":39,"./isStrictComparable":58}],41:[function(require,module,exports){
+},{"../object/keys":99,"../utility/constant":106,"./baseIsMatch":66,"./isStrictComparable":86,"./toObject":90}],68:[function(require,module,exports){
 var baseIsEqual = require('./baseIsEqual'),
-    isStrictComparable = require('./isStrictComparable');
+    isStrictComparable = require('./isStrictComparable'),
+    toObject = require('./toObject');
 
 /**
  * The base implementation of `_.matchesProperty` which does not coerce `key`
@@ -2192,7 +3926,8 @@ var baseIsEqual = require('./baseIsEqual'),
 function baseMatchesProperty(key, value) {
   if (isStrictComparable(value)) {
     return function(object) {
-      return object != null && object[key] === value;
+      return object != null && object[key] === value &&
+        (typeof value != 'undefined' || (key in toObject(object)));
     };
   }
   return function(object) {
@@ -2202,7 +3937,7 @@ function baseMatchesProperty(key, value) {
 
 module.exports = baseMatchesProperty;
 
-},{"./baseIsEqual":37,"./isStrictComparable":58}],42:[function(require,module,exports){
+},{"./baseIsEqual":63,"./isStrictComparable":86,"./toObject":90}],69:[function(require,module,exports){
 /**
  * The base implementation of `_.property` which does not coerce `key` to a string.
  *
@@ -2218,26 +3953,7 @@ function baseProperty(key) {
 
 module.exports = baseProperty;
 
-},{}],43:[function(require,module,exports){
-var identity = require('../utility/identity'),
-    metaMap = require('./metaMap');
-
-/**
- * The base implementation of `setData` without support for hot loop detection.
- *
- * @private
- * @param {Function} func The function to associate metadata with.
- * @param {*} data The metadata.
- * @returns {Function} Returns `func`.
- */
-var baseSetData = !metaMap ? identity : function(func, data) {
-  metaMap.set(func, data);
-  return func;
-};
-
-module.exports = baseSetData;
-
-},{"../utility/identity":77,"./metaMap":59}],44:[function(require,module,exports){
+},{}],70:[function(require,module,exports){
 /**
  * Converts `value` to a string if it is not one. An empty string is returned
  * for `null` or `undefined` values.
@@ -2255,7 +3971,7 @@ function baseToString(value) {
 
 module.exports = baseToString;
 
-},{}],45:[function(require,module,exports){
+},{}],71:[function(require,module,exports){
 var identity = require('../utility/identity');
 
 /**
@@ -2296,7 +4012,7 @@ function bindCallback(func, thisArg, argCount) {
 
 module.exports = bindCallback;
 
-},{"../utility/identity":77}],46:[function(require,module,exports){
+},{"../utility/identity":107}],72:[function(require,module,exports){
 var isObject = require('../lang/isObject');
 
 /**
@@ -2317,7 +4033,7 @@ function cacheIndexOf(cache, value) {
 
 module.exports = cacheIndexOf;
 
-},{"../lang/isObject":67}],47:[function(require,module,exports){
+},{"../lang/isObject":96}],73:[function(require,module,exports){
 var isObject = require('../lang/isObject');
 
 /**
@@ -2339,7 +4055,68 @@ function cachePush(value) {
 
 module.exports = cachePush;
 
-},{"../lang/isObject":67}],48:[function(require,module,exports){
+},{"../lang/isObject":96}],74:[function(require,module,exports){
+var isLength = require('./isLength'),
+    toObject = require('./toObject');
+
+/**
+ * Creates a `baseEach` or `baseEachRight` function.
+ *
+ * @private
+ * @param {Function} eachFunc The function to iterate over a collection.
+ * @param {boolean} [fromRight] Specify iterating from right to left.
+ * @returns {Function} Returns the new base function.
+ */
+function createBaseEach(eachFunc, fromRight) {
+  return function(collection, iteratee) {
+    var length = collection ? collection.length : 0;
+    if (!isLength(length)) {
+      return eachFunc(collection, iteratee);
+    }
+    var index = fromRight ? length : -1,
+        iterable = toObject(collection);
+
+    while ((fromRight ? index-- : ++index < length)) {
+      if (iteratee(iterable[index], index, iterable) === false) {
+        break;
+      }
+    }
+    return collection;
+  };
+}
+
+module.exports = createBaseEach;
+
+},{"./isLength":84,"./toObject":90}],75:[function(require,module,exports){
+var toObject = require('./toObject');
+
+/**
+ * Creates a base function for `_.forIn` or `_.forInRight`.
+ *
+ * @private
+ * @param {boolean} [fromRight] Specify iterating from right to left.
+ * @returns {Function} Returns the new base function.
+ */
+function createBaseFor(fromRight) {
+  return function(object, iteratee, keysFunc) {
+    var iterable = toObject(object),
+        props = keysFunc(object),
+        length = props.length,
+        index = fromRight ? length : -1;
+
+    while ((fromRight ? index-- : ++index < length)) {
+      var key = props[index];
+      if (iteratee(iterable[key], key, iterable) === false) {
+        break;
+      }
+    }
+    return object;
+  };
+}
+
+module.exports = createBaseFor;
+
+},{"./toObject":90}],76:[function(require,module,exports){
 (function (global){
 var SetCache = require('./SetCache'),
     constant = require('../utility/constant'),
@@ -2365,7 +4142,34 @@ var createCache = !(nativeCreate && Set) ? constant(null) : function(values) {
 module.exports = createCache;
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"../lang/isNative":66,"../utility/constant":76,"./SetCache":26}],49:[function(require,module,exports){
+},{"../lang/isNative":95,"../utility/constant":106,"./SetCache":51}],77:[function(require,module,exports){
+var baseCallback = require('./baseCallback'),
+    baseFind = require('./baseFind'),
+    baseFindIndex = require('./baseFindIndex'),
+    isArray = require('../lang/isArray');
+
+/**
+ * Creates a `_.find` or `_.findLast` function.
+ *
+ * @private
+ * @param {Function} eachFunc The function to iterate over a collection.
+ * @param {boolean} [fromRight] Specify iterating from right to left.
+ * @returns {Function} Returns the new find function.
+ */
+function createFind(eachFunc, fromRight) {
+  return function(collection, predicate, thisArg) {
+    predicate = baseCallback(predicate, thisArg, 3);
+    if (isArray(collection)) {
+      var index = baseFindIndex(collection, predicate, fromRight);
+      return index > -1 ? collection[index] : undefined;
+    }
+    return baseFind(collection, predicate, eachFunc);
+  }
+}
+
+module.exports = createFind;
+
+},{"../lang/isArray":92,"./baseCallback":53,"./baseFind":56,"./baseFindIndex":57}],78:[function(require,module,exports){
 /**
  * A specialized version of `baseIsEqualDeep` for arrays with support for
  * partial deep comparisons.
@@ -2375,18 +4179,18 @@ module.exports = createCache;
  * @param {Array} other The other array to compare.
  * @param {Function} equalFunc The function to determine equivalents of values.
  * @param {Function} [customizer] The function to customize comparing arrays.
- * @param {boolean} [isWhere] Specify performing partial comparisons.
+ * @param {boolean} [isLoose] Specify performing partial comparisons.
  * @param {Array} [stackA] Tracks traversed `value` objects.
  * @param {Array} [stackB] Tracks traversed `other` objects.
  * @returns {boolean} Returns `true` if the arrays are equivalent, else `false`.
  */
-function equalArrays(array, other, equalFunc, customizer, isWhere, stackA, stackB) {
+function equalArrays(array, other, equalFunc, customizer, isLoose, stackA, stackB) {
   var index = -1,
       arrLength = array.length,
       othLength = other.length,
       result = true;
 
-  if (arrLength != othLength && !(isWhere && othLength > arrLength)) {
+  if (arrLength != othLength && !(isLoose && othLength > arrLength)) {
     return false;
   }
   // Deep compare the contents, ignoring non-numeric properties.
@@ -2396,23 +4200,23 @@ function equalArrays(array, other, equalFunc, customizer, isWhere, stackA, stack
 
     result = undefined;
     if (customizer) {
-      result = isWhere
+      result = isLoose
         ? customizer(othValue, arrValue, index)
         : customizer(arrValue, othValue, index);
     }
     if (typeof result == 'undefined') {
       // Recursively compare arrays (susceptible to call stack limits).
-      if (isWhere) {
+      if (isLoose) {
         var othIndex = othLength;
         while (othIndex--) {
           othValue = other[othIndex];
-          result = (arrValue && arrValue === othValue) || equalFunc(arrValue, othValue, customizer, isWhere, stackA, stackB);
+          result = (arrValue && arrValue === othValue) || equalFunc(arrValue, othValue, customizer, isLoose, stackA, stackB);
           if (result) {
             break;
           }
         }
       } else {
-        result = (arrValue && arrValue === othValue) || equalFunc(arrValue, othValue, customizer, isWhere, stackA, stackB);
+        result = (arrValue && arrValue === othValue) || equalFunc(arrValue, othValue, customizer, isLoose, stackA, stackB);
       }
     }
   }
@@ -2421,7 +4225,7 @@ function equalArrays(array, other, equalFunc, customizer, isWhere, stackA, stack
 
 module.exports = equalArrays;
 
-},{}],50:[function(require,module,exports){
+},{}],79:[function(require,module,exports){
 /** `Object#toString` result references. */
 var boolTag = '[object Boolean]',
     dateTag = '[object Date]',
@@ -2472,7 +4276,7 @@ function equalByTag(object, other, tag) {
 
 module.exports = equalByTag;
 
-},{}],51:[function(require,module,exports){
+},{}],80:[function(require,module,exports){
 var keys = require('../object/keys');
 
 /** Used for native method references. */
@@ -2490,26 +4294,26 @@ var hasOwnProperty = objectProto.hasOwnProperty;
  * @param {Object} other The other object to compare.
  * @param {Function} equalFunc The function to determine equivalents of values.
  * @param {Function} [customizer] The function to customize comparing values.
- * @param {boolean} [isWhere] Specify performing partial comparisons.
+ * @param {boolean} [isLoose] Specify performing partial comparisons.
  * @param {Array} [stackA] Tracks traversed `value` objects.
  * @param {Array} [stackB] Tracks traversed `other` objects.
  * @returns {boolean} Returns `true` if the objects are equivalent, else `false`.
  */
-function equalObjects(object, other, equalFunc, customizer, isWhere, stackA, stackB) {
+function equalObjects(object, other, equalFunc, customizer, isLoose, stackA, stackB) {
   var objProps = keys(object),
       objLength = objProps.length,
       othProps = keys(other),
       othLength = othProps.length;
 
-  if (objLength != othLength && !isWhere) {
+  if (objLength != othLength && !isLoose) {
     return false;
   }
-  var hasCtor,
+  var skipCtor = isLoose,
       index = -1;
 
   while (++index < objLength) {
     var key = objProps[index],
-        result = hasOwnProperty.call(other, key);
+        result = isLoose ? key in other : hasOwnProperty.call(other, key);
 
     if (result) {
       var objValue = object[key],
@@ -2517,21 +4321,21 @@ function equalObjects(object, other, equalFunc, customizer, isWhere, stackA, sta
 
       result = undefined;
       if (customizer) {
-        result = isWhere
+        result = isLoose
           ? customizer(othValue, objValue, key)
           : customizer(objValue, othValue, key);
       }
       if (typeof result == 'undefined') {
         // Recursively compare objects (susceptible to call stack limits).
-        result = (objValue && objValue === othValue) || equalFunc(objValue, othValue, customizer, isWhere, stackA, stackB);
+        result = (objValue && objValue === othValue) || equalFunc(objValue, othValue, customizer, isLoose, stackA, stackB);
       }
     }
     if (!result) {
       return false;
     }
-    hasCtor || (hasCtor = key == 'constructor');
+    skipCtor || (skipCtor = key == 'constructor');
   }
-  if (!hasCtor) {
+  if (!skipCtor) {
     var objCtor = object.constructor,
         othCtor = other.constructor;
 
@@ -2548,10 +4352,9 @@ function equalObjects(object, other, equalFunc, customizer, isWhere, stackA, sta
 
 module.exports = equalObjects;
 
-},{"../object/keys":70}],52:[function(require,module,exports){
+},{"../object/keys":99}],81:[function(require,module,exports){
 /**
  * Gets the index at which the first occurrence of `NaN` is found in `array`.
- * If `fromRight` is provided elements of `array` are iterated from right to left.
  *
  * @private
  * @param {Array} array The array to search.
@@ -2574,51 +4377,10 @@ function indexOfNaN(array, fromIndex, fromRight) {
 
 module.exports = indexOfNaN;
 
-},{}],53:[function(require,module,exports){
-var baseSetData = require('./baseSetData'),
-    isNative = require('../lang/isNative'),
-    support = require('../support');
-
-/** Used to detect named functions. */
-var reFuncName = /^\s*function[ \n\r\t]+\w/;
-
-/** Used to detect functions containing a `this` reference. */
-var reThis = /\bthis\b/;
-
-/** Used to resolve the decompiled source of functions. */
-var fnToString = Function.prototype.toString;
-
+},{}],82:[function(require,module,exports){
 /**
- * Checks if `func` is eligible for `this` binding.
- *
- * @private
- * @param {Function} func The function to check.
- * @returns {boolean} Returns `true` if `func` is eligible, else `false`.
- */
-function isBindable(func) {
-  var result = !(support.funcNames ? func.name : support.funcDecomp);
-
-  if (!result) {
-    var source = fnToString.call(func);
-    if (!support.funcNames) {
-      result = !reFuncName.test(source);
-    }
-    if (!result) {
-      // Check if `func` references the `this` keyword and store the result.
-      result = reThis.test(source) || isNative(func);
-      baseSetData(func, result);
-    }
-  }
-  return result;
-}
-
-module.exports = isBindable;
-
-},{"../lang/isNative":66,"../support":75,"./baseSetData":43}],54:[function(require,module,exports){
-/**
- * Used as the maximum length of an array-like value.
- * See the [ES spec](https://people.mozilla.org/~jorendorff/es6-draft.html#sec-number.max_safe_integer)
- * for more details.
+ * Used as the [maximum length](https://people.mozilla.org/~jorendorff/es6-draft.html#sec-number.max_safe_integer)
+ * of an array-like value.
  */
 var MAX_SAFE_INTEGER = Math.pow(2, 53) - 1;
 
@@ -2638,7 +4400,7 @@ function isIndex(value, length) {
 
 module.exports = isIndex;
 
-},{}],55:[function(require,module,exports){
+},{}],83:[function(require,module,exports){
 var isIndex = require('./isIndex'),
     isLength = require('./isLength'),
     isObject = require('../lang/isObject');
@@ -2672,20 +4434,17 @@ function isIterateeCall(value, index, object) {
 
 module.exports = isIterateeCall;
 
-},{"../lang/isObject":67,"./isIndex":54,"./isLength":56}],56:[function(require,module,exports){
+},{"../lang/isObject":96,"./isIndex":82,"./isLength":84}],84:[function(require,module,exports){
 /**
- * Used as the maximum length of an array-like value.
- * See the [ES spec](https://people.mozilla.org/~jorendorff/es6-draft.html#sec-number.max_safe_integer)
- * for more details.
+ * Used as the [maximum length](https://people.mozilla.org/~jorendorff/es6-draft.html#sec-number.max_safe_integer)
+ * of an array-like value.
  */
 var MAX_SAFE_INTEGER = Math.pow(2, 53) - 1;
 
 /**
  * Checks if `value` is a valid array-like length.
  *
- * **Note:** This function is based on ES `ToLength`. See the
- * [ES spec](https://people.mozilla.org/~jorendorff/es6-draft.html#sec-tolength)
- * for more details.
+ * **Note:** This function is based on [`ToLength`](https://people.mozilla.org/~jorendorff/es6-draft.html#sec-tolength).
  *
  * @private
  * @param {*} value The value to check.
@@ -2697,7 +4456,7 @@ function isLength(value) {
 
 module.exports = isLength;
 
-},{}],57:[function(require,module,exports){
+},{}],85:[function(require,module,exports){
 /**
  * Checks if `value` is object-like.
  *
@@ -2706,12 +4465,12 @@ module.exports = isLength;
  * @returns {boolean} Returns `true` if `value` is object-like, else `false`.
  */
 function isObjectLike(value) {
-  return (value && typeof value == 'object') || false;
+  return !!value && typeof value == 'object';
 }
 
 module.exports = isObjectLike;
 
-},{}],58:[function(require,module,exports){
+},{}],86:[function(require,module,exports){
 var isObject = require('../lang/isObject');
 
 /**
@@ -2728,20 +4487,7 @@ function isStrictComparable(value) {
 
 module.exports = isStrictComparable;
 
-},{"../lang/isObject":67}],59:[function(require,module,exports){
-(function (global){
-var isNative = require('../lang/isNative');
-
-/** Native method references. */
-var WeakMap = isNative(WeakMap = global.WeakMap) && WeakMap;
-
-/** Used to store function metadata. */
-var metaMap = WeakMap && new WeakMap;
-
-module.exports = metaMap;
-
-}).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"../lang/isNative":66}],60:[function(require,module,exports){
+},{"../lang/isObject":96}],87:[function(require,module,exports){
 var toObject = require('./toObject');
 
 /**
@@ -2771,7 +4517,7 @@ function pickByArray(object, props) {
 
 module.exports = pickByArray;
 
-},{"./toObject":63}],61:[function(require,module,exports){
+},{"./toObject":90}],88:[function(require,module,exports){
 var baseForIn = require('./baseForIn');
 
 /**
@@ -2795,7 +4541,7 @@ function pickByCallback(object, predicate) {
 
 module.exports = pickByCallback;
 
-},{"./baseForIn":34}],62:[function(require,module,exports){
+},{"./baseForIn":60}],89:[function(require,module,exports){
 var isArguments = require('../lang/isArguments'),
     isArray = require('../lang/isArray'),
     isIndex = require('./isIndex'),
@@ -2839,7 +4585,7 @@ function shimKeys(object) {
 
 module.exports = shimKeys;
 
-},{"../lang/isArguments":64,"../lang/isArray":65,"../object/keysIn":71,"../support":75,"./isIndex":54,"./isLength":56}],63:[function(require,module,exports){
+},{"../lang/isArguments":91,"../lang/isArray":92,"../object/keysIn":100,"../support":105,"./isIndex":82,"./isLength":84}],90:[function(require,module,exports){
 var isObject = require('../lang/isObject');
 
 /**
@@ -2855,7 +4601,7 @@ function toObject(value) {
 
 module.exports = toObject;
 
-},{"../lang/isObject":67}],64:[function(require,module,exports){
+},{"../lang/isObject":96}],91:[function(require,module,exports){
 var isLength = require('../internal/isLength'),
     isObjectLike = require('../internal/isObjectLike');
 
@@ -2866,9 +4612,8 @@ var argsTag = '[object Arguments]';
 var objectProto = Object.prototype;
 
 /**
- * Used to resolve the `toStringTag` of values.
- * See the [ES spec](https://people.mozilla.org/~jorendorff/es6-draft.html#sec-object.prototype.tostring)
- * for more details.
+ * Used to resolve the [`toStringTag`](https://people.mozilla.org/~jorendorff/es6-draft.html#sec-object.prototype.tostring)
+ * of values.
  */
 var objToString = objectProto.toString;
 
@@ -2890,12 +4635,12 @@ var objToString = objectProto.toString;
  */
 function isArguments(value) {
   var length = isObjectLike(value) ? value.length : undefined;
-  return (isLength(length) && objToString.call(value) == argsTag) || false;
+  return isLength(length) && objToString.call(value) == argsTag;
 }
 
 module.exports = isArguments;
 
-},{"../internal/isLength":56,"../internal/isObjectLike":57}],65:[function(require,module,exports){
+},{"../internal/isLength":84,"../internal/isObjectLike":85}],92:[function(require,module,exports){
 var isLength = require('../internal/isLength'),
     isNative = require('./isNative'),
     isObjectLike = require('../internal/isObjectLike');
@@ -2907,9 +4652,8 @@ var arrayTag = '[object Array]';
 var objectProto = Object.prototype;
 
 /**
- * Used to resolve the `toStringTag` of values.
- * See the [ES spec](https://people.mozilla.org/~jorendorff/es6-draft.html#sec-object.prototype.tostring)
- * for more details.
+ * Used to resolve the [`toStringTag`](https://people.mozilla.org/~jorendorff/es6-draft.html#sec-object.prototype.tostring)
+ * of values.
  */
 var objToString = objectProto.toString;
 
@@ -2933,12 +4677,108 @@ var nativeIsArray = isNative(nativeIsArray = Array.isArray) && nativeIsArray;
  * // => false
  */
 var isArray = nativeIsArray || function(value) {
-  return (isObjectLike(value) && isLength(value.length) && objToString.call(value) == arrayTag) || false;
+  return isObjectLike(value) && isLength(value.length) && objToString.call(value) == arrayTag;
 };
 
 module.exports = isArray;
 
-},{"../internal/isLength":56,"../internal/isObjectLike":57,"./isNative":66}],66:[function(require,module,exports){
+},{"../internal/isLength":84,"../internal/isObjectLike":85,"./isNative":95}],93:[function(require,module,exports){
+var isArguments = require('./isArguments'),
+    isArray = require('./isArray'),
+    isFunction = require('./isFunction'),
+    isLength = require('../internal/isLength'),
+    isObjectLike = require('../internal/isObjectLike'),
+    isString = require('./isString'),
+    keys = require('../object/keys');
+
+/**
+ * Checks if `value` is empty. A value is considered empty unless it is an
+ * `arguments` object, array, string, or jQuery-like collection with a length
+ * greater than `0` or an object with own enumerable properties.
+ *
+ * @static
+ * @memberOf _
+ * @category Lang
+ * @param {Array|Object|string} value The value to inspect.
+ * @returns {boolean} Returns `true` if `value` is empty, else `false`.
+ * @example
+ *
+ * _.isEmpty(null);
+ * // => true
+ *
+ * _.isEmpty(true);
+ * // => true
+ *
+ * _.isEmpty(1);
+ * // => true
+ *
+ * _.isEmpty([1, 2, 3]);
+ * // => false
+ *
+ * _.isEmpty({ 'a': 1 });
+ * // => false
+ */
+function isEmpty(value) {
+  if (value == null) {
+    return true;
+  }
+  var length = value.length;
+  if (isLength(length) && (isArray(value) || isString(value) || isArguments(value) ||
+      (isObjectLike(value) && isFunction(value.splice)))) {
+    return !length;
+  }
+  return !keys(value).length;
+}
+
+module.exports = isEmpty;
+
+},{"../internal/isLength":84,"../internal/isObjectLike":85,"../object/keys":99,"./isArguments":91,"./isArray":92,"./isFunction":94,"./isString":97}],94:[function(require,module,exports){
+(function (global){
+var baseIsFunction = require('../internal/baseIsFunction'),
+    isNative = require('./isNative');
+
+/** `Object#toString` result references. */
+var funcTag = '[object Function]';
+
+/** Used for native method references. */
+var objectProto = Object.prototype;
+
+/**
+ * Used to resolve the [`toStringTag`](https://people.mozilla.org/~jorendorff/es6-draft.html#sec-object.prototype.tostring)
+ * of values.
+ */
+var objToString = objectProto.toString;
+
+/** Native method references. */
+var Uint8Array = isNative(Uint8Array = global.Uint8Array) && Uint8Array;
+
+/**
+ * Checks if `value` is classified as a `Function` object.
+ *
+ * @static
+ * @memberOf _
+ * @category Lang
+ * @param {*} value The value to check.
+ * @returns {boolean} Returns `true` if `value` is correctly classified, else `false`.
+ * @example
+ *
+ * _.isFunction(_);
+ * // => true
+ *
+ * _.isFunction(/abc/);
+ * // => false
+ */
+var isFunction = !(baseIsFunction(/x/) || (Uint8Array && !baseIsFunction(Uint8Array))) ? baseIsFunction : function(value) {
+  // The use of `Object#toString` avoids issues with the `typeof` operator
+  // in older versions of Chrome and Safari which return 'function' for regexes
+  // and Safari 8 equivalents which return 'object' for typed array constructors.
+  return objToString.call(value) == funcTag;
+};
+
+module.exports = isFunction;
+
+}).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
+},{"../internal/baseIsFunction":65,"./isNative":95}],95:[function(require,module,exports){
 var escapeRegExp = require('../string/escapeRegExp'),
     isObjectLike = require('../internal/isObjectLike');
 
@@ -2955,9 +4795,8 @@ var objectProto = Object.prototype;
 var fnToString = Function.prototype.toString;
 
 /**
- * Used to resolve the `toStringTag` of values.
- * See the [ES spec](https://people.mozilla.org/~jorendorff/es6-draft.html#sec-object.prototype.tostring)
- * for more details.
+ * Used to resolve the [`toStringTag`](https://people.mozilla.org/~jorendorff/es6-draft.html#sec-object.prototype.tostring)
+ * of values.
  */
 var objToString = objectProto.toString;
 
@@ -2990,17 +4829,15 @@ function isNative(value) {
   if (objToString.call(value) == funcTag) {
     return reNative.test(fnToString.call(value));
   }
-  return (isObjectLike(value) && reHostCtor.test(value)) || false;
+  return isObjectLike(value) && reHostCtor.test(value);
 }
 
 module.exports = isNative;
 
-},{"../internal/isObjectLike":57,"../string/escapeRegExp":73}],67:[function(require,module,exports){
+},{"../internal/isObjectLike":85,"../string/escapeRegExp":103}],96:[function(require,module,exports){
 /**
- * Checks if `value` is the language type of `Object`.
+ * Checks if `value` is the [language type](https://es5.github.io/#x8) of `Object`.
  * (e.g. arrays, functions, objects, regexes, `new Number(0)`, and `new String('')`)
- *
- * **Note:** See the [ES5 spec](https://es5.github.io/#x8) for more details.
  *
  * @static
  * @memberOf _
@@ -3022,12 +4859,12 @@ function isObject(value) {
   // Avoid a V8 JIT bug in Chrome 19-20.
   // See https://code.google.com/p/v8/issues/detail?id=2291 for more details.
   var type = typeof value;
-  return type == 'function' || (value && type == 'object') || false;
+  return type == 'function' || (!!value && type == 'object');
 }
 
 module.exports = isObject;
 
-},{}],68:[function(require,module,exports){
+},{}],97:[function(require,module,exports){
 var isObjectLike = require('../internal/isObjectLike');
 
 /** `Object#toString` result references. */
@@ -3037,9 +4874,8 @@ var stringTag = '[object String]';
 var objectProto = Object.prototype;
 
 /**
- * Used to resolve the `toStringTag` of values.
- * See the [ES spec](https://people.mozilla.org/~jorendorff/es6-draft.html#sec-object.prototype.tostring)
- * for more details.
+ * Used to resolve the [`toStringTag`](https://people.mozilla.org/~jorendorff/es6-draft.html#sec-object.prototype.tostring)
+ * of values.
  */
 var objToString = objectProto.toString;
 
@@ -3060,12 +4896,12 @@ var objToString = objectProto.toString;
  * // => false
  */
 function isString(value) {
-  return typeof value == 'string' || (isObjectLike(value) && objToString.call(value) == stringTag) || false;
+  return typeof value == 'string' || (isObjectLike(value) && objToString.call(value) == stringTag);
 }
 
 module.exports = isString;
 
-},{"../internal/isObjectLike":57}],69:[function(require,module,exports){
+},{"../internal/isObjectLike":85}],98:[function(require,module,exports){
 var isLength = require('../internal/isLength'),
     isObjectLike = require('../internal/isObjectLike');
 
@@ -3114,9 +4950,8 @@ typedArrayTags[stringTag] = typedArrayTags[weakMapTag] = false;
 var objectProto = Object.prototype;
 
 /**
- * Used to resolve the `toStringTag` of values.
- * See the [ES spec](https://people.mozilla.org/~jorendorff/es6-draft.html#sec-object.prototype.tostring)
- * for more details.
+ * Used to resolve the [`toStringTag`](https://people.mozilla.org/~jorendorff/es6-draft.html#sec-object.prototype.tostring)
+ * of values.
  */
 var objToString = objectProto.toString;
 
@@ -3137,12 +4972,12 @@ var objToString = objectProto.toString;
  * // => false
  */
 function isTypedArray(value) {
-  return (isObjectLike(value) && isLength(value.length) && typedArrayTags[objToString.call(value)]) || false;
+  return isObjectLike(value) && isLength(value.length) && !!typedArrayTags[objToString.call(value)];
 }
 
 module.exports = isTypedArray;
 
-},{"../internal/isLength":56,"../internal/isObjectLike":57}],70:[function(require,module,exports){
+},{"../internal/isLength":84,"../internal/isObjectLike":85}],99:[function(require,module,exports){
 var isLength = require('../internal/isLength'),
     isNative = require('../lang/isNative'),
     isObject = require('../lang/isObject'),
@@ -3192,7 +5027,7 @@ var keys = !nativeKeys ? shimKeys : function(object) {
 
 module.exports = keys;
 
-},{"../internal/isLength":56,"../internal/shimKeys":62,"../lang/isNative":66,"../lang/isObject":67}],71:[function(require,module,exports){
+},{"../internal/isLength":84,"../internal/shimKeys":89,"../lang/isNative":95,"../lang/isObject":96}],100:[function(require,module,exports){
 var isArguments = require('../lang/isArguments'),
     isArray = require('../lang/isArray'),
     isIndex = require('../internal/isIndex'),
@@ -3259,14 +5094,15 @@ function keysIn(object) {
 
 module.exports = keysIn;
 
-},{"../internal/isIndex":54,"../internal/isLength":56,"../lang/isArguments":64,"../lang/isArray":65,"../lang/isObject":67,"../support":75}],72:[function(require,module,exports){
+},{"../internal/isIndex":82,"../internal/isLength":84,"../lang/isArguments":91,"../lang/isArray":92,"../lang/isObject":96,"../support":105}],101:[function(require,module,exports){
 var arrayMap = require('../internal/arrayMap'),
     baseDifference = require('../internal/baseDifference'),
     baseFlatten = require('../internal/baseFlatten'),
     bindCallback = require('../internal/bindCallback'),
     keysIn = require('./keysIn'),
     pickByArray = require('../internal/pickByArray'),
-    pickByCallback = require('../internal/pickByCallback');
+    pickByCallback = require('../internal/pickByCallback'),
+    restParam = require('../function/restParam');
 
 /**
  * The opposite of `_.pick`; this method creates an object composed of the
@@ -3274,7 +5110,7 @@ var arrayMap = require('../internal/arrayMap'),
  * Property names may be specified as individual arguments or as arrays of
  * property names. If `predicate` is provided it is invoked for each property
  * of `object` omitting the properties `predicate` returns truthy for. The
- * predicate is bound to `thisArg` and invoked with three arguments;
+ * predicate is bound to `thisArg` and invoked with three arguments:
  * (value, key, object).
  *
  * @static
@@ -3296,36 +5132,59 @@ var arrayMap = require('../internal/arrayMap'),
  * _.omit(object, _.isNumber);
  * // => { 'user': 'fred' }
  */
-function omit(object, predicate, thisArg) {
+var omit = restParam(function(object, props) {
   if (object == null) {
     return {};
   }
-  if (typeof predicate != 'function') {
-    var props = arrayMap(baseFlatten(arguments, false, false, 1), String);
+  if (typeof props[0] != 'function') {
+    var props = arrayMap(baseFlatten(props), String);
     return pickByArray(object, baseDifference(keysIn(object), props));
   }
-  predicate = bindCallback(predicate, thisArg, 3);
+  var predicate = bindCallback(props[0], props[1], 3);
   return pickByCallback(object, function(value, key, object) {
     return !predicate(value, key, object);
   });
-}
+});
 
 module.exports = omit;
 
-},{"../internal/arrayMap":27,"../internal/baseDifference":29,"../internal/baseFlatten":32,"../internal/bindCallback":45,"../internal/pickByArray":60,"../internal/pickByCallback":61,"./keysIn":71}],73:[function(require,module,exports){
+},{"../function/restParam":50,"../internal/arrayMap":52,"../internal/baseDifference":54,"../internal/baseFlatten":58,"../internal/bindCallback":71,"../internal/pickByArray":87,"../internal/pickByCallback":88,"./keysIn":100}],102:[function(require,module,exports){
 var baseToString = require('../internal/baseToString');
 
 /**
- * Used to match `RegExp` special characters.
- * See this [article on `RegExp` characters](http://www.regular-expressions.info/characters.html#special)
- * for more details.
+ * Capitalizes the first character of `string`.
+ *
+ * @static
+ * @memberOf _
+ * @category String
+ * @param {string} [string=''] The string to capitalize.
+ * @returns {string} Returns the capitalized string.
+ * @example
+ *
+ * _.capitalize('fred');
+ * // => 'Fred'
+ */
+function capitalize(string) {
+  string = baseToString(string);
+  return string && (string.charAt(0).toUpperCase() + string.slice(1));
+}
+
+module.exports = capitalize;
+
+},{"../internal/baseToString":70}],103:[function(require,module,exports){
+var baseToString = require('../internal/baseToString');
+
+/**
+ * Used to match `RegExp` [special characters](http://www.regular-expressions.info/characters.html#special).
+ * In addition to special characters the forward slash is escaped to allow for
+ * easier `eval` use and `Function` compilation.
  */
 var reRegExpChars = /[.*+?^${}()|[\]\/\\]/g,
     reHasRegExpChars = RegExp(reRegExpChars.source);
 
 /**
- * Escapes the `RegExp` special characters "\", "^", "$", ".", "|", "?", "*",
- * "+", "(", ")", "[", "]", "{" and "}" in `string`.
+ * Escapes the `RegExp` special characters "\", "/", "^", "$", ".", "|", "?",
+ * "*", "+", "(", ")", "[", "]", "{" and "}" in `string`.
  *
  * @static
  * @memberOf _
@@ -3335,7 +5194,7 @@ var reRegExpChars = /[.*+?^${}()|[\]\/\\]/g,
  * @example
  *
  * _.escapeRegExp('[lodash](https://lodash.com/)');
- * // => '\[lodash\]\(https://lodash\.com/\)'
+ * // => '\[lodash\]\(https:\/\/lodash\.com\/\)'
  */
 function escapeRegExp(string) {
   string = baseToString(string);
@@ -3346,7 +5205,7 @@ function escapeRegExp(string) {
 
 module.exports = escapeRegExp;
 
-},{"../internal/baseToString":44}],74:[function(require,module,exports){
+},{"../internal/baseToString":70}],104:[function(require,module,exports){
 var baseToString = require('../internal/baseToString'),
     isIterateeCall = require('../internal/isIterateeCall');
 
@@ -3386,13 +5245,8 @@ function words(string, pattern, guard) {
 
 module.exports = words;
 
-},{"../internal/baseToString":44,"../internal/isIterateeCall":55}],75:[function(require,module,exports){
+},{"../internal/baseToString":70,"../internal/isIterateeCall":83}],105:[function(require,module,exports){
 (function (global){
-var isNative = require('./lang/isNative');
-
-/** Used to detect functions containing a `this` reference. */
-var reThis = /\bthis\b/;
-
 /** Used for native method references. */
 var objectProto = Object.prototype;
 
@@ -3421,7 +5275,7 @@ var support = {};
    * @memberOf _.support
    * @type boolean
    */
-  support.funcDecomp = !isNative(global.WinRTError) && reThis.test(function() { return this; });
+  support.funcDecomp = /\bthis\b/.test(function() { return this; });
 
   /**
    * Detect if `Function#name` is supported (all but IE).
@@ -3465,7 +5319,7 @@ var support = {};
 module.exports = support;
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"./lang/isNative":66}],76:[function(require,module,exports){
+},{}],106:[function(require,module,exports){
 /**
  * Creates a function that returns `value`.
  *
@@ -3490,7 +5344,7 @@ function constant(value) {
 
 module.exports = constant;
 
-},{}],77:[function(require,module,exports){
+},{}],107:[function(require,module,exports){
 /**
  * This method returns the first argument provided to it.
  *
@@ -3512,7 +5366,7 @@ function identity(value) {
 
 module.exports = identity;
 
-},{}],78:[function(require,module,exports){
+},{}],108:[function(require,module,exports){
 'use strict';
 
 function ToObject(val) {
@@ -3540,7 +5394,7 @@ module.exports = Object.assign || function (target, source) {
 	return to;
 };
 
-},{}],79:[function(require,module,exports){
+},{}],109:[function(require,module,exports){
 (function (global){
 
 var rng;
@@ -3575,7 +5429,7 @@ module.exports = rng;
 
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{}],80:[function(require,module,exports){
+},{}],110:[function(require,module,exports){
 //     uuid.js
 //
 //     Copyright (c) 2010-2012 Robert Kieffer
@@ -3760,7 +5614,1068 @@ uuid.unparse = unparse;
 
 module.exports = uuid;
 
-},{"./rng":79}],81:[function(require,module,exports){
+},{"./rng":109}],111:[function(require,module,exports){
+module.exports={
+  "name": "focus-components",
+  "version": "0.1.0",
+  "description": "Focus component repository.",
+  "main": "index.js",
+  "scripts": {
+    "test": "jest",
+    "example": "node static-server.js",
+    "build": "gulp browserify",
+    "watch": "gulp watchify"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/KleeGroup/focus-components.git"
+  },
+  "keywords": [
+    "react",
+    "focus"
+  ],
+  "author": "DT KLEE <direction.technique@kleegroup.com>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/KleeGroup/focus-components/issues"
+  },
+  "components": [
+    {
+      "name": "menu",
+      "path": "application/menu"
+    },
+    {
+      "name": "quick-search",
+      "path": "search/quick-search"
+    },
+    {
+      "name": "block",
+      "path": "common/block"
+    },
+    {
+      "name": "panel",
+      "path": "common/panel"
+    },
+    {
+      "name": "field",
+      "path": "common/field"
+    },
+    {
+      "name": "input-text",
+      "path": "common/input/text"
+    },
+    {
+      "name": "input-checkbox",
+      "path": "common/input/checkbox"
+    },
+    {
+      "name": "input-toggle",
+      "path": "common/input/toggle"
+    },
+    {
+      "name": "input-date",
+      "path": "common/input/date"
+    },
+    {
+      "name": "input-textarea",
+      "path": "common/input/textarea"
+    },
+    {
+      "name": "select-classic",
+      "path": "common/select/classic"
+    },
+    {
+      "name": "title",
+      "path": "common/title"
+    },
+    {
+      "name": "topic-displayer",
+      "path": "common/topic-displayer"
+    },
+    {
+      "name": "label",
+      "path": "common/label"
+    },
+    {
+      "name": "form",
+      "path": "common/form"
+    },
+    {
+      "name": "img",
+      "path": "common/img"
+    },
+    {
+      "name": "select-action",
+      "path": "common/select-action"
+    },
+    {
+      "name": "sticky-navigation",
+      "path": "common/sticky-navigation"
+    },
+    {
+      "name": "live-filter",
+      "path": "search/live-filter"
+    },
+    {
+      "name": "selection-list",
+      "path": "list/selection"
+    },
+    {
+      "name": "list-action-bar",
+      "path": "list/action-bar"
+    },
+    {
+      "name": "list-action-contextual",
+      "path": "list/action-contextual"
+    },
+    {
+      "name": "list-summary",
+      "path": "list/summary"
+    },
+    {
+      "name": "button-action",
+      "path": "common/button/action"
+    },
+    {
+      "name": "block",
+      "path": "common/block"
+    },
+    {
+      "name": "search-filter-result",
+      "path": "page/search/filter-result"
+    },
+    {
+      "name": "search-result",
+      "path": "page/search/search-result"
+    },
+    {
+      "name": "popin",
+      "path": "page/popin"
+    },
+    {
+      "name": "message",
+      "path": "message"
+    },
+    {
+      "name": "timeline",
+      "path": "list/timeline"
+    }
+  ],
+  "homepage": "https://github.com/KleeGroup/focus-components",
+  "dependencies": {
+    "immutable": "^3.6.2",
+    "lodash": "^3.3.1",
+    "object-assign": "^2.0.0",
+    "react": "^0.13.1",
+    "uuid": "^2.0.1"
+  },
+  "devDependencies": {
+    "babel-jest": "^4.0.0",
+    "babelify": "^5.0.3",
+    "bootstrap-material": "^0.1.5",
+    "browser-sync": "^2.2.1",
+    "browserify": "^9.0.3",
+    "eslint": "^0.17.1",
+    "express": "^4.12.0",
+    "gulp": "^3.8.11",
+    "gulp-babel": "^4.0.0",
+    "gulp-concat": "^2.5.2",
+    "gulp-if": "^1.2.5",
+    "gulp-react": "^3.0.0",
+    "gulp-sass": "^1.3.3",
+    "jest": "^0.1.37",
+    "jest-cli": "^0.4.0",
+    "literalify": "^0.4.0",
+    "react-tools": "^0.12.2",
+    "reactify": "^1.0.0",
+    "vinyl-source-stream": "^1.0.0",
+    "watchify": "^2.4.0"
+  },
+  "jest": {
+    "scriptPreprocessor": "./node_modules/babel-jest",
+    "testFileExtensions": [
+      "es6",
+      "js"
+    ],
+    "moduleFileExtensions": [
+      "js",
+      "json",
+      "es6"
+    ],
+    "unmockedModulePathPatterns": [
+      "react",
+      "lodash",
+      "uuid"
+    ]
+  }
+}
+
+},{}],112:[function(require,module,exports){
+"use strict";
+
+module.exports = {
+  search: require("./search"),
+  popin: require("./popin")
+};
+
+},{"./popin":113,"./search":118}],113:[function(require,module,exports){
+"use strict";
+
+var builder = window.focus.component.builder;
+
+/**
+ * Popin mixin
+ * @type {object}
+ */
+var popinMixin = {
+
+    /**
+     * Display name.
+     */
+    displayName: "popin",
+
+    /**
+     * Default propos.
+     * @returns {object} Default props.
+     */
+    getDefaultProps: function getDefaultProps() {
+        return {
+            animation: "right", // right, left, up, down
+            type: "full", // full, centered
+            displaySelector: undefined, // Html selector of the element wich open/close the modal when click on it.
+            contentLoadingFunction: undefined // Function wich returns the content of the modal.
+        };
+    },
+
+    /**
+     * Initial state.
+     * @returns {object} Initial state values
+     */
+    getInitialState: function getInitialState() {
+        return {
+            isDisplayed: false // True if modal is displayed
+        };
+    },
+    /**
+     * Declare the open action.
+     */
+    componentDidMount: function popinDidMount() {
+        var source = document.querySelector(this.props.displaySelector);
+        var currentView = this;
+        source.onclick = function () {
+            currentView.setState({ isDisplayed: !currentView.state.isDisplayed });
+        };
+    },
+
+    /**
+     * Open the modal.
+     */
+    openModal: function openModal() {
+        this.setState({ isDisplayed: true });
+    },
+    /**
+     * Close the modal.
+     */
+    closeModal: function closeModal() {
+        this.setState({ isDisplayed: false });
+    },
+
+    /**
+     * Css class of modal.
+     * @returns {string} css classes.
+     * @private
+     */
+    _getModalCss: function _getModalCss() {
+        var cssClass = "popin animated float:right;";
+        switch (this.props.animation) {
+            case "right":
+                cssClass += " bounceInRight right";
+                break;
+            case "left":
+                cssClass += " bounceInLeft left";
+                break;
+            case "down":
+                cssClass += " bounceInDown down";
+                break;
+            case "up":
+                cssClass += " bounceInUp up";
+                break;
+        }
+        return cssClass;
+    },
+    /**
+     * Content css class.
+     * @returns {string} css classes.
+     * @private
+     */
+    _getModalContentCss: function _getModalContentCss() {
+        var cssClass = "modal-content";
+        switch (this.props.type) {
+            case "full":
+                cssClass += " full";
+                break;
+            case "centered":
+                cssClass += " centered";
+                break;
+        }
+        return cssClass;
+    },
+
+    /**
+     * Render the component.
+     * @returns {JSX} Html code.
+     */
+    render: function renderPopin() {
+        if (!this.state.isDisplayed) {
+            return React.createElement("div", null);
+        }
+        return React.createElement(
+            "span",
+            { className: this._getModalCss() },
+            React.createElement(
+                "div",
+                { className: this._getModalContentCss() },
+                this.renderPopinHeader(this),
+                React.createElement(
+                    "div",
+                    { className: "modal-body" },
+                    this.renderContent(this)
+                ),
+                this.renderPopinFooter(this)
+            )
+        );
+    }
+};
+
+module.exports = builder(popinMixin);
+
+},{}],114:[function(require,module,exports){
+/**@jsx*/
+"use strict";
+
+var builder = window.focus.component.builder;
+
+var groupByComponent = {
+
+    /**
+     * Display name.
+     */
+    displayName: "group-by",
+
+    /**
+     * Init default props.
+     * @returns {object} Default props.
+     */
+    getDefaultProps: function getDefaultProps() {
+        return {
+            renderGroupBy: function renderGroupBy(groupKey, list, maxRows) {
+                console.error("Implement renderGroupBy() function");
+            },
+            list: undefined,
+            groupKey: undefined,
+            maxRows: 3
+        };
+    },
+    /**
+     * Init default state.
+     * @returns {object} Initialized state.
+     */
+    getInitialState: function getInitialState() {
+        return {
+            maxRows: this.props.maxRows
+        };
+    },
+    /**
+     * Change the number of maxRows dispalyed.
+     * @param {int} maxRows New value.
+     */
+    changeGroupByMaxRows: function changeGroupByMaxRows(maxRows) {
+        this.setState({ maxRows: maxRows });
+    },
+    /**
+     * Render the group by block.
+     * @returns {JSX} Content.
+     */
+    render: function renderGroupBy() {
+        return this.props.renderGroupBy(this.props.groupKey, this.props.list, this.state.maxRows);
+    }
+};
+
+module.exports = builder(groupByComponent);
+
+},{}],115:[function(require,module,exports){
+"use strict";
+
+var isArray = require("lodash/lang/isArray");
+var GroupBy = require("./group-by-component").component;
+
+/**
+ * Mixin used in order to create a block.
+ * @type {Object}
+ */
+var GroupByMixin = {
+
+    getDefaultProps: function getDefaultProps() {
+        return {
+            groupMaxRows: undefined
+        };
+    },
+
+    /**
+     * @returns {boolean} Returns true if list is a simple list, false if grouped.
+     * @private
+     */
+    isSimpleList: function isSimpleList() {
+        return isArray(this.state.list);
+    },
+
+    /**
+     * Change the max rows of a group.
+     * @param {string} groupKey Key of the group.
+     * @param {int} maxRows Number of needed rows.
+     * @returns {Function} The function wich will change the max rows of the group.
+     */
+    changeGroupByMaxRows: function changeGroupByMaxRows(groupKey, maxRows) {
+        var _this = this;
+
+        return function (event) {
+            _this.refs[groupKey].changeGroupByMaxRows(maxRows);
+        };
+    },
+
+    renderGroupByList: function renderGroupByList() {
+        var groupList = [];
+        for (var groupKey in this.state.list) {
+            groupList.push(React.createElement(GroupBy, { key: groupKey, ref: groupKey,
+                renderGroupBy: this.renderGroupBy,
+                list: this.state.list[groupKey],
+                groupKey: groupKey,
+                maxRows: this.props.groupMaxRows }));
+        }
+        return groupList;
+    }
+};
+
+module.exports = { mixin: GroupByMixin };
+
+},{"./group-by-component":114,"lodash/lang/isArray":92}],116:[function(require,module,exports){
+"use strict";
+
+var assign = require("object-assign");
+
+/**
+ * Mixin used in order to create a block.
+ * @type {Object}
+ */
+var InfiniteScrollPageMixin = {
+
+    /**
+     * intial state for a scrolling page.
+     * @returns {*} the initial state
+     */
+    getInitialState: function getInfiniteScrollInitialState() {
+        //var additionalStateData = this.getAdditionalStateData ? this.getAdditionalStateData() : {};
+        return assign({
+            hasMoreData: false,
+            currentPage: 1
+        }, this.getScrollState());
+    },
+
+    /**
+     * current state of the scrolling list.
+     * @returns {*} the scroll state
+     */
+    getScrollState: function _getScrollState() {
+        if (this.store) {
+            var data = this.store.get();
+            var hasMoreData = data.pageInfos && data.pageInfos.totalPages && data.pageInfos.currentPage < data.pageInfos.totalPages;
+            var totalRecords = data.pageInfos && data.pageInfos.totalRecords !== undefined ? data.pageInfos.totalRecords : undefined;
+            return {
+                list: data.list || [],
+                hasMoreData: hasMoreData,
+                totalRecords: totalRecords,
+                isLoading: false
+            };
+        }
+        return {};
+    },
+
+    /**
+     * State for a no fetch search.
+     * @returns {object} currentpage set to 1.
+     */
+    getNoFetchState: function getNoFetchState() {
+        return {
+            currentPage: 1
+        };
+    },
+
+    /**
+     * Next page fetch action handler.
+     */
+    fetchNextPage: function fetchNextPage() {
+        this.setState({
+            isLoading: true,
+            currentPage: this.state.currentPage + 1
+        }, this.search);
+    },
+    /**
+     * Returns the search criteria sended to the store.
+     * @param {string} scope Current scope.
+     * @param {string} query Current query.
+     * @param {object} facets Selected facets.
+     * @returns {object} Formatted criteria {criteria:{}, pagesInfos:{}, facets:{}}.
+     */
+    getSearchCriteria: function getSearchCriteria(scope, query, facets) {
+        return {
+            criteria: {
+                scope: scope,
+                query: query
+            },
+            pageInfos: {
+                page: this.state.currentPage,
+                order: this.state.orderSelected,
+                group: this.state.groupSelectedKey
+            },
+            facets: facets
+        };
+    }
+};
+
+module.exports = { mixin: InfiniteScrollPageMixin };
+
+},{"object-assign":108}],117:[function(require,module,exports){
+/**@jsx*/
+"use strict";
+
+var builder = window.focus.component.builder;
+var React = window.React;
+var LiveFilter = require("../../../search/live-filter/index").component;
+var ListActionBar = require("../../../list/action-bar/index").component;
+var ListSummary = require("../../../list/summary/index").component;
+var ListSelection = require("../../../list/selection").list.component;
+var SearchStore = window.focus.store.SearchStore;
+var assign = require("object-assign");
+var InfiniteScrollPageMixin = require("../common-mixin/infinite-scroll-page-mixin").mixin;
+var GroupByMixin = require("../common-mixin/group-by-mixin").mixin;
+
+var searchFilterResultMixin = {
+    mixins: [InfiniteScrollPageMixin, GroupByMixin],
+
+    /**
+     * Display name.
+     */
+    displayName: "search-filter-result",
+
+    /**
+     * Component intialization
+     */
+    componentDidMount: function componentDidMount() {
+        this._registerListeners();
+        this.search();
+    },
+    /**
+     * Actions before component will unmount.
+     * @constructor
+     */
+    componentWillUnmount: function SearchComponentWillUnmount() {
+        this._unRegisterListeners();
+    },
+    /**
+     * Init default props.
+     * @returns {object} Default props.
+     */
+    getDefaultProps: function getDefaultProps() {
+        return {
+            facetConfig: {},
+            openedFacetList: {},
+            orderableColumnList: {},
+            operationList: {},
+            lineComponent: undefined,
+            isSelection: true,
+            lineOperationList: [],
+            criteria: {
+                scope: undefined,
+                searchText: undefined
+            },
+            idField: undefined,
+            exportAction: function exportAction() {},
+            unselectedScopeAction: function unselectedScopeAction() {}
+        };
+    },
+    /**
+     * Init default state.
+     * @returns {object} Initialized state.
+     */
+    getInitialState: function getInitialState() {
+        return assign({
+            facetList: {},
+            selectedFacetList: {},
+            openedFacetList: this.props.openedFacetList,
+            selectionStatus: "none",
+            orderSelected: undefined,
+            groupSelectedKey: undefined
+        });
+    },
+    /**
+     * Get the state from store.
+     * @returns {object} Dtat to update store.
+     */
+    _getStateFromStore: function _getStateFromStore() {
+        if (this.store) {
+            var data = this.store.get();
+            return assign({
+                facetList: data.facet
+            }, this.getScrollState());
+        }
+    },
+
+    /**
+     * Register a listener on the store.
+     * @private
+     */
+    _registerListeners: function registerListeners() {
+        if (this.store) {
+            this.store.addSearchChangeListener(this.onSearchChange);
+        }
+    },
+    /**
+     * Unregister a listener on the store.
+     * @private
+     */
+    _unRegisterListeners: function unRegisterSearchListeners() {
+        if (this.store) {
+            this.store.removeSearchChangeListener(this.onSearchChange);
+        }
+    },
+
+    /**
+     * Handler when store emit a change event.
+     */
+    onSearchChange: function onSearchChange() {
+        this.setState(this._getStateFromStore());
+    },
+
+    /**
+     * Search function.
+     */
+    search: function search(event) {
+        if (event) {
+            event.preventDefault();
+        }
+
+        var facets = [];
+        for (var selectedFacet in this.state.selectedFacetList) {
+            facets.push({ key: selectedFacet, value: this.state.selectedFacetList[selectedFacet].key });
+        }
+
+        this.actions.search(this.getSearchCriteria(this.props.criteria.scope, this.props.criteria.searchText, facets));
+    },
+    /**
+     * Get the list of facet to print into the top bar..
+     * @returns {{}} Facets object : [facet1: 'Label of facet1', facet2: 'Label of facet2'}.
+     * @private
+     */
+    _getFacetListForBar: function _getFacetListForBar() {
+        var facetList = {};
+        for (var key in this.state.selectedFacetList) {
+            var facet = this.state.selectedFacetList[key];
+            facetList[key] = facet.data.label;
+        }
+        return facetList;
+    },
+    /**
+     * Click on bar facet action handler.
+     * @param key [string}  Key of the clicked facet.
+     * @private
+     */
+    _facetBarClick: function _facetBarClick(key) {
+        var selectedFacetList = this.state.selectedFacetList;
+        delete selectedFacetList[key];
+
+        this.state.selectedFacetList = selectedFacetList;
+        this.setState(assign({ selectedFacetList: selectedFacetList }, this.getNoFetchState()), this.search);
+    },
+    /**
+     * Group action click handler.
+     * @param {string} key Name of the column to group (if null => ungroup action).
+     * @private
+     */
+    _groupClick: function _groupClick(key) {
+        console.log("Group by : " + key);
+
+        this.setState(assign({ groupSelectedKey: key }, this.getNoFetchState()), this.search);
+    },
+    /**
+     * Order action click handler.
+     * @param {string} key Column to order.
+     * @param {string} order Order  asc/desc
+     * @private
+     */
+    _orderClick: function _orderClick(key, order) {
+        console.log("Order : " + key + " - " + order);
+        this.setState(assign({ orderSelected: { key: key, order: order } }, this.getNoFetchState()), this.search);
+    },
+    /**
+     * Selection action handler.
+     * @param selectionStatus Current selection status.
+     * @private
+     */
+    _selectionGroupLineClick: function _selectionGroupLineClick(selectionStatus) {
+        console.log("Selection status : " + selectionStatus);
+        this.setState({
+            selectionStatus: selectionStatus
+        });
+    },
+    /**
+     * Handler called when facet is selected.
+     * @param facetComponentData Data of facet.
+     */
+    _facetSelectionClick: function _facetSelectionClick(facetComponentData, isDisableGroup) {
+        console.warn("Facet selection ");
+        console.log(facetComponentData.selectedFacetList);
+
+        var newState = {
+            selectedFacetList: facetComponentData.selectedFacetList,
+            openedFacetList: facetComponentData.openedFacetList
+        };
+        if (isDisableGroup) {
+            newState.groupSelectedKey = undefined;
+        }
+
+        this.setState(assign(newState, this.getNoFetchState()), this.search);
+    },
+    /**
+     * Line selection handler.
+     * @param item Line checked/unchecked.
+     */
+    _selectItem: function selectItem(item) {
+        this.setState({ selectionStatus: "partial" });
+    },
+    /**
+     * Export action handler.
+     */
+    _exportHandler: function exportHandler() {
+        this.props.exportAction();
+    },
+    /**
+     * Click on scope action handler.
+     */
+    _scopeClick: function scopeClick() {
+        this.props.unselectedScopeAction();
+    },
+    /**
+     * Render the show all button  seect the group corresponding facet.
+     * @param groupKey Group key.
+     * @returns {Function} Function to select the facet.
+     */
+    showAllGroupListHandler: function showAllGroupListHandler(groupKey) {
+        var _this = this;
+
+        return function (event) {
+            var selectedFacetList = _this.state.selectedFacetList;
+
+            var facet = _this.store.getFacet();
+            selectedFacetList[_this.state.groupSelectedKey] = {
+                data: facet[_this.state.groupSelectedKey][groupKey],
+                key: groupKey
+            };
+            _this._facetSelectionClick({
+                selectedFacetList: selectedFacetList,
+                facetComponentData: _this.state.openedFacetList
+            }, true);
+        };
+    },
+
+    /**
+     * Render the liveFilter.
+     * @returns {JSX} Render the liveFilter.
+     */
+    liveFilterComponent: function liveFilterComponent() {
+        return React.createElement(
+            "div",
+            { className: "liveFilterContainer" },
+            React.createElement(LiveFilter, { ref: "liveFilter",
+                facetList: this.state.facetList,
+                selectedFacetList: this.state.selectedFacetList,
+                openedFacetList: this.state.openedFacetList,
+                config: this.props.facetConfig,
+                dataSelectionHandler: this._facetSelectionClick })
+        );
+    },
+    /**
+     * Render the list summary component.
+     * @returns {JSX} Htm code.
+     */
+    listSummaryComponent: function listSummaryComponent() {
+        var scopeList = { scope: this.props.criteria.scope };
+        return React.createElement(
+            "div",
+            { className: "listSummaryContainer panel" },
+            React.createElement(ListSummary, {
+                nb: this.state.totalRecords,
+                queryText: this.props.criteria.searchText,
+                scopeList: scopeList,
+                scopeClickAction: this._scopeClick,
+                exportAction: this._exportHandler })
+        );
+    },
+    /**
+     * Render the action bar.
+     * @returns {JSX} Rendering of the action bar.
+     */
+    actionBarComponent: function actionBarComponent() {
+        var groupableColumnList = {};
+        for (var facetKey in this.state.facetList) {
+            groupableColumnList[facetKey] = facetKey;
+        }
+        return React.createElement(
+            "div",
+            { className: "listActionBarContainer panel" },
+            React.createElement(ListActionBar, { selectionStatus: this.state.selectionStatus,
+                selectionAction: this._selectionGroupLineClick,
+                orderableColumnList: this.props.orderableColumnList,
+                orderAction: this._orderClick,
+                orderSelected: this.state.orderSelected,
+                groupableColumnList: groupableColumnList,
+                groupAction: this._groupClick,
+                groupSelectedKey: this.state.groupSelectedKey,
+                facetList: this._getFacetListForBar(),
+                facetClickAction: this._facetBarClick,
+                operationList: this.props.operationList })
+        );
+    },
+
+    /**
+     * Render a simple list.
+     * @param id Technical id of the list.
+     * @param list Content of the list.
+     * @param maxRows Number max of rows in the list (optional).
+     * @returns {JSX} Html rendering.
+     * @private
+     */
+    renderSimpleList: function renderSimpleList(id, list, maxRows) {
+        var newList = list;
+        if (maxRows) {
+            newList = list.slice(0, maxRows);
+        }
+        return React.createElement(ListSelection, { data: newList,
+            ref: id,
+            idField: this.props.idField,
+            isSelection: this.props.isSelection,
+            onSelection: this._selectItem,
+            onLineClick: this.props.onLineClick,
+            fetchNextPage: this.fetchNextPage,
+            operationList: this.props.lineOperationList,
+            hasMoreData: this.state.hasMoreData,
+            isLoading: this.state.isLoading,
+            lineComponent: this.props.lineComponent,
+            selectionStatus: this.state.selectionStatus });
+    },
+
+    /**
+     * Render the result list.
+     * @returns {JSX} The rendering of the list.
+     * @private
+     */
+    listComponent: function listComponent() {
+        if (this.isSimpleList()) {
+            return React.createElement(
+                "div",
+                { className: "listResultContainer panel" },
+                this.renderSimpleList("list", this.state.list)
+            );
+        }
+        return this.renderGroupByList();
+    }
+};
+
+module.exports = builder(searchFilterResultMixin, true);
+
+},{"../../../list/action-bar/index":37,"../../../list/selection":40,"../../../list/summary/index":44,"../../../search/live-filter/index":121,"../common-mixin/group-by-mixin":115,"../common-mixin/infinite-scroll-page-mixin":116,"object-assign":108}],118:[function(require,module,exports){
+"use strict";
+
+module.exports = {
+    filterResult: require("./filter-result"),
+    searchResult: require("./search-result")
+};
+
+},{"./filter-result":117,"./search-result":119}],119:[function(require,module,exports){
+"use strict";
+
+var builder = window.focus.component.builder;
+var React = window.React;
+var QuickSearch = require("../../../search/quick-search").component;
+var List = require("../../../list/selection").list.component;
+var assign = require("object-assign");
+var type = window.focus.component.types;
+var InfiniteScrollPageMixin = require("../common-mixin/infinite-scroll-page-mixin").mixin;
+var GroupByMixin = require("../common-mixin/group-by-mixin").mixin;
+
+var searchMixin = {
+    mixins: [InfiniteScrollPageMixin, GroupByMixin],
+
+    /**
+     * Tag name.
+     */
+    displayName: "search-panel",
+
+    /**
+     * Component intialization
+     */
+    componentDidMount: function searchComponentDidMount() {
+        this._registerListeners();
+    },
+
+    /**
+     * Actions before component will unmount.
+     * @constructor
+     */
+    componentWillUnmount: function SearchComponentWillUnmount() {
+        this._unRegisterListeners();
+    },
+
+    getDefaultProps: function getDefaultProps() {
+        return {
+            lineComponent: undefined,
+            isSelection: false,
+            lineOperationList: {},
+            idField: "id"
+        };
+    },
+
+    /**
+     * properties validation
+     */
+    propTypes: {
+        lineComponent: type("object"),
+        isSelection: type("bool"),
+        lineOperationList: type("array"),
+        idField: type("string")
+    },
+
+    /**
+     * Initial state of the list component.
+     * @returns {{list: (*|Array)}} the state
+     */
+    getInitialState: function getInitialState() {
+        return {
+            isAllSelected: false,
+            selected: []
+        };
+    },
+
+    /**
+     * Register a listener on the store.
+     * @private
+     */
+    _registerListeners: function registerSearchListeners() {
+        if (this.store) {
+            this.store.addSearchChangeListener(this.onSearchChange);
+        }
+    },
+
+    /**
+     * Unregister a listener on the store.
+     * @private
+     */
+    _unRegisterListeners: function unRegisterSearchListeners() {
+        if (this.store) {
+            this.store.removeSearchChangeListener(this.onSearchChange);
+        }
+    },
+
+    /**
+     * Handler when store emit a change event.
+     */
+    onSearchChange: function onSearchChange() {
+        this.setState(assign({ isLoadingSearch: false }, this.getScrollState()));
+    },
+
+    /**
+     * Action on item selection.
+     * @param {object} item selected
+     */
+    _selectItem: function selectItem(item) {
+        var index = this.state.selected.indexOf(item);
+        if (index) {
+            this.state.selected.splice(index, index);
+        } else {
+            this.state.selected.push(item);
+        }
+    },
+
+    /**
+     * Action on line click.
+     * @param {object} item  the item clicked
+     */
+    _lineClick: function lineClick(item) {
+        if (this.props.onLineClick) {
+            this.props.onLineClick(item);
+        }
+    },
+
+    /**
+     * Run search action.
+     */
+    search: function search() {
+        var searchValues = this.refs.quickSearch.getValue();
+        this.actions.search(this.getSearchCriteria(searchValues.scope, searchValues.query));
+    },
+
+    _quickSearch: function quickSearch(event) {
+        event.preventDefault();
+        this.setState(assign({ isLoadingSearch: true }, this.getNoFetchState()), this.search());
+    },
+
+    /**
+     * return a quickSearchComponent
+     * @returns {XML} the component
+     */
+    quickSearchComponent: function quickSearchComponent() {
+        return React.createElement(QuickSearch, { handleKeyUp: this._quickSearch,
+            ref: "quickSearch",
+            scope: this.props.scope,
+            scopes: this.props.scopeList,
+            loading: this.state.isLoadingSearch,
+            handleChangeScope: this._quickSearch
+        });
+    },
+
+    renderSimpleList: function renderSimpleList(id, list, maxRows) {
+        var newList = list;
+        if (maxRows) {
+            newList = list.slice(0, maxRows);
+        }
+        return React.createElement(List, { data: newList,
+            ref: id,
+            idField: this.props.idField,
+            isSelection: this.props.isSelection,
+            onSelection: this._selectItem,
+            onLineClick: this._lineClick,
+            fetchNextPage: this.fetchNextPage,
+            hasMoreData: this.state.hasMoreData,
+            isLoading: this.state.isLoading,
+            operationList: this.props.operationList,
+            lineComponent: this.props.lineComponent
+        });
+    },
+
+    /**
+     * return a list component
+     * @returns {XML} the list component
+     */
+    listComponent: function listComponent(id, list, maxRows) {
+        if (this.isSimpleList()) {
+            return this.renderSimpleList("list", this.state.list);
+        }
+        return this.renderGroupByList();
+    }
+};
+
+module.exports = builder(searchMixin, true);
+
+},{"../../../list/selection":40,"../../../search/quick-search":124,"../common-mixin/group-by-mixin":115,"../common-mixin/infinite-scroll-page-mixin":116,"object-assign":108}],120:[function(require,module,exports){
 "use strict";
 
 module.exports = {
@@ -3768,29 +6683,29 @@ module.exports = {
   quickSearch: require("./quick-search")
 };
 
-},{"./live-filter":82,"./quick-search":85}],82:[function(require,module,exports){
+},{"./live-filter":121,"./quick-search":124}],121:[function(require,module,exports){
 "use strict";
 
 var _defineProperty = function (obj, key, value) { return Object.defineProperty(obj, key, { value: value, enumerable: true, configurable: true, writable: true }); };
 
 /**@jsx*/
-var builder = require("focus/component/builder");
+var builder = window.focus.component.builder;
 var React = window.React;
 var LiveFilterFacet = require("./live-filter-facet").component;
-var type = require("focus/component/types");
+var type = window.focus.component.types;
 var assign = require("object-assign");
 var omit = require("lodash/object/omit");
+var Img = require("../../common/img").component;
 
 var liveFilterMixin = {
-
+    mixins: [require("../../common/i18n/mixin")],
     /**
      * Display name.
      */
     displayName: "live-filter",
-
     /**
      * Init the default properties
-     * @returns {{facetList: {}, selectedFacetList: {}, openedFacetList: {}, config: {}, dataSelectionHandler: undefined}}
+     * @returns {object} Initial properties.
      */
     getDefaultProps: function getDefaultProps() {
         return {
@@ -3801,7 +6716,6 @@ var liveFilterMixin = {
             dataSelectionHandler: undefined
         };
     },
-
     /**
      * List property validation.
      */
@@ -3812,13 +6726,9 @@ var liveFilterMixin = {
         config: type("object"),
         dataSelectionHandler: type("func")
     },
-
     /**
      * Init the state of the component.
-     * @returns {
-     *  {isExpanded: boolean True if the component is expanded, false if collapsed,
-     *   openedFacetList: Map (key : facetKey, value : true if facet expanded)}
-     *   }
+     * @returns {object} Iitial state.
      */
     getInitialState: function getInitialState() {
         var openedFacetList = this.props.openedFacetList;
@@ -3835,10 +6745,16 @@ var liveFilterMixin = {
     },
     /**
      * Render the component.
-     * @returns Html component code.
+     * @returns {XML} Html code.
      */
     render: function renderLiverFilter() {
-        var className = this.state.isExpanded ? "live-filter" : "live-filter collapsed";
+        var className = "panel live-filter";
+        if (this.state.isExpanded) {
+            className += " expanded";
+        } else {
+            className += " collapsed";
+        }
+
         return React.createElement(
             "div",
             { className: className },
@@ -3846,51 +6762,49 @@ var liveFilterMixin = {
             this.renderFilterFacetList()
         );
     },
-
     /**
      * Render the div title of the component.
-     * @Returns Html title code.
+     * @returns {XML} Hatml content.
      */
     renderLiveFacetTitle: function renderLiveFacetTitle() {
-        var title = this.state.isExpanded ? "live.filter.title" : "";
+        var title = this.state.isExpanded ? this.i18n("live.filter.title") : "";
+        var img = this.state.isExpanded ? "chevron-thin-left" : "chevron-thin-right";
         return React.createElement(
             "div",
-            { className: "header" },
+            { className: "panel-heading" },
             React.createElement(
                 "span",
-                { className: "title" },
+                null,
                 title
             ),
-            React.createElement(
-                "span",
-                { className: "icon", onClick: this.liveFilterTitleClick },
-                " "
-            )
+            React.createElement(Img, { src: img, onClick: this.liveFilterTitleClick })
         );
     },
-
     /**
      * Render the list of the facets.
-     * @Returns Html facets code.
+     * @returns {XML} Html content.
      */
     renderFilterFacetList: function renderFilterFacetList() {
         if (!this.state.isExpanded) {
-            return;
+            return "";
         }
         var facets = [];
         for (var key in this.props.facetList) {
+            var facet = this.props.facetList[key];
             var selectedDataKey = this.props.selectedFacetList[key] ? this.props.selectedFacetList[key].key : undefined;
-            facets.push(React.createElement(LiveFilterFacet, { facetKey: key,
-                facet: this.props.facetList[key],
-                selectedDataKey: selectedDataKey,
-                isExpanded: this.state.openedFacetList[key],
-                expandHandler: this.expandFacetHandler,
-                selectHandler: this.selectHandler,
-                type: this.props.config[key] }));
+            if (selectedDataKey || Object.keys(facet).length > 1) {
+                facets.push(React.createElement(LiveFilterFacet, { facetKey: key, key: key,
+                    facet: facet,
+                    selectedDataKey: selectedDataKey,
+                    isExpanded: this.state.openedFacetList[key],
+                    expandHandler: this.expandFacetHandler,
+                    selectHandler: this.selectHandler,
+                    type: this.props.config[key] }));
+            }
         }
         return React.createElement(
             "div",
-            null,
+            { className: "panel-body" },
             facets
         );
     },
@@ -3904,7 +6818,10 @@ var liveFilterMixin = {
     },
 
     /**
-     * Action on facet selection.
+     * Facet selection action handler.
+     * @param {string} facetKey Key of the selected facet.
+     * @param {string} dataKey Key of the selceted data.
+     * @param {object} data Content of the selected data facet.
      */
     selectHandler: function selectLiverFilterHandler(facetKey, dataKey, data) {
         var result = { openedFacetList: this.state.openedFacetList };
@@ -3917,9 +6834,9 @@ var liveFilterMixin = {
     },
 
     /**
-     * Expand facet action.
-     * @param facetKey Key of the facet.
-     * @param isExpanded true if expand action, false if collapse action.
+     * Expand facet action handler.
+     * @param {string} facetKey Key of the facet.
+     * @param {string} isExpanded true if expand action, false if collapse action.
      */
     expandFacetHandler: function expandFacetHandler(facetKey, isExpanded) {
         var openedFacetList = this.state.openedFacetList;
@@ -3930,11 +6847,11 @@ var liveFilterMixin = {
 
 module.exports = builder(liveFilterMixin);
 
-},{"./live-filter-facet":84,"focus/component/builder":22,"focus/component/types":23,"lodash/object/omit":72,"object-assign":78}],83:[function(require,module,exports){
+},{"../../common/i18n/mixin":19,"../../common/img":20,"./live-filter-facet":123,"lodash/object/omit":101,"object-assign":108}],122:[function(require,module,exports){
+/**@jsx*/
 "use strict";
 
-/**@jsx*/
-var builder = require("focus/component/builder");
+var builder = window.focus.component.builder;
 var React = window.React;
 
 var liveFilterDataMixin = {
@@ -3946,7 +6863,7 @@ var liveFilterDataMixin = {
 
     /**
      * Render the component.
-     * @returns Html code of the component.
+     * @returns {XML} Html code of the component.
      */
     render: function renderFacet() {
         return React.createElement(
@@ -3959,7 +6876,7 @@ var liveFilterDataMixin = {
 
     /**
      * Render the data.
-     * @returns Html generated code.
+     * @returns {string} Html generated code.
      */
     renderData: function renderData() {
         if (this.props.type == "text") {
@@ -3967,9 +6884,9 @@ var liveFilterDataMixin = {
         }
         throw new Error("Unknown property type : " + this.props.type);
     },
-
     /**
-     * Action of selection.
+     * Facet selection action handler.
+     * @returns {object} Fsfssd.
      */
     selectFacetData: function selectFacetDetail() {
         return this.props.selectHandler(this.props.dataKey, this.props.data);
@@ -3978,11 +6895,11 @@ var liveFilterDataMixin = {
 
 module.exports = builder(liveFilterDataMixin);
 
-},{"focus/component/builder":22}],84:[function(require,module,exports){
+},{}],123:[function(require,module,exports){
+/**@jsx*/
 "use strict";
 
-/**@jsx*/
-var builder = require("focus/component/builder");
+var builder = window.focus.component.builder;
 var React = window.React;
 var Data = require("./live-filter-data").component;
 
@@ -3995,7 +6912,7 @@ var liveFilterFacetMixin = {
 
     /**
      * Init the component state.
-     * @returns {{isShowAll: true if all the facets must be displayed or just be limited to this.props.nbDefaultDataList }}
+     * @returns {object} Initial state.
      */
     getInitialState: function getInitialState() {
         return {
@@ -4005,7 +6922,7 @@ var liveFilterFacetMixin = {
 
     /**
      * Init the default props.
-     * @returns {{nbDefaultDataList: default number of data facets displayed.}}
+     * @returns {object} Initial state.
      */
     getDefaultProps: function getLiveFilterFacetDefaultProperties() {
         return {
@@ -4015,12 +6932,21 @@ var liveFilterFacetMixin = {
 
     /**
      * Render the component.
-     * @returns Html component code.
+     * @returns {XML} Html component code.
      */
     render: function renderLiverFilterFacet() {
+        /*
         var className = this.props.isExpanded ? "lf-facet" : "lf-facet collapsed";
-        if (this.props.selectedDataKey) {
+        if(this.props.selectedDataKey) {
             className = "lf-facet selected";
+        }*/
+        var className = "panel panel-primary facet";
+        if (this.props.selectedDataKey) {
+            className += "-selected";
+        } else if (this.props.isExpanded) {
+            className += "-expanded";
+        } else {
+            className += "-collapsed";
         }
         return React.createElement(
             "div",
@@ -4032,16 +6958,17 @@ var liveFilterFacetMixin = {
 
     /**
      * Render the component title.
-     * @returns Html component code.
+     * @returns {XML} Html component code.
      */
     renderLiveFilterFacetTitle: function renderLiveFilterFacetTitle() {
         var title = this.props.facetKey;
+        var className = "panel-heading";
         if (this.props.selectedDataKey) {
             title += " : " + this.props.facet[this.props.selectedDataKey].label;
         }
         return React.createElement(
             "div",
-            { className: "title", onClick: this.liveFilterFacetTitleClick },
+            { className: className, onClick: this.liveFilterFacetTitleClick },
             title
         );
     },
@@ -4059,11 +6986,11 @@ var liveFilterFacetMixin = {
 
     /**
      * Render the list of data of the facet.
-     * @returns Html component code.
+     * @returns {XML} Html component code.
      */
     renderLiveFilterDataList: function renderLiveFilterDataList() {
         if (!this.props.isExpanded || this.props.selectedDataKey) {
-            return;
+            return "";
         }
         var facetDetailList = [];
         var i = 0;
@@ -4080,7 +7007,7 @@ var liveFilterFacetMixin = {
         }
         return React.createElement(
             "div",
-            null,
+            { className: "panel-body" },
             React.createElement(
                 "ul",
                 null,
@@ -4093,6 +7020,8 @@ var liveFilterFacetMixin = {
 
     /**
      * Action on facet data selection.
+     * @param {string} dataKey Key of the selected data.
+     * @param {string} data Selected data.
      */
     selectHandler: function selectHandler(dataKey, data) {
         this.props.expandHandler(this.props.facetKey, false);
@@ -4101,13 +7030,13 @@ var liveFilterFacetMixin = {
 
     /**
      * Render all the data facets.
-     * @returns Html component code.
+     * @returns {XML} Html component code.
      */
     renderShowAllDataList: function renderShowAllDataList() {
         if (!this.state.isShowAll && Object.keys(this.props.facet).length > this.props.nbDefaultDataList) {
             return React.createElement(
-                "div",
-                { className: "show-all", onClick: this.showAllHandler },
+                "a",
+                { href: "javascript:void(0);", onClick: this.showAllHandler },
                 " show.alls "
             );
         }
@@ -4123,16 +7052,16 @@ var liveFilterFacetMixin = {
 
 module.exports = builder(liveFilterFacetMixin);
 
-},{"./live-filter-data":83,"focus/component/builder":22}],85:[function(require,module,exports){
+},{"./live-filter-data":122}],124:[function(require,module,exports){
 "use strict";
 
 module.exports = require("./input");
 
-},{"./input":86}],86:[function(require,module,exports){
+},{"./input":125}],125:[function(require,module,exports){
 "use strict";
 
-var builder = require("focus/component/builder");
-var type = require("focus/component/types");
+var builder = window.focus.component.builder;
+var type = window.focus.component.types;
 var React = window.React;
 var Scope = require("./scope").component;
 //var Icon = require('../common/icon').component;
@@ -4143,8 +7072,8 @@ var SearchInputMixin = {
     return {
       placeholder: "",
       value: "defaultValue",
-      scope: 2,
-      scopes: [{ code: undefined, label: "None", style: "qs-scope-none" }, { code: 1, label: "Scope1", style: "qs-scope-1" }, { code: 2, label: "Scope2", style: "qs-scope-2" }, { code: 3, label: "Scope3", style: "qs-scope-3" }],
+      scope: undefined,
+      scopes: [],
       minChar: 0,
       loading: false
     };
@@ -4164,7 +7093,7 @@ var SearchInputMixin = {
       loading: this.props.loading
     };
   },
-  getValue: function getValue() {
+  getValue: function getQuickSearchValue() {
     return {
       scope: this.refs.scope.getValue(),
       query: this.refs.query.getDOMNode().value
@@ -4173,15 +7102,24 @@ var SearchInputMixin = {
   handleKeyUp: function handleKeyUpInputSearch(event) {
     var val = event.target.value;
     if (val.length >= this.props.minChar) {
-      console.log("keyUp", words(val));
       if (this.props.handleKeyUp) {
         this.props.handleKeyUp(event);
       }
     }
   },
+  _handleChangeScope: function handleChangeScope(event) {
+    this.focusQuery();
+    //If query not empty
+    var query = this.getValue().query;
+    if (!query || 0 === query.length) {
+      return;
+    }
+    if (this.props.handleChangeScope) {
+      this.props.handleChangeScope(event);
+    }
+  },
   handleOnClickScope: function handleOnClickScope() {
-    console.log("Search value", this.getValue());
-    this.setState({ scope: this.refs.scope.getValue() }, this.focusQuery);
+    this.setState({ scope: this.refs.scope.getValue() }, this._handleChangeScope(event));
   },
   renderHelp: function renderHelp() {
     /*if(this.state.scope){
@@ -4198,6 +7136,12 @@ var SearchInputMixin = {
       )
     );
   },
+  /** @inheritdoc */
+  componentWillReceiveProps: function fieldWillReceiveProps(newProps) {
+    if (newProps && newProps.loading !== undefined) {
+      this.setState({ loading: newProps.loading });
+    }
+  },
   focusQuery: function focusQuery() {
     this.refs.query.getDOMNode().focus();
   },
@@ -4205,11 +7149,12 @@ var SearchInputMixin = {
     return this.setState(this.getValue(), this.focusQuery);
   },
   render: function renderSearchInput() {
+    var loadingClassName = this.props.loading ? "qs-loading" : "";
     return React.createElement(
       "div",
       { className: "qs-quick-search" },
       React.createElement(Scope, { ref: "scope", list: this.props.scopes, value: this.state.scope, handleOnClick: this.handleOnClickScope }),
-      React.createElement("input", { ref: "query", onKeyUp: this.handleKeyUp, type: "search" }),
+      React.createElement("input", { ref: "query", onKeyUp: this.handleKeyUp, type: "search", className: loadingClassName }),
       this.renderHelp()
     );
   }
@@ -4217,155 +7162,166 @@ var SearchInputMixin = {
 
 module.exports = builder(SearchInputMixin);
 
-},{"./scope":87,"focus/component/builder":22,"focus/component/types":23,"lodash/string/words":74}],87:[function(require,module,exports){
+},{"./scope":126,"lodash/string/words":104}],126:[function(require,module,exports){
 "use strict";
 
-var builder = require("focus/component/builder");
-var type = require("focus/component/types");
+var builder = window.focus.component.builder;
+var type = window.focus.component.types;
 var React = window.React;
 
 //var type = require('../../core/validation/types');
 var find = require("lodash/collection/find");
 var uuid = require("uuid");
 var scopeMixin = {
-	/**
-  * Component tag name.
-  * @type {String}
-  */
-	displayName: "Scope",
-	/**
-  * Component default properties.
-  */
-	getDefaultProps: function getScopeDefaultProperties() {
-		return {
-			list: [],
-			value: undefined,
-			isDeployed: false
-		};
-	},
-	/**
-  * Scope property validation.
-  * @type {Object}
-  */
-	propTypes: {
-		list: type("array"),
-		isDeployed: type("bool"),
-		value: type(["string", "number"])
-	},
-	/**
-  * Get the initial state from the data.
-  */
-	getInitialState: function getScopeInitialState() {
-		return {
-			isDeployed: this.props.isDeployed,
-			value: this.props.value
-		};
-	},
-	/**
-  * Get the value of the scope.
-  */
-	getValue: function getValue() {
-		return this.state.value;
-	},
-	/**
-  * Define the scope label.
-  */
-	scopeLabel: function scopeLabel() {
-		return;
-		if (!this.state.value) {
-			return "Choose your scope";
-		}
-		return this.state.value;
-	},
-	/**
-  * Internal function which handles the click on the scope line element and call the real handleOnclick if it is defined.
-  * @param {object} event - Event trigger by the search.
-  */
-	_handleOnClick: function _handleOnClick(event) {
-		var val = event.target.hasAttribute("value") ? event.target.value : undefined;
-		this.setState({
-			value: val,
-			isDeployed: false
-		}, this.props.handleOnClick);
-	},
-	/**
-  * Handle the click on the scope element.
-  */
-	handleDeployClick: function handleDeployClick() {
-		this.setState({
-			isDeployed: !this.state.isDeployed
-		});
-	},
-	/**
-  * Get the current active scope.
-  */
-	getActiveScope: function getActiveScope() {
-		var _this = this;
+  /**
+   * Component tag name.
+   * @type {String}
+   */
+  displayName: "Scope",
+  /**
+   * Component default properties.
+   */
+  getDefaultProps: function getScopeDefaultProperties() {
+    return {
+      list: [],
+      value: undefined,
+      isDeployed: false
+    };
+  },
+  /**
+   * Scope property validation.
+   * @type {Object}
+   */
+  propTypes: {
+    list: type("array"),
+    isDeployed: type("bool"),
+    value: type(["string", "number"])
+  },
+  /**
+   * Get the initial state from the data.
+   */
+  getInitialState: function getScopeInitialState() {
+    return {
+      isDeployed: this.props.isDeployed,
+      value: this.props.value
+    };
+  },
+  /**
+   * Get the value of the scope.
+   */
+  getValue: function getValue() {
+    return this.state.value;
+  },
+  /**
+   * Define the scope label.
+   */
+  scopeLabel: function scopeLabel() {
+    return;
+    if (!this.state.value) {
+      return "Choose your scope";
+    }
+    return this.state.value;
+  },
+  /**
+   * Internal function which handles the click on the scope line element and call the real handleOnclick if it is defined.
+   * @param {object} event - Event trigger by the search.
+   */
+  _handleOnClick: function _handleOnClick(event) {
+    var val = event.target.hasAttribute("value") ? event.target.getAttribute("value") : undefined;
+    this.setState({
+      value: val,
+      isDeployed: false
+    }, this.props.handleOnClick);
+  },
+  /**
+   * Handle the click on the scope element.
+   */
+  handleDeployClick: function handleDeployClick() {
+    this.setState({
+      isDeployed: !this.state.isDeployed
+    });
+  },
+  /**
+   * Get the current active scope.
+   */
+  getActiveScope: function getActiveScope() {
+    var _this = this;
 
-		return find(this.props.list, function (scope) {
-			return scope.code === _this.state.value;
-		});
-	},
-	/**
-  * Return the css class for the scope.
-  */
-	scopeStyle: function scopeStyle() {
-		return "" + this.getActiveScope().style;
-	},
-	renderScopeList: function renderScopeList() {
-		var _this = this;
+    return find(this.props.list, function (scope) {
+      return scope.code === _this.state.value;
+    });
+  },
+  /**
+   * Return the css class for the scope.
+   */
+  scopeStyle: function scopeStyle() {
+    var activeScope = this.getActiveScope();
+    if (!activeScope) {
+      return "qs-scope-none";
+    }
+    return activeScope.style || "qs-scope-" + activeScope.code;
+  },
+  renderScopeList: function renderScopeList() {
+    var _this = this;
 
-		if (!this.state.isDeployed) {
-			return;
-		}
-		var scopes = this.props.list.map(function (scope) {
-			var selectedValue = _this.state.value === scope.code ? "active" : "";
-			return React.createElement(
-				"li",
-				{ key: scope.code || uuid.v4(),
-					value: scope.code,
-					className: "" + selectedValue + " " + scope.style,
-					onClick: _this._handleOnClick },
-				scope.label
-			);
-		});
-		return React.createElement(
-			"ul",
-			{ className: "qs-scope-list" },
-			" ",
-			scopes,
-			" "
-		);
-	},
-	/**
-  * Render the complete scope element.
-  * @return {object} - The jsx element.
-  */
-	render: function renderScopeComponent() {
-		var cssClass = "qs-icon qs-scope-deploy-" + (this.state.isDeployed ? "up" : "down");
-		return React.createElement(
-			"div",
-			{ className: this.props.className + " qs-scope" },
-			React.createElement(
-				"div",
-				{ className: cssClass,
-					onClick: this.handleDeployClick },
-				React.createElement(
-					"div",
-					{ className: this.scopeStyle() },
-					" ",
-					this.scopeLabel(),
-					" "
-				)
-			),
-			" ",
-			this.renderScopeList(),
-			" "
-		);
-	}
+    if (!this.state.isDeployed) {
+      return;
+    }
+    var scopes = this.props.list.map(function (scope) {
+      var selectedValue = _this.state.value === scope.code ? "active" : "";
+      //Add defaut Style to scope if not define
+      var scopeCss = scope.style;
+      if (!scopeCss) {
+        scopeCss = "qs-scope-" + scope.code;
+      }
+      scope.style = scopeCss;
+
+      return React.createElement(
+        "li",
+        { key: scope.code || uuid.v4(),
+          value: scope.code,
+          className: "" + selectedValue + " " + scope.style,
+          onClick: _this._handleOnClick },
+        scope.label
+      );
+    });
+    return React.createElement(
+      "ul",
+      { className: "qs-scope-list" },
+      " ",
+      scopes,
+      " "
+    );
+  },
+  /**
+   * Render the complete scope element.
+   * @return {object} - The jsx element.
+   */
+  render: function renderScopeComponent() {
+    var cssClass = "qs-icon qs-scope-deploy-" + (this.state.isDeployed ? "up" : "down");
+    return React.createElement(
+      "div",
+      { className: this.props.className + " qs-scope" },
+      React.createElement(
+        "div",
+        { className: cssClass,
+          onClick: this.handleDeployClick },
+        React.createElement(
+          "div",
+          { className: this.scopeStyle() },
+          " ",
+          this.scopeLabel(),
+          " "
+        )
+      ),
+      " ",
+      this.renderScopeList(),
+      " "
+    );
+  }
 };
 
 module.exports = builder(scopeMixin);
 
-},{"focus/component/builder":22,"focus/component/types":23,"lodash/collection/find":25,"uuid":80}]},{},[1])(1)
+},{"lodash/collection/find":49,"uuid":110}]},{},[1])(1)
 });

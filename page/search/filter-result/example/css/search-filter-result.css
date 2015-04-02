@@ -1,0 +1,9 @@
+.liveFilterContainer {
+  padding-right: 10px; }
+
+.search-result .liveFilterContainer, .search-result .resultContainer {
+  vertical-align: top;
+  float: left; }
+
+.listSummaryContainer {
+  height: 50px; }

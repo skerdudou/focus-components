@@ -1,0 +1,11 @@
+.print {
+  background: url("../img/print.svg") no-repeat center; }
+
+.list-summary .nb-result, .list-summary .scope {
+  display: inline-block;
+  padding: 0 25px 0 25px;
+  min-width: 150px; }
+.list-summary .print {
+  display: inline-block;
+  float: right;
+  padding: 0 25px 0 25px; }

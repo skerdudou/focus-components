@@ -42,7 +42,7 @@ function buildPage(opts){
 		'</ul>';
 }
 var page =buildPage();
-var ghPage =buildPage({isGhPage: true, urlRoot: 'kleegroup.github.io/focus-components', port: ':80'});
+var ghPage =buildPage({isGhPage: true, urlRoot: 'kleegroup.github.io/focus-components', port: ''});
 
 app.use('/focus-components/example', express.static(__dirname + "/example"));
 app.use('/focus-components/dist', express.static(__dirname + "/dist"));
