@@ -1,7 +1,6 @@
 # Logs
 logs
 *.log
-dist
 exacd .mple/focus-components.js
 example/focus-components.css
 .idea
