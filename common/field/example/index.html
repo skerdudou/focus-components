@@ -10,7 +10,7 @@
   <!-- Place favicon.ico in the root directory -->
   <link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/font-awesome/4.3.0/css/font-awesome.min.css">
   <link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/bootstrap/3.3.2/css/bootstrap.min.css" />
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/react/0.12.2/react.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react/0.13.1/react.js"></script>
 
   <!-- Material degign-->
   <script src="//code.jquery.com/jquery-1.10.2.min.js"></script>
@@ -27,9 +27,9 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-material-design/0.2.2/js/ripples.min.js"></script>
   <!-- Material degign-->
 
-  <script src="/dist/focus.js"></script>
-  <script src="/dist/focus-components.js"></script>
-  <link rel="stylesheet" href="css/form.css"/>
+  <script src="/focus-components/dist/js/focus.js"></script>
+  <script src="/focus-components/dist/js/focus-components.js"></script>
+  <link rel="stylesheet" href="/focus-components/dist/css/focus-components.css">
 </head>
 <body>
   <!--
@@ -50,7 +50,10 @@
     React.render(
       React.createElement("form", {className: "form-horizontal"},
       React.createElement("h2", null, "Champ 1"),
-      React.createElement(Field, {name: "field1", value: "field1value"}),
+      React.createElement(Field, {name: "field1", value: "field1value", isEdit: true}),
+      React.createElement("h2", null, "Consultation"),
+      React.createElement(Field, {name: "field Consult", value: "fieldConsultValue", isEdit: false}),
+      React.createElement(Field, {name: "field Consult", value: "fieldConsultValue", isEdit: false,formatter: function(data){return data + " formatter applied";}}),
       React.createElement("h2", null, "Champ 2 (erreur)"),
       React.createElement(Field, {name: "field2", value: "field2value", type: "text", error: "error on field2"}),    React.createElement("h2", null, "Champ 3 type number"),
       React.createElement(Field, {name: "field3", value: 3, type: "number"}),

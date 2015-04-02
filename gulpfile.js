@@ -5,13 +5,15 @@ var gulp = require('gulp');
 
 var babelify = require("babelify"); //es6
 var browserify = require('browserify'); //build the source
+var watchify = require('watchify'); //build the source
 var source = require('vinyl-source-stream');
 
 
 /**
  * LINT
  */
-var sources = ['{spec,search,list,form}/**/*.js'];
+var src = '{spec,search,list,form,page,common}/**/*.js';
+var sources = [src];
 gulp.task('eslint', function() {
 	//gulp eslint 2>lint/lintErrors.txt
 	var eslint = require('gulp-eslint');
@@ -72,7 +74,9 @@ function jsBuild(directory, options) {
 		.transform({
 			global: true
 		}, literalify.configure({
-			react: 'window.React'
+			react: 'window.React',
+			focus: 'window.focus',
+			jquery: 'window.jQuery'
 		}))
 		.transform(babelify)
 		.bundle()
@@ -80,7 +84,7 @@ function jsBuild(directory, options) {
 		.pipe(source(generatedFile))
 		.pipe(gulp.dest('./' + directory + '/example/js/'));
 }
-gulp.task('browserify', function() {
+/*gulp.task('browserify', function() {
 	var literalify = require('literalify');
 	return browserify(({
 			entries: ['./index.js'],
@@ -90,7 +94,8 @@ gulp.task('browserify', function() {
 		.transform({
 			global: true
 		}, literalify.configure({
-			react: 'window.React'
+			react: 'window.React',
+			focus: 'window.focus'
 		}))
 		.transform(babelify)
 		.bundle()
@@ -99,6 +104,33 @@ gulp.task('browserify', function() {
 		.pipe(gulp.dest('./dist/'))
 		.pipe(gulp.dest('./example/js'));
 });
+*/
+function build(name){
+	gulp.task(name, function() {
+		var literalify = require('literalify');
+		var build = name === "browserify" ? browserify : watchify;
+		return build(({
+				entries: ['./index.js'],
+				extensions: ['.jsx'],
+				standalone: "focus-components"
+			}))
+			.transform({
+				global: true
+			}, literalify.configure({
+				react: 'window.React',
+				focus: 'window.focus',
+				jquery: 'window.jQuery'
+			}))
+			.transform(babelify)
+			.bundle()
+			//Pass desired output filename to vinyl-source-stream
+			.pipe(source('focus-components.js'))
+			.pipe(gulp.dest('./dist/js'))
+			.pipe(gulp.dest('./example/js'));
+	});
+}
+build("browserify");
+build("watchify");
 gulp.task('componentify-js', function() {
 	//Each component build
 	var components = require('./package.json').components || [];
@@ -137,13 +169,14 @@ gulp.task('componentify-style', function() {
 gulp.task('style', function() {
 	var sass = require('gulp-sass');
 	var concat = require('gulp-concat');
-	gulp.src(['{spec,search,list,form}/**/*.scss'])
+	gulp.src(['{spec,search,list,form,page,common}/**/*.scss'])
 		.pipe(sass())
 		.pipe(concat('focus-components.css'))
-		.pipe(gulp.dest('./example/css/'));
+		.pipe(gulp.dest('./example/css/'))
+		.pipe(gulp.dest('./dist/css'));
 });
 
-
+gulp.task('build', ['browserify', 'style', 'componentify-img'])
 gulp.task('componentify', ['componentify-js', 'componentify-style',
 	'componentify-img'
 ]);
@@ -153,8 +186,9 @@ gulp.task('componentify', ['componentify-js', 'componentify-style',
 ****************************/
 function imgBuild(directory, options) {
 	options = options || {};
-	return gulp.src([directory + '/assets/img/*.svg'])
-		.pipe(gulp.dest(directory + '/example/img/'));
+	return gulp.src([directory + '/assets/img/*.{svg,gif,png}'])
+		.pipe(gulp.dest(directory + '/example/img/'))
+        .pipe(gulp.dest('./dist/img/'));
 }
 gulp.task('componentify-img', function() {
 	var components = require('./package.json').components || [];
@@ -170,7 +204,7 @@ gulp.task('focus-components-npm', ['style', 'browserify'], function() {
 	var babel = require('gulp-babel');
 	var gulpif = require('gulp-if');
 	return gulp.src(['package.json', 'index.js',
-			'{spec,search,list,form,example}/**/*.{js,css}'
+			'{spec,search,list,form,common,example,page}/**/*.{js,css}'
 		])
 		.pipe(gulpif(/[.]js$/, react({
 			harmony: true
@@ -178,6 +212,9 @@ gulp.task('focus-components-npm', ['style', 'browserify'], function() {
 		.pipe(gulpif(/[.]js$/, babel()))
 		.pipe(gulp.dest('../rodolphe/app/node_modules/focus-components/'));
 });
-
+gulp.task('watch', function(){
+	gulp.watch(['package.json','index.js',src],['build']);
+  gulp.watch(['app/**/*.scss'], ['style']);
+});
 
 //Build the style woth sass.

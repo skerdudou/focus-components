@@ -1,156 +1,165 @@
-var builder = require('focus/component/builder');
+var builder = require('focus').component.builder;
 var React = require('react');
-var Field = require('../field').component;
-var Button = require('../button/action').component;
 var assign = require('object-assign');
+var getEntityDefinition = require('focus').definition.entity.builder.getEntityInformations;
+var builtInComponents = require('./mixin/built-in-components');
+var referenceBehaviour = require('./mixin/reference-behaviour');
+var storeBehaviour = require('./mixin/store-behaviour');
+var actionBehaviour = require('./mixin/action-behaviour');
+
+var isEmpty = require('lodash/lang/isEmpty');
 /**
  * Mixin to create a block for the rendering.
  * @type {Object}
  */
 var formMixin = {
-	/**
-	 * Get default property for the form.
-	 */
-	getDefaultProps: function getFormDefaultProps() {
-		return {
-			hasEdit: true,
-			isEdit: false
-		};
-	},
-	/**
-	 * Create a field for the given property metadata.
-	 * @param {string} name - property name.
-	 */
-	fieldFor: function(name) {
-		return React.createElement(Field, {
-			name: name,
-			ref: name,
-			value: this.state[name],
-			error: this.state.error ? this.state.error[name] : undefined
-		});
-	},
-	/**
-	 * Creates select field.
-	 * @param {[type]} name [description]
-	 */
-	selectFor: function(name) {
-		//Todo: implement it
-		return React.createElement(Select, {
-			name: name
-		});
-	},
-	/**
-	 * Save button/
-	 */
-	buttonSave: function() {
-		return React.createElement(Button, {
-			label: "save",
-			type: "submit",
-			css: "primary"
-		});
-	},
-	getInitialState: function() {
-		return {
-			id: this.props.id
-		};
-	},
-	_getStateFromStores: function() {
-		if (this.getStateFromStore) {
-			return this.getStateFromStore();
-		}
-		if (this.stores.length === 1) {
-			return this.stores[0].value.get(this.props.id);
-		}
-		var newState = {};
-		this.stores.map((store) => {
-			newState[store.name] = store.value.get(this.props.id);
-		});
-		return newState;
-	},
-	/**
-	 * Event handler for 'change' events coming from the stores
-	 */
-	_onChange: function() {
-		this.setState(this._getStateFromStores());
-	},
-	callMountedActions: function() {
-		this._loadData();
-	},
-	_registerListeners: function() {
-		if (this.stores) {
-			this.stores.map((store) => {
-				store.value.addChangeListener(this._onChange);
-			});
-		}
-	},
-	_unRegisterListeners: function() {
-		if (this.stores) {
-			this.stores.map((store) => {
-				store.value.removeChangeListener(this._onChange);
-			});
-		}
-	},
-	componentDidMount: function() {
-		this._registerListeners();
-		if (this.registerListeners) {
-			this.registerListeners();
-		}
-		if (this.callMountedActions) {
-			this.callMountedActions();
-		}
-	},
-	componentWillUnmount: function() {
-		this._unRegisterListeners();
-		if (this.unregisterListeners) {
-			this.unregisterListeners();
-		}
-	},
-	_getId: function() {
-		return this.state.id;
-	},
-	_loadData: function() {
-		this.actions.load(this._getId());
-	},
-	_className: function() {
-		return "form-horizontal";
-	},
-	_getEntity: function() {
-		return {
-			login: "pierr",
-			password: "pierre"
-		};
-	},
-	_handleSubmitForm: function handleSumbitForm(e) {
-		e.preventDefault();
-		console.log("submit", this.refs);
-		this.validate();
-		this.actions.save(this._getEntity());
-		return false;
-	},
-	validate: function validateForm() {
-		var validationMap = {};
-		for (var inptKey in this.refs) {
-			assign(validationMap, {
-				[inptKey]: this.refs[inptKey].validate()
-			});
-		}
-		this.setState({
-			error: validationMap
-		});
-		//console.log(validationMap);
-	},
-	render: function() {
-		return ( < form onSubmit = {
-				this._handleSubmitForm
-			}
-			className = {
-				this._className()
-			} >
-			< fieldset > {
-				this.renderContent()
-			} < /fieldset> < /form >
-		);
-	}
+  mixins: [referenceBehaviour, storeBehaviour, actionBehaviour, builtInComponents],
+  /** @inheritdoc */
+  getDefaultProps: function getFormDefaultProps() {
+    return {
+      /**
+       * Defines it the form can have  an edit mode.
+       * @type {Boolean}
+       */
+      hasEdit: true,
+      /**
+       * Defines
+       * @type {Boolean}
+       */
+      isEdit: false,
+      /**
+       * Style of the component.
+       * @type {Object}
+       */
+      style: {}
+    };
+  },
+  /** @inheritdoc */
+  getInitialState: function getFormInitialState() {
+    return {
+      /**
+       * Identifier of the entity.
+       * @type {[type]}
+       */
+      id: this.props.id,
+      isEdit: this.props.isEdit
+    };
+  },
+  /**
+   * Event handler for 'change' events coming from the stores
+   */
+  _onChange: function onFormStoreChangeHandler() {
+    this.setState(this._getStateFromStores());
+  },
+  /** @inheritdoc */
+  callMountedActions: function formCallMountedActions() {
+    this._loadData();
+    this._loadReference();
+  },
+  /** @inheritdoc */
+  componentWillMount: function formWillMount(){
+    this._buildDefinition();
+    this._buildReference();
+  },
+  /** @inheritdoc */
+  componentDidMount: function formDidMount() {
+    //Build the definitions.
+    this._registerListeners();
+    if (this.registerListeners) {
+      this.registerListeners();
+    }
+    if (this.callMountedActions) {
+      this.callMountedActions();
+    }
+  },
+  /** @inheritdoc */
+  componentWillUnmount: function formWillMount() {
+    this._unRegisterListeners();
+    if (this.unregisterListeners) {
+      this.unregisterListeners();
+    }
+  },
+  /**
+   * Build the entity definition givent the path of the definition.
+   */
+  _buildDefinition: function buildFormDefinition(){
+    if(!this.definitionPath){
+      throw new Error('the definition path should be defined to know the domain of your entity property.');
+    }
+    this.definition = getEntityDefinition(this.definitionPath, this.additionalDefinition);
+  },
+  /**
+   * Validate the form information by information.
+   * In case of errors the state is modified.
+   * @returns {boolean} - A boolean ttue if the
+   */
+  validate: function validateForm() {
+    var validationMap = {};
+    for (var inptKey in this.refs) {
+      var validationRes = this.refs[inptKey].validate();
+      if(validationRes !== undefined){
+        assign(validationMap, {
+          [inptKey]: validationRes
+        });
+      }
+    }
+    if(isEmpty(validationMap)){
+      return true;
+    }
+
+    return false;
+  },
+  _editClass: function(){
+    if(this.editClass){return this.editClass(); }
+    return `form-${this.state.isEdit ? 'edit' : 'consult'}`;
+  },
+  _className: function formClassName() {
+    return `form-horizontal ${this.props.style.className} ${this._editClass()}`;
+  },
+  _renderActions: function renderActions(){
+    if(this.renderActions){return this.renderActions(); }
+    if(this.state.isEdit){
+      return this._renderEditActions();
+    }
+    return this._renderConsultActions();
+  },
+  _renderEditActions: function _renderEditActions(){
+    if(this.renderEditActions){return this.renderEditActions(); }
+    return (
+      <div className="button-bar">
+        {this.buttonCancel()}
+        {this.buttonSave()}
+      </div>
+    );
+  },
+  _renderConsultActions: function _renderConsultActions(){
+    if(this.renderConsultActions){return this.renderConsultActions(); }
+    return this.buttonEdit();
+  },
+  /**
+   * Handle the form submission.
+   * @param {Event} e - React sanityze event from the form submit.
+   */
+  _handleSubmitForm: function handleSumbitForm(e) {
+    e.preventDefault();
+    if(this.validate()){
+      this.action.save(this._getEntity());
+    }
+    //return false;
+  },
+  /** @inheritdoc */
+  render: function renderForm() {
+    return (
+      <form
+        onSubmit={this._handleSubmitForm}
+        className={this._className()}
+      >
+        <fieldset>
+          {this.renderContent()}
+        </fieldset>
+      </form>
+    );
+  }
 };
 
 module.exports = builder(formMixin);

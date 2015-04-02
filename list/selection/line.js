@@ -1,15 +1,19 @@
 /**@jsx*/
 var React = require('react');
-var builder = require('focus/component/builder');
-var type = require('focus/component/types');
+var builder = require('focus').component.builder;
+var type = require('focus').component.types;
+var ContextualActions = require('../action-contextual').component;
+var CheckBox = require('../../common/input/checkbox').component;
 var lineMixin = {
+    displayName: "selection-line",
     /**
      * Default properties for the line.
      * @returns {{isSelection: boolean}}
      */
     getDefaultProps: function getLineDefaultProps(){
         return {
-            isSelection: true
+            isSelection: true,
+            operationList: []
         };
     },
 
@@ -22,7 +26,8 @@ var lineMixin = {
         isSelection: type('bool'),
         isSelected: type('bool'),
         onLineClick: type('func'),
-        onSelection: type('func')
+        onSelection: type('func'),
+        operationList: type('array')
     },
 
     /**
@@ -33,6 +38,16 @@ var lineMixin = {
         return {
             isSelected: this.props.isSelected || false
         };
+    },
+
+    /**
+     * Update properties on component.
+     * @param nextProps next properties
+     */
+    componentWillReceiveProps: function(nextProps) {
+        if(nextProps.isSelected !== undefined){
+            this.setState({isSelected : nextProps.isSelected});
+        }
     },
 
     /**
@@ -51,11 +66,11 @@ var lineMixin = {
      * @param event
      */
     _handleSelectionClick: function handleSelectionClick(event){
-        if(this.props.onSelection){
-            this.props.onSelection(this.props.data);
-        }
         var select = !this.state.isSelected;
         this.setState({isSelected:select});
+        if(this.props.onSelection){
+            this.props.onSelection(this.props.data,select);
+        }
     },
 
     /**
@@ -63,7 +78,9 @@ var lineMixin = {
      * @param event
      */
     _handleLineClick: function handleLineClick(event){
-        this.props.onLineClick(this.props.data);
+        if(this.props.onLineClick){
+            this.props.onLineClick(this.props.data);
+        }
     },
 
     /**
@@ -75,7 +92,9 @@ var lineMixin = {
             var selectionClass = this.state.isSelected? "selected" : "no-selection";
             //var image = this.state.isSelected? undefined : <img src={this.state.lineItem[this.props.iconfield]}/>
             return(
-                <div className={`sl-selection ${selectionClass}`} onClick={this._handleSelectionClick}></div>
+                <div className={`sl-selection ${selectionClass}`}>
+                    <CheckBox value={this.state.isSelected} onChange={this._handleSelectionClick}/>
+                </div>
             );
         }
         return null;
@@ -99,6 +118,19 @@ var lineMixin = {
     },
 
     /**
+     * Render actions wich can be applied on the line
+     */
+    _renderActions: function renderLineActions(){
+        if(this.props.operationList.length > 0){
+            return (
+                <div className="sl-actions">
+                    <ContextualActions operationList={this.props.operationList} operationParam={this.props.data}/>
+                </div>
+            );
+        }
+    },
+
+    /**
      * Render line in list.
      * @returns {*}
      */
@@ -112,6 +144,7 @@ var lineMixin = {
                     <div className="sl-content" onClick={this._handleLineClick}>
                         {this._renderLineContent()}
                     </div>
+                    {this._renderActions()}
                 </li>
             );
         }

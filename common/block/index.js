@@ -1,21 +1,25 @@
 var React = require('react');
-var builder = require('focus/component/builder')
+var builder = require('focus').component.builder
+var Title = require('../title').component;
+var i18nMixin = require('../i18n').mixin;
 /**
  * Mixin used in order to create a block.
  * @type {Object}
  */
 var blockMixin = {
+  mixins: [i18nMixin],
+  getDefaultProps: function(){
+    return {
+      style: {}
+    }
+  },
   /**
    * Header of theblock function.
    * @return {[type]} [description]
    */
   heading: function(){
     if(this.props.title){
-      return (
-        <div className="panel-heading">
-          {this.props.title}
-        </div>
-      );
+      return this.i18n(this.props.title);
     }
   },
   /**
@@ -24,11 +28,9 @@ var blockMixin = {
    */
   render: function renderBlock(){
     return(
-      <div className="panel panel-default">
-        {this.heading()}
-        <div className="panel-body">
-            {this.props.children}
-        </div>
+      <div className={`block ${this.props.style.className}`}>
+        <Title id={this.props.style.titleId} title={this.heading()} />
+        {this.props.children}
       </div>
     );
   }

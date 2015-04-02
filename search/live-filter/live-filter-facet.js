@@ -1,5 +1,5 @@
 /**@jsx*/
-var builder = require('focus/component/builder');
+var builder = require('focus').component.builder;
 var React = require('react');
 var Data = require('./live-filter-data').component;
 
@@ -8,11 +8,11 @@ var liveFilterFacetMixin = {
     /**
      * Display name.
      */
-    displayName: "live-filter-facet",
+    displayName: 'live-filter-facet',
 
     /**
      * Init the component state.
-     * @returns {{isShowAll: true if all the facets must be displayed or just be limited to this.props.nbDefaultDataList }}
+     * @returns {object} Initial state.
      */
     getInitialState: function(){
         return {
@@ -22,7 +22,7 @@ var liveFilterFacetMixin = {
 
     /**
      * Init the default props.
-     * @returns {{nbDefaultDataList: default number of data facets displayed.}}
+     * @returns {object} Initial state.
      */
     getDefaultProps: function getLiveFilterFacetDefaultProperties(){
         return {
@@ -32,12 +32,21 @@ var liveFilterFacetMixin = {
 
     /**
      * Render the component.
-     * @returns Html component code.
+     * @returns {XML} Html component code.
      */
     render: function renderLiverFilterFacet(){
+        /*
         var className = this.props.isExpanded ? "lf-facet" : "lf-facet collapsed";
         if(this.props.selectedDataKey) {
             className = "lf-facet selected";
+        }*/
+        var className = 'panel panel-primary facet';
+        if(this.props.selectedDataKey) {
+            className += '-selected';
+        } else if(this.props.isExpanded) {
+            className += '-expanded';
+        } else {
+            className += '-collapsed';
         }
         return (
             <div className={className}>
@@ -48,14 +57,15 @@ var liveFilterFacetMixin = {
 
     /**
      * Render the component title.
-     * @returns Html component code.
+     * @returns {XML} Html component code.
      */
     renderLiveFilterFacetTitle: function renderLiveFilterFacetTitle() {
         var title = this.props.facetKey;
+        var className = 'panel-heading';
         if(this.props.selectedDataKey) {
-            title += " : " + this.props.facet[this.props.selectedDataKey].label
+            title += ' : ' + this.props.facet[this.props.selectedDataKey].label;
         }
-        return <div className="title"  onClick={this.liveFilterFacetTitleClick}>{title}</div>
+        return (<div className={className} onClick={this.liveFilterFacetTitleClick}>{title}</div>);
     },
 
     /**
@@ -71,11 +81,11 @@ var liveFilterFacetMixin = {
 
     /**
      * Render the list of data of the facet.
-     * @returns Html component code.
+     * @returns {XML} Html component code.
      */
     renderLiveFilterDataList: function renderLiveFilterDataList() {
         if(!this.props.isExpanded || this.props.selectedDataKey) {
-            return
+            return '';
         }
         var facetDetailList = [];
         var i = 0;
@@ -86,11 +96,13 @@ var liveFilterFacetMixin = {
             facetDetailList.push(<li><Data dataKey={key} data={this.props.facet[key]} selectHandler={this.selectHandler} type={this.props.type} /></li>);
             i++;
         }
-        return (<div><ul>{facetDetailList}</ul> {this.renderShowAllDataList()}</div>);
+        return (<div className="panel-body"><ul>{facetDetailList}</ul> {this.renderShowAllDataList()}</div>);
     },
 
     /**
      * Action on facet data selection.
+     * @param {string} dataKey Key of the selected data.
+     * @param {string} data Selected data.
      */
     selectHandler: function selectHandler(dataKey, data) {
         this.props.expandHandler(this.props.facetKey, false);
@@ -99,11 +111,11 @@ var liveFilterFacetMixin = {
 
     /**
      * Render all the data facets.
-     * @returns Html component code.
+     * @returns {XML} Html component code.
      */
     renderShowAllDataList: function renderShowAllDataList() {
         if(!this.state.isShowAll && Object.keys(this.props.facet).length > this.props.nbDefaultDataList) {
-            return (<div className="show-all" onClick={this.showAllHandler}> show.alls </div>) ;
+            return (<a href="javascript:void(0);" onClick={this.showAllHandler}> show.alls </a>);
         }
     },
 

@@ -10,52 +10,78 @@
   <!-- Place favicon.ico in the root directory -->
   <link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/font-awesome/4.3.0/css/font-awesome.min.css">
   <link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/bootstrap/3.3.2/css/bootstrap.min.css" />
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/react/0.12.2/react.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react/0.13.1/react.js"></script>
 
   <!-- Material degign-->
   <script src="//code.jquery.com/jquery-1.10.2.min.js"></script>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-material-design/0.2.2/css/material-wfont.css">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-material-design/0.2.2/css/material.css">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-material-design/0.2.2/css/ripples.css">
+  <link rel="stylesheet" href="//cdn.jsdelivr.net/bootstrap.material-design/0.3.0/css/material-wfont.min.css">
+  <link rel="stylesheet" href="//cdn.jsdelivr.net/bootstrap.material-design/0.3.0/css/material.min.css">
+  <link rel="stylesheet" href="//cdn.jsdelivr.net/bootstrap.material-design/0.3.0/css/ripples.min.css">
+  <script src="//cdn.jsdelivr.net/bootstrap.material-design/0.3.0/js/material.min.js"></script>
+  <script src="//cdn.jsdelivr.net/bootstrap.material-design/0.3.0/js/ripples.min.js"></script>
 
-  <link rel="font" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-material-design/0.2.2/fonts/Material-Design-Icons.eot">
-  <link rel="font" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-material-design/0.2.2/fonts/Material-Design-Icons.svg">
-  <link rel="font" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-material-design/0.2.2/fonts/Material-Design-Icons.ttf">
-  <link rel="font" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-material-design/0.2.2/fonts/Material-Design-Icons.woff">
-
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-material-design/0.2.2/js/material.js"/>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-material-design/0.2.2/js/ripples.min.js"></script>
   <!-- Material degign-->
-
-  <script src="/dist/focus.js"></script>
-  <script src="/dist/focus-components.js"></script>
+  <script src="/focus-components/dist/js/focus.js"></script>
+  <script src="/focus-components/dist/js/focus-components.js"></script>
+  <script src="/focus-components/example/js/initFocus.js"></script>
   <link rel="stylesheet" href="css/form.css"/>
+  <link rel="stylesheet" href="/focus-components/example/js/picker.css"/>
 </head>
 <body>
+  <script src="/focus-components/example/js/picker.js"></script>
   <div id="form-container" class="container"></div>
   <script type="text/javascript">
       $(document).ready(function() {$.material.init();});
   </script>
   <script type="text/javascript">
+  //Load dependencies.
   focus.components = focusComponents;
+  var contactStore = new focus.store.CoreStore({
+    definition : {'contact': 'contact', 'commande': 'commande'}
+  });
   var formMixin = focus.components.common.form.mixin;
-  var Block = focus.components.common.block.component;
+  var Panel = focus.components.common.panel.component;
+
+  //Create the view.
   var Form = React.createClass({displayName: "Form",
     mixins: [formMixin],
-    stores: [{name: "user", value: {addChangeListener: function(){
-      console.log('user store listener added.');
-    }}}],
-    actions: {load: function(){return true;}},
+    stores: [{
+      store: contactStore,
+      properties: ["contact"]
+    }],
+    definitionPath: "contact",
+    action: {
+      load: function(){
+        Promise.resolve({contact: {firstName: "pierre", lastName: "besson", isCool: true, birthDate: new Date().toISOString()}}).then(
+          function(data){
+          focus.dispatcher.handleServerAction({
+            data: data,
+            type: "update"
+          });
+        });
+    }, save: function(data){
+      return Promise.resolve(data).then(function(d){focus.dispatcher.handleServerAction({
+        data: data,
+        type: "update"
+      });})
+    }},
+    referenceNames: ['papas'],
     renderContent:function renderUserDetail(){
       return(
-          React.createElement(Block, {title: "Fiche de l'utilisateur"},
-              this.fieldFor("login"),
-              this.fieldFor("password"),
-              this.buttonSave()
+          React.createElement(Panel, {title: "Fiche de l'utilisateur"},
+              this._renderActions(),
+              this.fieldFor("firstName"),
+              this.fieldFor("lastName"),
+              this.fieldFor("bio"),
+              this.fieldFor("isCool"),
+              this.fieldFor("isNice"),
+              this.fieldFor("birthDate"),
+              this.selectFor('papaCode', 'papas')
          )
       );
     }
   });
+  //Render the created View.
   React.render(React.createElement(Form, null), document.querySelector("#form-container"));
 </script>
 

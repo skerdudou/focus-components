@@ -1,7 +1,7 @@
 //Dependencies.
-var builder = require('focus/component/builder');
+var builder = require('focus').component.builder;
 var React = require('react');
-var type = require('focus/component/types');
+var type = require('focus').component.types;
 
 /**
  * Input text mixin.
@@ -10,7 +10,7 @@ var type = require('focus/component/types');
 var inputTextMixin = {
   /** @inheritdoc */
   getDefaultProps: function getInputDefaultProps() {
-    return {
+    return { 
       type: 'text',
       value: undefined,
       name: undefined,
@@ -31,17 +31,11 @@ var inputTextMixin = {
     };
   },
   /**
-   * Validate the input.
-   * @return {object}
+   * Update the component.
+   * @param {object} newProps - The new props to update.
    */
-  validate: function validateInputText() {
-    var value = this.getValue();
-    if (value === undefined || value === "") {
-      return `Le champ ${this.props.name} est requis`;
-    }
-    if (this.props.validator) {
-      return this.props.validator(value);
-    }
+  componentWillReceiveProps: function inputWillReceiveProps(newProps){
+    this.setState({value: newProps.value});
   },
   /**
    * Get the value from the input in the DOM.
@@ -54,10 +48,14 @@ var inputTextMixin = {
    * @param {object} event - The sanitize event of input.
    */
   _handleOnChange: function inputOnChange(event){
-    this.setState({value: event.target.value});
+    //On change handler.
     if(this.props.onChange){
       return this.props.onChange(event);
+    }else {
+      //Set the state then call the change handler.
+      this.setState({value: event.target.value});
     }
+
   },
   /**
    * Render an input.
