@@ -1,19 +1,24 @@
 var builder = require('focus').component.builder;
 var React = require('react');
 var assign = require('object-assign');
-var getEntityDefinition = require('focus').definition.entity.builder.getEntityInformations;
-var builtInComponents = require('./mixin/built-in-components');
+var isEmpty = require('lodash/lang/isEmpty');
+
+// Common mixins.
+var definitionMixin = require('../mixin/definition');
+//var fieldComponentBehaviour = require('../mixin/field-component-behaviour');
+var builtInComponents = require('../mixin/built-in-components');
+
+//Form mixins.
 var referenceBehaviour = require('./mixin/reference-behaviour');
 var storeBehaviour = require('./mixin/store-behaviour');
 var actionBehaviour = require('./mixin/action-behaviour');
 
-var isEmpty = require('lodash/lang/isEmpty');
 /**
  * Mixin to create a block for the rendering.
  * @type {Object}
  */
 var formMixin = {
-  mixins: [referenceBehaviour, storeBehaviour, actionBehaviour, builtInComponents],
+  mixins: [definitionMixin, referenceBehaviour, storeBehaviour, actionBehaviour, builtInComponents],
   /** @inheritdoc */
   getDefaultProps: function getFormDefaultProps() {
     return {
@@ -57,14 +62,8 @@ var formMixin = {
     this._loadReference();
   },
   /** @inheritdoc */
-  componentWillMount: function formWillMount(){
-    this._buildDefinition();
-    this._buildReference();
-  },
-  /** @inheritdoc */
   componentDidMount: function formDidMount() {
     //Build the definitions.
-    this._registerListeners();
     if (this.registerListeners) {
       this.registerListeners();
     }
@@ -74,20 +73,11 @@ var formMixin = {
   },
   /** @inheritdoc */
   componentWillUnmount: function formWillMount() {
-    this._unRegisterListeners();
     if (this.unregisterListeners) {
       this.unregisterListeners();
     }
   },
-  /**
-   * Build the entity definition givent the path of the definition.
-   */
-  _buildDefinition: function buildFormDefinition(){
-    if(!this.definitionPath){
-      throw new Error('the definition path should be defined to know the domain of your entity property.');
-    }
-    this.definition = getEntityDefinition(this.definitionPath, this.additionalDefinition);
-  },
+
   /**
    * Validate the form information by information.
    * In case of errors the state is modified.

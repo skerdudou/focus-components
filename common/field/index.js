@@ -5,23 +5,18 @@ var valueBehaviour = require('./mixin/value-behaviour');
 var validationBehaviour = require('./mixin/validation-behaviour');
 var builtInComponents = require('./mixin/built-in-components');
 var FieldMixin = {
-  mixins: [valueBehaviour,validationBehaviour, builtInComponents],
+  mixins: [valueBehaviour, validationBehaviour, builtInComponents],
   /**
   * Get field default properties.
   */
   getDefaultProps: function getFieldDefaultProps() {
     return {
-      
+
       /**
        * Edition mode of the field.
        * @type {Boolean}
        */
       isEdit: true,
-      /**
-       * Size of the label in the grid system.
-       * @type {Number}
-       */
-      labelSize: 3,
       /**
        * HTML input type.
        * @type {String}
@@ -36,13 +31,12 @@ var FieldMixin = {
        * Css properties of the component.
        * @type {Object}
        */
-      style:{}
+      style: {}
     };
   },
   /** @inheritdoc */
   propTypes: {
-    hasLabel: type('bool'),
-    labelSize: type('number'),
+    isEdit: type('bool'),
     type: type('string'),
     name: type('string'),
     value: type(['string', 'number'])
@@ -56,8 +50,8 @@ var FieldMixin = {
   * Get the css class of the field component.
   */
   _className: function() {
-  var stateClass = this.state.error ? "has-feedback has-error" : "";
-  return "form-group " + stateClass;
+    var stateClass = this.state.error ? "has-feedback has-error" : "";
+    return `form-group ${stateClass} ${this.props.style.className}`;
   },
 
   render: function renderField() {

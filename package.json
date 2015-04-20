@@ -28,6 +28,22 @@
       "path": "application/menu"
     },
     {
+      "name": "bar",
+      "path": "application/bar"
+    },
+    {
+      "name": "message-center",
+      "path": "application/message-center"
+    },
+    {
+      "name": "header",
+      "path": "application/header"
+    },
+    {
+      "name": "cartridge",
+      "path": "application/cartridge"
+    },
+    {
       "name": "quick-search",
       "path": "search/quick-search"
     },
@@ -50,6 +66,10 @@
     {
       "name": "input-checkbox",
       "path": "common/input/checkbox"
+    },
+    {
+      "name": "input-markdown",
+      "path": "common/input/markdown"
     },
     {
       "name": "input-toggle",
@@ -133,7 +153,11 @@
     },
     {
       "name": "popin",
-      "path": "page/popin"
+      "path": "application/popin"
+    },
+    {
+      "name": "confirmation-popin",
+      "path": "application/confirmation-popin"
     },
     {
       "name": "message",
@@ -149,7 +173,7 @@
     "immutable": "^3.6.2",
     "lodash": "^3.3.1",
     "object-assign": "^2.0.0",
-    "react": "^0.13.1",
+    "react": "^0.13.2",
     "uuid": "^2.0.1"
   },
   "devDependencies": {

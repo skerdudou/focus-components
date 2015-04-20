@@ -9,7 +9,7 @@ Components for focus application.
 
 ### spec
 
-Component example structure, with all the directories.
+Component example structure, with all the directories ans sub directories. 
 - `index.js` : the component entry point.
 - `style`: the style of the component should be written in **sass**.
 - `assets`: all the components assets
@@ -59,6 +59,10 @@ In order to launch unit test: `npm run test`
 ## Dependencies
 
 In order to install all your dependencies: `npm install --no-optional`
+
+### CSS
+
+[FlexBox](https://css-tricks.com/snippets/css/a-guide-to-flexbox)/
 
 ## Lint
 `gulp eslint` in order to see your errors.

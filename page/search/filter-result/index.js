@@ -9,6 +9,7 @@ var SearchStore = require('focus').store.SearchStore;
 var assign = require('object-assign');
 var InfiniteScrollPageMixin = require('../common-mixin/infinite-scroll-page-mixin').mixin;
 var GroupByMixin= require('../common-mixin/group-by-mixin').mixin;
+var checkIsNotNull = require('focus').util.object.checkIsNotNull;
 
 var searchFilterResultMixin = {
     mixins: [InfiniteScrollPageMixin, GroupByMixin],
@@ -305,19 +306,18 @@ var searchFilterResultMixin = {
 
     /**
      * Render a simple list.
-     * @param id Technical id of the list.
-     * @param list Content of the list.
-     * @param maxRows Number max of rows in the list (optional).
-     * @returns {JSX} Html rendering.
-     * @private
+     * @param {object} options - map of parameters.
+     * @returns {XML} Html rendering.
      */
-    renderSimpleList: function renderSimpleList(id, list, maxRows) {
-        var newList = list;
-        if(maxRows) {
-            newList = list.slice(0, maxRows);
+    simpleListComponent: function simpleListComponent(options) {
+        checkIsNotNull('options', options);
+        checkIsNotNull('options.type', options.type);
+        var newList = options.list || this.state.list;
+        if(options.maxRows) {
+            newList = newList.slice(0, options.maxRows);
         }
         return <ListSelection data={newList}
-            ref={id}
+            ref={options.type}
             idField={this.props.idField}
             isSelection={this.props.isSelection}
             onSelection={this._selectItem}
@@ -326,20 +326,8 @@ var searchFilterResultMixin = {
             operationList={this.props.lineOperationList}
             hasMoreData={this.state.hasMoreData}
             isLoading={this.state.isLoading}
-            lineComponent={this.props.lineComponent}
+            lineComponent={this.props.lineMap[options.type]}
             selectionStatus={this.state.selectionStatus} />
-    },
-
-    /**
-     * Render the result list.
-     * @returns {JSX} The rendering of the list.
-     * @private
-     */
-    listComponent: function listComponent() {
-        if(this.isSimpleList()) {
-            return <div className="listResultContainer panel">{this.renderSimpleList("list", this.state.list)}</div>;
-        }
-        return this.renderGroupByList();
     }
 };
 

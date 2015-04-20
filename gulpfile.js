@@ -12,7 +12,8 @@ var source = require('vinyl-source-stream');
 /**
  * LINT
  */
-var src = '{spec,search,list,form,page,common}/**/*.js';
+var src = '{spec,search,list,form,page,common,application}/**/*.js';
+var srcCSS = '{spec,search,list,form,page,common,application}/**/*.scss';
 var sources = [src];
 gulp.task('eslint', function() {
 	//gulp eslint 2>lint/lintErrors.txt
@@ -169,7 +170,7 @@ gulp.task('componentify-style', function() {
 gulp.task('style', function() {
 	var sass = require('gulp-sass');
 	var concat = require('gulp-concat');
-	gulp.src(['{spec,search,list,form,page,common}/**/*.scss'])
+	gulp.src(['{spec,search,list,form,page,common,application}/**/*.scss'])
 		.pipe(sass())
 		.pipe(concat('focus-components.css'))
 		.pipe(gulp.dest('./example/css/'))
@@ -204,7 +205,7 @@ gulp.task('focus-components-npm', ['style', 'browserify'], function() {
 	var babel = require('gulp-babel');
 	var gulpif = require('gulp-if');
 	return gulp.src(['package.json', 'index.js',
-			'{spec,search,list,form,common,example,page}/**/*.{js,css}'
+			'{spec,search,list,form,common,example,page,application}/**/*.{js,css}'
 		])
 		.pipe(gulpif(/[.]js$/, react({
 			harmony: true
@@ -214,7 +215,7 @@ gulp.task('focus-components-npm', ['style', 'browserify'], function() {
 });
 gulp.task('watch', function(){
 	gulp.watch(['package.json','index.js',src],['build']);
-  gulp.watch(['app/**/*.scss'], ['style']);
+  gulp.watch([srcCSS], ['style']);
 });
 
 //Build the style woth sass.

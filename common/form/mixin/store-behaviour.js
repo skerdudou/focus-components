@@ -28,7 +28,7 @@ var storeMixin = {
     if(this.computeEntityFromStoresData){
       return this.computeEntityFromStoresData(data);
     }
-    var entity = {reference:{}};
+    var entity = {reference: {}};
     for(var key in data){
       if(this.referenceNames && this.referenceNames.indexOf(key) !== -1){
         entity.reference[key] = data[key];
@@ -45,7 +45,7 @@ var storeMixin = {
   /**
    * Register all the listeners related to the page.
    */
-  _registerListeners: function() {
+  _registerListeners: function registerStoreListeners() {
     if (this.stores) {
       this.stores.map((storeConf) => {
         storeConf.properties.map((property)=>{
@@ -57,7 +57,7 @@ var storeMixin = {
   /**
   * Unregister all the listeners related to the page.
   */
-  _unRegisterListeners: function() {
+  _unRegisterListeners: function unregisterListener() {
     if (this.stores) {
       this.stores.map((storeConf) => {
         storeConf.properties.map((property)=>{
@@ -65,6 +65,16 @@ var storeMixin = {
         });
       });
     }
+  },
+  /** @inheritdoc */
+  componentWillMount: function storeBehaviourWillMount() {
+    //These listeners are registered before the mounting because they are not correlated to the DOM.
+    //Build the definitions.
+    this._registerListeners();
+  },
+  /** @inheritdoc */
+  componentWillUnmount: function storeBehaviourWillUnmount() {
+    this._unRegisterListeners();
   }
 };
 

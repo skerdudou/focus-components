@@ -4,14 +4,18 @@ var topOfElement = function(element) {
     }
     return element.offsetTop + topOfElement(element.offsetParent);
 };
+
+var paginationMixin = require('../mixin/pagination').mixin;
 /**
  *
  * Mixin which add infinite scroll behavior.
  */
 var InfiniteScrollMixin = {
+
+    mixins: [paginationMixin],
     /**
      * defaults props for the mixin.
-     * @returns {{isInfiniteScroll: boolean, initialPage: number, offset: number}}
+     * @returns {object} - the default props
      */
     getDefaultProps: function() {
         return {
@@ -26,7 +30,6 @@ var InfiniteScrollMixin = {
      */
     componentWillMount: function() {
         this.nextPage = this.props.initialPage;
-        this.parentNode = this.props.parentSelector? document.querySelector(this.props.parentSelector) : window;
     },
 
     /**
@@ -42,6 +45,7 @@ var InfiniteScrollMixin = {
      * After component Mount.
      */
     componentDidMount: function() {
+        this.parentNode = this.props.parentSelector ? document.querySelector(this.props.parentSelector) : window;
         if(!this.props.isManualFetch) {
             this.attachScrollListener();
         }
@@ -97,5 +101,5 @@ var InfiniteScrollMixin = {
     }
 };
 
-module.exports = {mixin : InfiniteScrollMixin};
+module.exports = {mixin: InfiniteScrollMixin};
 

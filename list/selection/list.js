@@ -4,14 +4,21 @@ var React = require('react');
 var Line = require('./line').mixin;
 var Button = require('../../common/button/action').component;
 var type = require('focus').component.types;
-var InfiniteScrollMixin = require('./infinite-scroll').mixin;
+var infiniteScrollMixin = require('../mixin/infinite-scroll').mixin;
+var referenceMixin = require('../../common/mixin/reference-property');
+var paginationMixin = require('../mixin/pagination');
+var checkIsNotNull = require('focus').util.object.checkIsNotNull;
 
 var listMixin = {
-    mixins: [InfiniteScrollMixin],
     /**
      * Display name.
      */
     displayName: 'selection-list',
+
+    /**
+     * Mixin dependancies.
+     */
+    mixins: [infiniteScrollMixin, referenceMixin],
 
     /**
      * Default properties for the list.
@@ -23,9 +30,7 @@ var listMixin = {
             isAllSelected: false,
             selectionStatus: 'partial',
             isLoading: false,
-            hasMoreData: false,
             operationList: [],
-            isManualFetch: false,
             idField: 'id'
         };
     },
@@ -45,7 +50,15 @@ var listMixin = {
         FetchNextPage: type('func'),
         operationList: type('array'),
         isManualFetch: type('bool'),
-        idField: type('string')
+        idField: type('string'),
+        lineComponent: type('func', true)
+    },
+
+    /**
+     * called before component mount
+     */
+    componentWillMount: function componentWillMount(){
+      checkIsNotNull('lineComponent', this.props.lineComponent);
     },
 
     /**
@@ -65,20 +78,6 @@ var listMixin = {
     },
 
     /**
-     * Fetch the next page.
-     * @param {number} page the page to fetch
-     * @return {*}
-     */
-    fetchNextPage: function fetchNextPage(page){
-        if(!this.props.hasMoreData){
-            return;
-        }
-        if(this.props.fetchNextPage){
-            return this.props.fetchNextPage(page);
-        }
-    },
-
-    /**
      * handle manual fetch.
      * @param {object} event event received
      */
@@ -93,7 +92,7 @@ var listMixin = {
      */
     _renderLines: function renderLines(){
         var lineCount = 1;
-        var LineComponent = this.props.lineComponent || React.createClass(Line);
+        var LineComponent = this.props.lineComponent;
         return this.props.data.map((line)=>{
             var isSelected;
             switch(this.props.selectionStatus){
@@ -117,7 +116,8 @@ var listMixin = {
                 isSelected: isSelected,
                 onSelection: this.props.onSelection,
                 onLineClick: this.props.onLineClick,
-                operationList: this.props.operationList
+                operationList: this.props.operationList,
+                reference: this._getReference()
             });
         });
     },

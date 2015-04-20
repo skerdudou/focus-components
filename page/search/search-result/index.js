@@ -6,6 +6,7 @@ var assign = require('object-assign');
 var type = require('focus').component.types;
 var InfiniteScrollPageMixin = require('../common-mixin/infinite-scroll-page-mixin').mixin;
 var GroupByMixin= require('../common-mixin/group-by-mixin').mixin;
+var checkIsNotNull = require('focus').util.object.checkIsNotNull;
 
 var searchMixin = {
     mixins: [InfiniteScrollPageMixin, GroupByMixin],
@@ -32,10 +33,11 @@ var searchMixin = {
 
     getDefaultProps: function getDefaultProps(){
         return {
-            lineComponent: undefined,
+            lineMap: undefined,
             isSelection: false,
-            lineOperationList: {},
-            idField: 'id'
+            lineOperationList: [],
+            idField: 'id',
+            SearchComponent: QuickSearch
         };
     },
 
@@ -43,10 +45,11 @@ var searchMixin = {
      * properties validation
      */
     propTypes: {
-        lineComponent: type('object'),
+        lineMap: type('object'),
         isSelection: type('bool'),
         lineOperationList: type('array'),
-        idField: type('string')
+        idField: type('string'),
+        SearchComponent: type('func')
     },
 
     /**
@@ -58,6 +61,13 @@ var searchMixin = {
             isAllSelected: false,
             selected: []
         };
+    },
+
+    getCriteria: function getCriteria() {
+      if(!this.refs.quickSearch){
+        return {};
+      }
+      return this.refs.quickSearch.getValue();
     },
 
     /**
@@ -85,7 +95,6 @@ var searchMixin = {
      */
     onSearchChange: function onSearchChange() {
         this.setState(assign({isLoadingSearch: false}, this.getScrollState()));
-
     },
 
     /**
@@ -115,15 +124,20 @@ var searchMixin = {
      * Run search action.
      */
     search: function search(){
-        var searchValues = this.refs.quickSearch.getValue();
         this.actions.search(
-            this.getSearchCriteria(searchValues.scope, searchValues.query)
+            this.getSearchCriteria(this.state.scope, this.state.query)
         );
     },
 
-    _quickSearch: function quickSearch(event){
-        event.preventDefault();
-        this.setState(assign({isLoadingSearch: true}, this.getNoFetchState()), this.search());
+    _quickSearch: function quickSearch(searchValues){
+        this.setState(
+            assign(
+                {isLoadingSearch: true},
+                searchValues,
+                this.getNoFetchState()
+            ),
+            this.search
+        );
     },
 
     /**
@@ -132,24 +146,30 @@ var searchMixin = {
      */
     quickSearchComponent: function quickSearchComponent(){
         return (
-            <QuickSearch handleKeyUp={this._quickSearch}
+            <this.props.SearchComponent handleChange={this._quickSearch}
                 ref="quickSearch"
                 scope={this.props.scope}
                 scopes={this.props.scopeList}
                 loading={this.state.isLoadingSearch}
-                handleChangeScope={this._quickSearch}
             />
         );
     },
 
-    renderSimpleList: function renderSimpleList(id, list, maxRows) {
-        var newList = list;
-        if(maxRows) {
-            newList = list.slice(0, maxRows);
+    /**
+     * Render a list based on a single entity.
+     * @param {object} options - map of parameters
+     * @return {XML} the List component.
+     */
+    simpleListComponent: function simpleListComponent(options) {
+        checkIsNotNull('options', options);
+        checkIsNotNull('options.type', options.type);
+        var newList = options.list || this.state.list;
+        if(options.maxRows) {
+            newList = newList.slice(0, options.maxRows);
         }
         return (
             <List data={newList}
-                ref={id}
+                ref={options.type}
                 idField={this.props.idField}
                 isSelection={this.props.isSelection}
                 onSelection={this._selectItem}
@@ -158,19 +178,10 @@ var searchMixin = {
                 hasMoreData={this.state.hasMoreData}
                 isLoading={this.state.isLoading}
                 operationList={this.props.operationList}
-                lineComponent={this.props.lineComponent}
-            />);
-    },
-
-    /**
-     * return a list component
-     * @returns {XML} the list component
-     */
-    listComponent: function listComponent(id, list, maxRows){
-        if(this.isSimpleList()) {
-            return this.renderSimpleList('list', this.state.list);
-        }
-        return this.renderGroupByList();
+                lineComponent={this.props.lineMap[options.type]}
+                parentSelector= {this.props.parentSelector}
+            />
+        );
     }
 };
 

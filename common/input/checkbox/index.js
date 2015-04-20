@@ -1,4 +1,5 @@
 //Target
+//http://codepen.io/Sambego/pen/zDLxe
 /*
 <label>
   <input type="checkbox"><span class="ripple"></span><span class="check"></span> Checkbox
@@ -7,8 +8,11 @@
 var builder = require('focus').component.builder;
 var React = require('react');
 var type = require('focus').component.types;
+var fieldGridBehaviourMixin = require('../../mixin/field-grid-behaviour');
+var jQuery = require('jquery');
 
 var checkBoxMixin = {
+  mixins: [fieldGridBehaviourMixin],
   /**
    * Get the checkbox default attributes.
    */
@@ -43,10 +47,28 @@ var checkBoxMixin = {
   },
   /**
    * Get the value from the input in  the DOM.
+   * @returns The DOM node value.
    */
   getValue: function getValue() {
-    return this.getDOMNode().value;
+    return React.findDOMNode(this).value;
   },
+  /**
+   * Build the label class name.
+   * @returns The label classame with the grid informations.
+   */
+  _labelClassName: function labelClassName(){
+    return `paper-cb-label ${this._getContentOffsetClassName()} ${this._getContentGridClassName()}`;
+  },
+/*  componentDidMount: function(){
+    if(jQuery.material && jQuery.material.init){
+      jQuery.material.init();
+    }
+  },
+  componentDidUpdate: function(){
+    if(jQuery.material && jQuery.material.init){
+      jQuery.material.init();
+    }
+  },*/
   /**
    * Render the Checkbox HTML.
    * @return {VirtualDOM} - The virtual DOM of the checkbox.
@@ -54,12 +76,10 @@ var checkBoxMixin = {
   render: function renderCheckBox() {
       return (
 
-          <div className="checkbox">
-              <label>
-                  <input ref='checkbox'checked={this.state.isChecked} onChange={this._onChange} type="checkbox" />
-                  <span className="ripple"></span>
-                  <span className="check"></span>
-					{this.props.label ? this.props.label : ""}
+          <div className="paper-cb">
+              <label className={this._labelClassName()}>
+                  <input ref='checkbox'checked={this.state.isChecked} onChange={this._onChange} type='checkbox' className='paper-cbx' />
+                  {this.props.label ? this.props.label : ''}
               </label>
           </div>
       );

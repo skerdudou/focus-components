@@ -7,30 +7,27 @@
     <meta name="description" content="Example of the component.">
     <meta name="viewport" content="width=device-width, initial-scale=1">
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/react/0.13.1/react.js"></script>
-    <script src="/focus-components/dist/js/focus.js"></script>
-    <script src="/focus-components/dist/js/focus-components.js"></script>
-    <link rel="stylesheet" href="/focus-components/dist/css/focus-components.css"/>
+    <!-- Place favicon.ico in the root directory -->
 
-
-    <!-- Material degign-->
-    <script src="//code.jquery.com/jquery-1.10.2.min.js"></script>
     <link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/font-awesome/4.3.0/css/font-awesome.min.css">
     <link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/bootstrap/3.3.2/css/bootstrap.min.css" />
-    <script src="//maxcdn.bootstrapcdn.com/bootstrap/3.3.2/js/bootstrap.min.js" ></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-material-design/0.2.2/css/material-wfont.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-material-design/0.2.2/css/material.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-material-design/0.2.2/css/ripples.css">
+    <script src="//code.jquery.com/jquery-1.10.2.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/react/0.13.1/react.js"></script>
+    <script src="//maxcdn.bootstrapcdn.com/bootstrap/3.3.2/js/bootstrap.min.js"></script>
 
-    <link rel="font" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-material-design/0.2.2/fonts/Material-Design-Icons.eot">
-    <link rel="font" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-material-design/0.2.2/fonts/Material-Design-Icons.svg">
-    <link rel="font" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-material-design/0.2.2/fonts/Material-Design-Icons.ttf">
-    <link rel="font" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-material-design/0.2.2/fonts/Material-Design-Icons.woff">
-
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-material-design/0.2.2/js/material.js"/>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-material-design/0.2.2/js/ripples.min.js"></script>
+    <!-- Material degign-->
+    <link rel="stylesheet" href="//cdn.jsdelivr.net/bootstrap.material-design/0.3.0/css/material-wfont.min.css">
+    <link rel="stylesheet" href="//cdn.jsdelivr.net/bootstrap.material-design/0.3.0/css/material.min.css">
+    <link rel="stylesheet" href="//cdn.jsdelivr.net/bootstrap.material-design/0.3.0/css/ripples.min.css">
+    <script src="//cdn.jsdelivr.net/bootstrap.material-design/0.3.0/js/material.min.js"></script>
+    <script src="//cdn.jsdelivr.net/bootstrap.material-design/0.3.0/js/ripples.min.js"></script>
+    <script src="build/JSXTransformer.js"></script>
     <!-- Material degign-->
 
+    <script src="/focus-components/dist/js/focus.js"></script>
+    <script src="/focus-components/dist/js/focus-components.js"></script>
+    <script src="/focus-components/example/js/initFocus.js"></script>
+    <link rel="stylesheet" href="/focus-components/dist/css/focus-components.css"/>
 
 </head>
 <body>
@@ -43,12 +40,12 @@
         search: function(criteria) {
             window.setTimeout(
                     function() {
-                        // var list = [{id:countId++, title : "toto", body:"ceci est un test"},{id:countId++, title:"tata",body:"deuxieme test"}]
+                        var list = [{id:countId++, firstName : "toto", lastName:"ceci est un test"},{id:countId++, firstName:"tata",lastName:"deuxieme test"}];
 
-                        var  list= {
-                            'FRA': [{id:countId++, title : "toto", body:"ceci est un test"},{id:countId++, title:"tata",body:"deuxieme test"}, {id:countId++, title:"titi",body:"troisième test"}],
-                            'GER': [{id:countId++, title : "toto", body:"ceci est un test"},{id:countId++, title:"tata",body:"deuxieme test"}]
-                        };
+                        /*var  list= {
+                            'FRA': [{id:countId++, firstName : "toto", lastName:"ceci est un test"},{id:countId++, firstName:"tata",lastName:"deuxieme test"}, {id:countId++, firstName:"titi",lastName:"troisième test"}],
+                            'GER': [{id:countId++, firstName : "toto", lastName:"ceci est un test"},{id:countId++, firstName:"tata",lastName:"deuxieme test"}]
+                        };*/
 
 
                         var data = {
@@ -70,14 +67,35 @@
     };
     var Line = React.createClass({
         mixins: [focusComponents.list.selection.line.mixin],
+        definitionPath: "contact",
         renderLineContent: function(data){
             var id = React.createElement('div',null,data.id);
-            var title = React.createElement('div',null,data.title);
-            var body = React.createElement('div',null,data.body);
-            var root = React.createElement('div',null,id,title,body);
+            var firstName = this.displayFor("firstName", {});
+            var lastName = this.displayFor("lastName", {});
+            var root = React.createElement('div',null,id,firstName,lastName);
             return root;
         }
     });
+
+    var searchProps = {
+        lineMap: {"test": Line},
+        onLineClick : function onLineClick(line){
+            alert('click sur la ligne ' + line.title);
+        },
+        operationList:[
+            {label: "Button1_a",action: function(data) {alert(data.title);},style: undefined,priority: 1},
+            {label: "Button1_b",action: function(data) {alert(data.title);},style: undefined,priority: 1},
+            {label: "Button2_a",action: function(data) {alert(data.title);},style: undefined,priority: 2},
+            {label: "Button2_b",action: function(data) {alert(data.title);},style: undefined,priority: 2}
+        ] , scope:2,
+        scopeList: [
+            {code: undefined, label: "None", style: "qs-scope-none"},
+            {code: 1, label: "Scope1", style: "qs-scope-1"},
+            {code: 2, label: "Scope2", style: "qs-scope-2"},
+            {code: 3, label: "Scope3", style: "qs-scope-3"}
+        ],
+        groupMaxRows: 1
+    };
 
     React.render(
             React.createElement(
@@ -87,39 +105,24 @@
                         store: new focus.store.SearchStore(),
                         render: function render(){
                             var qs = this.quickSearchComponent();
-                            var list = this.listComponent();
+                            var list = this.isSimpleList() ? this.simpleListComponent({type:"test"}) : this.groupByListComponent();
                             var root = React.createElement('div',{className: "search-panel"},qs,list);
                             return root;
                         },
-                        renderGroupBy: function renderGroupBy(groupKey, list, maxRows) {
+                        renderGroupByBlock: function renderGroupByBlock(groupKey, list, maxRows) {
                             var title = React.createElement(focusComponents.common.title.component, { title: groupKey });
                             var showMoreButton = React.createElement(focusComponents.common.button.action.component, { handleOnClick: this.changeGroupByMaxRows(groupKey, 5), label: "Show more" });
                             return React.createElement( "div", { className: "listResultContainer panel" },
                                     title,
-                                    this.renderSimpleList(groupKey, list, maxRows),
+                                    this.simpleListComponent({
+                                        type: "test",
+                                        list: list,
+                                        maxRows: maxRows
+                                    }),
                                     showMoreButton);
-
                         }
                     }),
-                    {
-                        lineComponent: Line,
-                        onLineClick : function onLineClick(line){
-                            alert('click sur la ligne ' + line.title);
-                        },
-                        operationList:[
-                            {label: "Button1_a",action: function(data) {alert(data.title);},style: undefined,priority: 1},
-                            {label: "Button1_b",action: function(data) {alert(data.title);},style: undefined,priority: 1},
-                            {label: "Button2_a",action: function(data) {alert(data.title);},style: undefined,priority: 2},
-                            {label: "Button2_b",action: function(data) {alert(data.title);},style: undefined,priority: 2}
-                        ] , scope:2,
-                          scopeList: [
-                            {code: undefined, label: "None", style: "qs-scope-none"},
-                            {code: 1, label: "Scope1", style: "qs-scope-1"},
-                            {code: 2, label: "Scope2", style: "qs-scope-2"},
-                            {code: 3, label: "Scope3", style: "qs-scope-3"}
-                          ],
-                        groupMaxRows: 1
-                    }
+                    searchProps
             ),
             document.querySelector("#search-result-container")
     );

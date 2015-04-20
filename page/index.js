@@ -1,4 +1,4 @@
 module.exports = {
-  search: require('./search'),
-  popin: require('./popin')
-}
+  detail: require('./detail'),
+  search: require('./search')
+};

@@ -11,18 +11,18 @@ var inputTextMixin = require('../text').mixin;
  */
 var inputDateMixin = {
   /** @inheritdoc */
-  mixins:[inputTextMixin],
+  mixins: [inputTextMixin],
   /** @inheritdoc */
   componentDidMount: function inputDateDidMount(){
+    if(!jQuery.fn.daterangepicker){
+      console.warn('The jquery daterangepicker plugin should be loaded: see https://github.com/dangrossman/bootstrap-daterangepicker.');
+    }
     var component = this;
-    jQuery(this.getDOMNode()).pickadate({
-      /**
-       * Handler called when the date change its value.
-       * @param {object} context - The event triggered by the plugin.
-       */
-      onSet: function onSetDate(context) {
-        component._handleOnChange(context);
-      }
+    jQuery(React.findDOMNode(this)).daterangepicker({
+      singleDatePicker: true,
+      showDropdowns: true
+    }, function(start){ ///*, end, label*/
+      component.setState({value: start.format('L')});
     });
   }
 };
