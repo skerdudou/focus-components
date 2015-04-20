@@ -2,21 +2,21 @@ var components = require('./package.json').components;
 var componentServers = {};
 var port = "3000";
 /**
- * Creates a component map with all existing components.
- */
+* Creates a component map with all existing components.
+*/
 components.map(function(component) {
 	var pth = '/' + component.path + '/example/';
 	console.log('route', component.name, 'path', pth);
 	componentServers[component.name] = pth; //new static.Server(pth);
 });
 /**
- * Render the existing components list with links.
- */
+* Render the existing components list with links.
+*/
 function componentsUrl(opts) {
 	opts = opts || {};
 	var isGhPage = opts.isGhPage || false,
 	urlRoot = 'http://' + (opts.urlRoot || 'localhost'),
-	prt = opts.port || (':' + port + '/');
+	prt = (opts.port !== undefined && opts.port !== '') ? (':' + port + '/') : '';
 	var sb = "";
 	for (var component in componentServers) {
 		sb = sb +
@@ -41,7 +41,7 @@ function buildPage(opts){
 		'<h1>Components available</h1><ul>' + componentsUrl(opts) +
 		'</ul>';
 }
-var page =buildPage();
+var page =buildPage({port: port});
 var ghPage =buildPage({isGhPage: true, urlRoot: 'kleegroup.github.io/focus-components', port: ''});
 
 app.use('/focus-components/example', express.static(__dirname + "/example"));
@@ -60,8 +60,8 @@ app.listen(port, function() {
 //
 var fs = require('fs');
 fs.writeFile(__dirname + '/components.html', ghPage, function(err) {
-    if(err) {
-        return console.log(err);
-    }
-    console.log("The file was saved!");
+		if(err) {
+				return console.log(err);
+		}
+		console.log("The file was saved!");
 });
