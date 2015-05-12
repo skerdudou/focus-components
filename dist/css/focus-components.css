@@ -39,40 +39,6 @@ div[data-component] {
 .chevron-thin-right {
   background: url("../img/chevron-thin-right.svg") no-repeat right center; }
 
-.checkbox-unchecked {
-  background: url("../img/checkbox-unchecked.svg") no-repeat center; }
-
-.checkbox-checked {
-  background: url("../img/checkbox-checked.svg") no-repeat center; }
-
-.notification {
-  background: url("../img/notification.svg") no-repeat center; }
-
-.circle-down {
-  background: url("../img/circle-down.svg") no-repeat center; }
-
-.circle-up {
-  background: url("../img/circle-up.svg") no-repeat center; }
-
-.chevron-down {
-  background: url("../img/chevron-down.svg") no-repeat center; }
-
-.chevron-up {
-  background: url("../img/chevron-up.svg") no-repeat center; }
-
-.controller-record {
-  background: url("../img/controller-record.svg") no-repeat center; }
-
-.action-bar .general-action, .action-bar .facet-container, .action-bar .contextual-action {
-  display: inline-block;
-  padding: 0 25px 0 25px; }
-.action-bar .general-action {
-  border-right: solid 2px; }
-.action-bar .contextual-action {
-  border-left: solid 2px; }
-.action-bar .facet-container {
-  width: 400px; }
-
 /* Style for the quick-search-component*/
 /* Variables*/
 /* Style */
@@ -171,6 +137,40 @@ div.qs-quick-search {
 
 .qs-scope-none {
   background: url('../img/qs-none.svg') no-repeat center center; }
+
+.checkbox-unchecked {
+  background: url("../img/checkbox-unchecked.svg") no-repeat center; }
+
+.checkbox-checked {
+  background: url("../img/checkbox-checked.svg") no-repeat center; }
+
+.notification {
+  background: url("../img/notification.svg") no-repeat center; }
+
+.circle-down {
+  background: url("../img/circle-down.svg") no-repeat center; }
+
+.circle-up {
+  background: url("../img/circle-up.svg") no-repeat center; }
+
+.chevron-down {
+  background: url("../img/chevron-down.svg") no-repeat center; }
+
+.chevron-up {
+  background: url("../img/chevron-up.svg") no-repeat center; }
+
+.controller-record {
+  background: url("../img/controller-record.svg") no-repeat center; }
+
+.action-bar .general-action, .action-bar .facet-container, .action-bar .contextual-action {
+  display: inline-block;
+  padding: 0 25px 0 25px; }
+.action-bar .general-action {
+  border-right: solid 2px; }
+.action-bar .contextual-action {
+  border-left: solid 2px; }
+.action-bar .facet-container {
+  width: 400px; }
 
 
 /* Style for the list component*/
