@@ -7,9 +7,9 @@ var type = require('focus').component.types;
  * Input text mixin.
  * @type {Object}
  */
-var inputTextMixin = {
+var selectTextMixin = {
   /** @inheritdoc */
-  getDefaultProps: function getInputDefaultProps() {
+  getDefaultProps: function getSelectDefaultProps() {
     return {
       multiple: false,
       value: undefined,
@@ -44,7 +44,7 @@ var inputTextMixin = {
    * Get the value from the select in the DOM.
    */
   getValue: function getSelectTextValue() {
-    return this.getDOMNode().value;
+    return React.findDOMNode(this).value;
   },
   /**
    * Handle the change value of the input.
@@ -53,12 +53,11 @@ var inputTextMixin = {
   _handleOnChange: function selectOnChange(event){
     //On change handler.
     if(this.props.onChange){
-      return this.props.onChange(event);
+      this.props.onChange(event);
     }else {
       //Set the state then call the change handler.
       this.setState({value: event.target.value});
     }
-
   },
   /**
    * Render options.
@@ -82,7 +81,10 @@ var inputTextMixin = {
       <select
         multiple={this.props.multiple}
         value={this.state.value}
-        onChange={this._handleOnChange}>
+        className={this.props.style.className}
+        name={this.props.name}
+        onChange={this._handleOnChange}
+      >
         {this.renderOptions()}
       </select>
     );
@@ -90,4 +92,4 @@ var inputTextMixin = {
 };
 
 
-module.exports = builder(inputTextMixin);
+module.exports = builder(selectTextMixin);

@@ -14,10 +14,46 @@ var storeMixin = {
     var newState = {};
     this.stores.map((storeConf) => {
       storeConf.properties.map((property)=>{
-        newState[property] = storeConf.store[`get${capitalize(property)}`]() ;
+        newState[property] = storeConf.store[`get${capitalize(property)}`]();
       });
     });
-    return this._computeEntityFromStoresData(newState);
+    return assign(this._computeEntityFromStoresData(newState), this._getLoadingStateFromStores());
+  },
+    /**
+     * Get the error state informations from the store.
+     * @returns {object} - The js error object constructed from the store data.
+     */
+  _getErrorStateFromStores: function formGetErrorStateFromStore() {
+      if (this.getErrorStateFromStore) {
+          return this.getErrorStateFromStore();
+      }
+      var newState = {};
+      this.stores.map((storeConf) => {
+          storeConf.properties.map((property)=>{
+              newState[property] = storeConf.store[`getError${capitalize(property)}`]();
+          });
+      });
+      return this._computeEntityFromStoresData(newState);
+  },
+  /**
+   * Get the isLoading state from  all the store.
+   */
+  _getLoadingStateFromStores: function getLoadingStateFromStores(){
+    if (this.getLoadingStateFromStores) {
+        return this.getLoadingStateFromStores();
+    }
+    var isLoading = false;
+    this.stores.map((storeConf) => {
+        if(!isLoading){
+          storeConf.properties.map((property)=>{
+            if(!isLoading){
+              var propStatus = storeConf.store.getStatus(property) || {};
+               isLoading = propStatus.isLoading;
+            }
+          });
+        }
+    });
+    return {isLoading: isLoading};
   },
   /**
    * Compute the data given from the stores.
@@ -50,6 +86,7 @@ var storeMixin = {
       this.stores.map((storeConf) => {
         storeConf.properties.map((property)=>{
           storeConf.store[`add${capitalize(property)}ChangeListener`](this._onChange);
+          storeConf.store[`add${capitalize(property)}ErrorListener`](this._onError);
         });
       });
     }
@@ -62,6 +99,7 @@ var storeMixin = {
       this.stores.map((storeConf) => {
         storeConf.properties.map((property)=>{
           storeConf.store[`remove${capitalize(property)}ChangeListener`](this._onChange);
+          storeConf.store[`remove${capitalize(property)}ErrorListener`](this._onError);
         });
       });
     }

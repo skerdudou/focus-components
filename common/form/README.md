@@ -74,13 +74,13 @@ var MaSousVue = React.createClass({displayName: "Form",
     load: function(){
       Promise.resolve({contact: {firstName: "pierre", lastName: "besson"}}).then(
         function(data){
-        focus.dispatcher.handleServerAction({
+        Focus.dispatcher.handleServerAction({
           data: data,
           type: "update"
         });
       });
   }, save: function(data){
-    return Promise.resolve(data).then(function(d){focus.dispatcher.handleServerAction({
+    return Promise.resolve(data).then(function(d){Focus.dispatcher.handleServerAction({
       data: data,
       type: "update"
     });})
@@ -113,7 +113,7 @@ Le fichier `index.jsx` doit ressembler à ça:
 var SousVue1 = require('./sousVue1');
 var SousVue2 = require('./sousVue2');
 
-var StickyNavigation = focus.components.common.stickyNavigation.component;
+var StickyNavigation = Focus.components.common.stickyNavigation.component;
 
 module.exports = React.createClass({
     render: function renderMovieView() {
@@ -135,4 +135,10 @@ La composition est la suivante:
 - `action-behaviour`: Le mixin regroupant l'appel aux différentes actions de la page.
 - `reference-behavious` : Le mixin automatisant l'appel aux éléments du store.
 - `built-in-components` : Regroupe l'ensemble des composant générables automatiquement par le formulaire. `fieldFor`, ...
+
+Certains mixins faisaient parti du store initialement mais ils sont devenus plus globaux. Ils sont maintenant dans common/mixin.
 - `store-behaviour` : regroupe l'automatisation de l'enregistrement aux callBack de modification du store.
+
+## Tricks
+
+Afin de pouvoir changer la valeur des composants de type input, select, il faut que ces derniers aient la value dans leur state propre: voir [doc react form](https://facebook.github.io/react/docs/forms.html).

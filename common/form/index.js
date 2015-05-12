@@ -1,16 +1,16 @@
 var builder = require('focus').component.builder;
 var React = require('react');
 var assign = require('object-assign');
-var isEmpty = require('lodash/lang/isEmpty');
+var {isEmpty, isFunction} = require('lodash/lang');
 
 // Common mixins.
 var definitionMixin = require('../mixin/definition');
 //var fieldComponentBehaviour = require('../mixin/field-component-behaviour');
 var builtInComponents = require('../mixin/built-in-components');
+var storeBehaviour = require('../mixin/store-behaviour');
 
 //Form mixins.
 var referenceBehaviour = require('./mixin/reference-behaviour');
-var storeBehaviour = require('./mixin/store-behaviour');
 var actionBehaviour = require('./mixin/action-behaviour');
 
 /**
@@ -51,11 +51,49 @@ var formMixin = {
     };
   },
   /**
-   * Event handler for 'change' events coming from the stores
+   * Display a message on change.
    */
-  _onChange: function onFormStoreChangeHandler() {
-    this.setState(this._getStateFromStores());
+  _displayMessageOnChange: function displayMessageOnChange(changeInfos){
+    if(changeInfos && changeInfos.status && changeInfos.status.name){
+      console.log('status', changeInfos.status.name);
+      switch(changeInfos.status.name){
+        case 'loading':
+          Focus.message.addInformationMessage('loading');
+          break;
+        case 'loaded':
+          Focus.message.addSuccessMessage('loaded');
+          break;
+        case 'saving':
+          Focus.message.addInformationMessage('saving');
+          break;
+        case 'saved':
+          Focus.message.addSuccessMessage('saved');
+          break;
+      }
+    }
   },
+  /**
+   * Event handler for 'change' events coming from the stores
+   * @param {object} changeInfos - The changing informations.
+   */
+  _onChange: function onFormStoreChangeHandler(changeInfos) {
+    console.log('change infos', changeInfos, this._getStateFromStores());
+    this.setState(this._getStateFromStores(), this._displayMessageOnChange(changeInfos));
+  },
+
+    /**
+     * Event handler for 'error' events coming from the stores.
+      */
+  _onError: function onFormErrorHandler() {
+      var errorState = this._getErrorStateFromStores();
+      for(var key in errorState) {
+          if(this.refs[key]) {
+              this.refs[key].setError(errorState[key]);
+          }
+      }
+  },
+
+
   /** @inheritdoc */
   callMountedActions: function formCallMountedActions() {
     this._loadData();
@@ -86,12 +124,17 @@ var formMixin = {
   validate: function validateForm() {
     var validationMap = {};
     for (var inptKey in this.refs) {
-      var validationRes = this.refs[inptKey].validate();
-      if(validationRes !== undefined){
-        assign(validationMap, {
-          [inptKey]: validationRes
-        });
+      //validate only the reference elements which have valide function
+      // todo: @pierr see if it is sufficient
+      if(isFunction(this.refs[inptKey].validate)){
+        var validationRes = this.refs[inptKey].validate();
+        if(validationRes !== undefined){
+          assign(validationMap, {
+            [inptKey]: validationRes
+          });
+        }
       }
+
     }
     if(isEmpty(validationMap)){
       return true;
@@ -139,6 +182,7 @@ var formMixin = {
   },
   /** @inheritdoc */
   render: function renderForm() {
+    console.log('state form', this.state);
     return (
       <form
         onSubmit={this._handleSubmitForm}

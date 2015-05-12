@@ -4,9 +4,9 @@ var React = require('react');
 var Line = require('./line').mixin;
 var Button = require('../../common/button/action').component;
 var type = require('focus').component.types;
+var translationMixin = require('../../common/i18n').mixin;
 var infiniteScrollMixin = require('../mixin/infinite-scroll').mixin;
 var referenceMixin = require('../../common/mixin/reference-property');
-var paginationMixin = require('../mixin/pagination');
 var checkIsNotNull = require('focus').util.object.checkIsNotNull;
 
 var listMixin = {
@@ -18,16 +18,16 @@ var listMixin = {
     /**
      * Mixin dependancies.
      */
-    mixins: [infiniteScrollMixin, referenceMixin],
+    mixins: [translationMixin, infiniteScrollMixin, referenceMixin],
 
     /**
      * Default properties for the list.
      * @returns {{isSelection: boolean}} the default properties
      */
-    getDefaultProps: function getLineDefaultProps(){
+    getDefaultProps: function getListDefaultProps(){
         return {
+            data: [],
             isSelection: true,
-            isAllSelected: false,
             selectionStatus: 'partial',
             isLoading: false,
             operationList: [],
@@ -42,16 +42,14 @@ var listMixin = {
     propTypes: {
         data: type('array'),
         isSelection: type('bool'),
-        isAllSelected: type('bool'),
         onSelection: type('func'),
         onLineClick: type('func'),
         isLoading: type('bool'),
         loader: type('func'),
-        FetchNextPage: type('func'),
         operationList: type('array'),
-        isManualFetch: type('bool'),
         idField: type('string'),
-        lineComponent: type('func', true)
+        lineComponent: type('func', true),
+        selectionStatus: type('string')
     },
 
     /**
@@ -75,15 +73,6 @@ var listMixin = {
             }
         }
         return selected;
-    },
-
-    /**
-     * handle manual fetch.
-     * @param {object} event event received
-     */
-    _handleShowMore: function handleShowMore(event){
-        this.nextPage++;
-        this.fetchNextPage(this.nextPage);
     },
 
     /**
@@ -127,7 +116,7 @@ var listMixin = {
                 return this.props.loader();
             }
             return (
-                <li className="sl-loading">Loading ...</li>
+                <li className="sl-loading">{this.i18n('list.loading')} ...</li>
             );
         }
     },
@@ -137,9 +126,9 @@ var listMixin = {
             var style = {className: 'primary'};
             return (
                 <li className="sl-button">
-                    <Button label="list.selection.button.showMore"
+                    <Button label="list.button.showMore"
                         type="button"
-                        handleOnClick={this._handleShowMore}
+                        handleOnClick={this.handleShowMore}
                         style={style}/>
                 </li>
             );

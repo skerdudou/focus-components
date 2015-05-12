@@ -73,13 +73,13 @@ var input = {
     }
 ```
 
-```jsx :
+```jsx
 <LiverFilter ref="liveFilterRef" facetList={input.facetList} selectedFacetList={input.selectedFacetList} openedFacetList={input.openedFacetList} config={input.config} dataSelectionHandler={input.dataSelectionHandler} />
 ```
 
-```javascript :
+```javascript
 React.render(
-    React.createElement(React.createClass(focusComponents.search.liveFilter.mixin), input),
+    React.createElement(React.createClass(FocusComponents.search.liveFilter.mixin), input),
     document.querySelector("#live-filter-container"))
 );
 ```
