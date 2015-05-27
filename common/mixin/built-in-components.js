@@ -15,7 +15,7 @@ module.exports = {
  */
 fieldFor: function(name, options) {
   options = assign({}, {
-      style: {className: 'form-detail'}
+      style: {className: ''}
   }, options);
 
   var fieldProps = this._buildFieldProps(name, options, this);
@@ -72,23 +72,28 @@ textFor: function textFor(name, options){
 listFor: function listFor(name, options){
   options = options || {};
   options.reference = options.reference || this.state.reference;
-  return React.createElement( List, {
+  var listForProps = assign({}, options, {
     data: this.state[name],
     line: options.LineComponent || this.props.LineComponent || this.LineComponent,
     perPage: options.perPage || 5,
     reference: options.reference,
     isEdit: options.isEdit !== undefined ? options.isEdit : false
   });
+  return React.createElement(List, listForProps);
 },
 /**
  * Button delete generation.
  * @returns {object} - A Reacte button.
  */
 buttonDelete: function buttonDelete() {
+  var form = this;
   return React.createElement(Button, {
     label: 'delete',
     type: 'button',
-    css: 'delete'
+    style: {className: 'delete'},
+    handleOnClick: function handleOnClickEdit(){
+      form.action.delete(form._getId());
+    }
   });
 },
 /**
@@ -100,7 +105,7 @@ buttonEdit: function buttonEdit() {
   return React.createElement(Button, {
     label: 'edit',
     type: 'button',
-    css: 'edit',
+    style: {className: 'edit icon'},
     handleOnClick: function handleOnClickEdit(){
       form.setState({isEdit: !form.state.isEdit});
     }
@@ -115,9 +120,9 @@ buttonCancel: function buttonCancel() {
   return React.createElement(Button, {
     label: 'cancel',
     type: 'button',
-    css: 'cancel',
+    style: {className: 'cancel icon'},
     handleOnClick: function handleOnClickCancel(){
-      console.log('cancel');
+      console.log('cancel icon');
       form.setState({isEdit: !form.state.isEdit});
     }
   });
@@ -131,7 +136,7 @@ buttonSave: function() {
   return React.createElement(Button, {
     label: 'save',
     type: 'submit',
-    css: 'primary'
+    style: {className: 'save icon primary'},
     /*handleOnClick: function handleClickOnSave(e){
       if(form.validate()){
         form.action.save(form._getEntity());

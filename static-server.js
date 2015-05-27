@@ -1,4 +1,13 @@
-var components = require('./package.json').components;
+
+var components = require('./package.json').components.sort(function(a, b){
+	if(a.name > b.name){
+		return 1;
+	}
+	if (a.name < b.name){
+		return -1;
+	}
+	return 0;
+});
 var componentServers = {};
 var port = "3000";
 /**
@@ -23,7 +32,7 @@ function componentsUrl(opts) {
 			"<li><a href='" + urlRoot +
 			prt  + (isGhPage ? componentServers[component]: component) + "'>" +
 			component +
-			"</a></li>";
+			"</a><img src ='http://react-components.com/img/react.svg' /></li>";
 	}
 	return sb;
 }
@@ -37,7 +46,10 @@ for (var componentName in componentServers) {
 	);
 }
 function buildPage(opts){
-	return '<p>The component you requested does not exists</p>' +
+	//var style = ' <style>* { box-sizing: border-box; } ul{width: 100%; flex-wrap: wrap; list-style-type: none; display: flex; margin: -1em 0 0 -1em; align-items: flex-start;  min-width: 25%;}   li{flex-grow: 1; flex: 1; padding: 1em 0 0 1em; align-self: flex-start;}</style>';
+	var fonts ="<link href='http://fonts.googleapis.com/css?family=Lato' rel='stylesheet' type='text/css'>"
+	var style ='<style>body{color: white; background-color: blue; font-family: "Lato", sans-serif;} ul { display: flex; flex-wrap: wrap;  list-style-type: none;} li { background: url("https://facebook.github.io/react/img/logo_og.png") bottom center no-repeat; margin-top: 7px; margin-right: 7px; padding-top: 10px; height: 50px; background: white; flex: 1;	  min-width: 20%; border: 2px solid red;} li a{ text-align: center} li img{width: 20px; }</style> ';
+	return fonts + style + '<p>The component you requested does not exists</p>' +
 		'<h1>Components available</h1><ul>' + componentsUrl(opts) +
 		'</ul>';
 }
