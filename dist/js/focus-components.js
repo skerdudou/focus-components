@@ -27,7 +27,7 @@ module.exports = {
   infos: infosFn
 };
 
-},{"./application":9,"./common":38,"./list":69,"./message":84,"./package.json":277,"./page":281,"./search":299}],2:[function(require,module,exports){
+},{"./application":10,"./common":42,"./list":75,"./message":90,"./package.json":318,"./page":322,"./search":345}],2:[function(require,module,exports){
 "use strict";
 
 var builder = window.Focus.component.builder;
@@ -37,7 +37,6 @@ var applicationStore = window.Focus.application.builtInStore();
 var barMixin = {
   getDefaultProps: function getCartridgeDefaultProps() {
     return {
-      appName: "",
       style: {}
     };
   },
@@ -137,76 +136,88 @@ var cartridgeMixin = {
 module.exports = builder(cartridgeMixin);
 
 },{}],4:[function(require,module,exports){
+// Dependencies
+
 "use strict";
 
 var builder = window.Focus.component.builder;
-var popin = require("../popin").mixin;
-var Button = require("../../common/button/action").component;
 var type = window.Focus.component.types;
 
-/**
- * Popin mixin
- * @type {object}
- */
-var popinMixin = {
-  mixins: [popin],
+// Mixins
+
+var i18nMixin = require("../../common/i18n/mixin");
+
+// Components
+
+var Popin = require("../popin").component;
+var Button = require("../../common/button/action").component;
+
+var ConfirmationPopin = {
   /**
    * Display name.
    */
   displayName: "confirmation-popin",
-
-  /** @inheritdoc */
+  mixins: [i18nMixin],
   getDefaultProps: function getDefaultProps() {
     return {
-      btnClose: "Cancel",
-      btnConfirm: "Ok"
+      cancelButtonLabel: "popin.confirmation.cancel",
+      confirmButtonLabel: "popin.confirmation.confirm"
     };
   },
 
-  /** @inheritdoc */
   propTypes: {
-    btnClose: type("string"),
-    btnConfirm: type("string")
+    cancelButtonLabel: type("string"),
+    confirmButtonLabel: type("string"),
+    cancelHandler: type(["function", "object"]),
+    confirmHandler: type(["function", "object"])
   },
 
   /**
-   * Confirmation action
+   * Confirmation action handler
    */
-  _handleConfirm: function openModal() {
-    this.closeModal();
-    this.handleClikOnOk();
+  _handleConfirm: function _handleConfirm() {
+    this.toggleOpen();
+    if (this.props.confirmHandler) {
+      this.props.confirmHandler();
+    }
   },
+
   /**
-   * Cancel action
+   * Cancel action handler
    */
-  _handleCancel: function closeModal() {
-    this.closeModal();
-    this.handleClikOnCancel();
+  _handleCancel: function _handleCancel() {
+    this.toggleOpen();
+    if (this.props.cancelHandler) {
+      this.props.cancelHandler();
+    }
   },
-  /**
-   * Render the footer content.
-   * @returns {XML} - footer content
-   */
-  renderPopinFooter: function renderPopinFooter() {
-    var closeStyle = {
-      className: "confirmation-popin-close"
-    };
-    var confirmStyle = {
-      className: "confirmation-popin-confirm btn-primary"
-    };
+
+  toggleOpen: function toggleOpen() {
+    this.refs.popin.toggleOpen();
+  },
+
+  render: function render() {
     return React.createElement(
       "div",
-      { className: "btns-confirmation-popin" },
-      React.createElement(Button, { handleOnClick: this._handleCancel, label: this.props.btnClose, style: closeStyle }),
-      React.createElement(Button, { handleOnClick: this._handleConfirm, label: this.props.btnConfirm, style: confirmStyle })
+      { "data-focus": "confirmation-popin" },
+      React.createElement(
+        Popin,
+        { ref: "popin" },
+        this.props.children,
+        React.createElement(
+          "div",
+          { "data-focus": "button-stack" },
+          React.createElement(Button, { handleOnClick: this._handleCancel, label: this.i18n(this.props.cancelButtonLabel) }),
+          React.createElement(Button, { handleOnClick: this._handleConfirm, label: this.i18n(this.props.confirmButtonLabel), option: "primary" })
+        )
+      )
     );
   }
-
 };
 
-module.exports = builder(popinMixin);
+module.exports = builder(ConfirmationPopin);
 
-},{"../../common/button/action":18,"../popin":16}],5:[function(require,module,exports){
+},{"../../common/button/action":22,"../../common/i18n/mixin":39,"../popin":17}],5:[function(require,module,exports){
 "use strict";
 
 var builder = window.Focus.component.builder;
@@ -227,7 +238,7 @@ var contentActionsMixin = {
   },
   /** @inheriteddoc */
   componentWillUnMount: function ContentActionsWillUnMount() {
-    applicationStore.removeActionsChangeListener(this._onComponentChange);
+    applicationStore.removeActionsChangeListener(this._handleComponentChange);
   },
   _getStateFromStore: function getContentActionsStateFromStore() {
     return { actions: applicationStore.getActions() || { primary: [], secondary: [] } };
@@ -252,7 +263,7 @@ module.exports = builder(contentActionsMixin);
 
 //<button class="btn btn-fab"><i class="mdi-action-open-in-new"></i></button>
 
-},{"../../common/button/action":18,"../../common/select-action":59,"../../mixin/stylable":85}],6:[function(require,module,exports){
+},{"../../common/button/action":22,"../../common/select-action":65,"../../mixin/stylable":91}],6:[function(require,module,exports){
 "use strict";
 
 var builder = window.Focus.component.builder;
@@ -272,6 +283,82 @@ var headerMixin = {
 module.exports = builder(headerMixin);
 
 },{}],7:[function(require,module,exports){
+"use strict";
+
+var builder = window.Focus.component.builder;
+var React = window.React;
+var type = window.Focus.component.types;
+var assign = require("object-assign");
+var errorCenter = {
+  getDefaultProps: function getDefaultProps() {
+    return {
+      source: window,
+      errors: [],
+      isErrorsVisible: false,
+      numberDisplayed: 3
+    };
+  },
+  getInitialState: function getInitialState() {
+    return { errors: this.props.errors, isErrorsVisible: this.props.isErrorsVisible };
+  },
+  /** @inheriteddoc */
+  componentWillMount: function componentWillMount() {
+    var _this = this;
+
+    this.props.source.onerror = function (e) {
+      var errs = _this.state.errors;
+      errs.push(e);
+      _this.setState({ errors: errs });
+    };
+  },
+  _toggleVisible: function _toggleVisible() {
+    this.setState({ isErrorsVisible: !this.state.isErrorsVisible });
+  },
+  _renderErrors: function _renderErrors() {
+    var _this = this;
+
+    return React.createElement(
+      "div",
+      { "data-focus": "error-center" },
+      React.createElement(
+        "div",
+        { "data-focus": "error-counter" },
+        React.createElement("i", { className: "fa fa-times-circle" }),
+        this.state.errors.length
+      ),
+      React.createElement(
+        "div",
+        { "data-focus": "error-actions" },
+        React.createElement("i", { className: "fa fa-refresh", onClick: function () {
+            window.location.reload();
+          } }),
+        React.createElement("i", { className: "fa fa-arrow-circle-o-" + (this.state.isErrorsVisible ? "up" : "down"), onClick: this._toggleVisible }),
+        React.createElement("i", { className: "fa fa-trash-o", onClick: function () {
+            _this.setState({ errors: [] });
+          } })
+      ),
+      React.createElement(
+        "ul",
+        { "data-focus": "error-stack" },
+        this.state.isErrorsVisible ? this.state.errors.slice(this.state.errors.length - this.props.numberDisplayed, this.state.errors.length).map(function (err) {
+          return React.createElement(
+            "li",
+            null,
+            err
+          );
+        }) : null
+      )
+    );
+  },
+  /** @inheriteddoc */
+  render: function render() {
+    return this.state.errors.length > 0 ? this._renderErrors() : null;
+  }
+};
+
+module.exports = builder(errorCenter);
+
+},{"object-assign":315}],8:[function(require,module,exports){
 "use strict";
 
 var builder = window.Focus.component.builder;
@@ -465,7 +552,7 @@ var headerMixin = {
 
 module.exports = builder(headerMixin);
 
-},{"./mixin/application-state":8,"lodash/collection":88}],8:[function(require,module,exports){
+},{"./mixin/application-state":9,"lodash/collection":95}],9:[function(require,module,exports){
 "use strict";
 
 var applicationStore = window.Focus.application.builtInStore();
@@ -499,7 +586,7 @@ var applicationStateMixin = {
 
 module.exports = applicationStateMixin;
 
-},{}],9:[function(require,module,exports){
+},{}],10:[function(require,module,exports){
 "use strict";
 
 module.exports = {
@@ -516,7 +603,7 @@ module.exports = {
   loadingBar: require("./loading-bar")
 };
 
-},{"./bar":2,"./cartridge":3,"./confirmation-popin":4,"./content-actions":5,"./content-bar":6,"./header":7,"./layout":11,"./loading-bar":12,"./menu":13,"./message-center":14,"./popin":16}],10:[function(require,module,exports){
+},{"./bar":2,"./cartridge":3,"./confirmation-popin":4,"./content-actions":5,"./content-bar":6,"./header":8,"./layout":12,"./loading-bar":13,"./menu":14,"./message-center":15,"./popin":17}],11:[function(require,module,exports){
 //Needed components
 "use strict";
 
@@ -534,7 +621,7 @@ module.exports = React.createClass({
       React.createElement(
         ContentBar,
         null,
-        React.createElement(Bar, { appName: "FOCUS" }),
+        React.createElement(Bar, null),
         React.createElement(Cartridge, null)
       ),
       React.createElement(ContentActions, null)
@@ -542,51 +629,62 @@ module.exports = React.createClass({
   }
 });
 
-},{"../bar":2,"../cartridge":3,"../content-actions":5,"../content-bar":6,"../header":7}],11:[function(require,module,exports){
+},{"../bar":2,"../cartridge":3,"../content-actions":5,"../content-bar":6,"../header":8}],12:[function(require,module,exports){
+// Dependencies
+
 "use strict";
 
 var builder = window.Focus.component.builder;
-var React = window.React;
+
+// Components
+
 var AppHeader = require("./app-header");
 var LoadingBar = require("../loading-bar").component;
-var stylableBehaviour = require("../../mixin/stylable");
 var MessageCenter = require("../message-center").component;
+var ErrorCenter = require("../error-center").component;
+
+// Mixins
+
+var stylableBehaviour = require("../../mixin/stylable");
+
 var contentActionsMixin = {
-  mixins: [stylableBehaviour],
-  getDefaultProps: function getDefaultLayoutProps() {
-    return {
-      AppHeader: AppHeader,
-      LoadingBar: LoadingBar,
-      MessageCenter: MessageCenter
-    };
-  },
-  /** @inheriteddoc */
-  render: function renderActions() {
-    return React.createElement(
-      "div",
-      { className: this._getStyleClassName(), "data-focus": "layout" },
-      React.createElement(this.props.LoadingBar, null),
-      React.createElement(this.props.MessageCenter, null),
-      React.createElement(this.props.AppHeader, null),
-      React.createElement(
-        "div",
-        { "data-focus": "menu" },
-        this.props.MenuLeft && React.createElement(this.props.MenuLeft, null)
-      ),
-      React.createElement("div", { "data-focus": "page-content" }),
-      React.createElement(
-        "footer",
-        { "data-focus": "footer" },
-        "Focus-démo - Propulsé par la Team Focus © KleeGroup 2015"
-      ),
-      this.props.children
-    );
-  }
+    mixins: [stylableBehaviour],
+    getDefaultProps: function getDefaultProps() {
+        return {
+            AppHeader: AppHeader,
+            LoadingBar: LoadingBar,
+            MessageCenter: MessageCenter,
+            ErrorCenter: ErrorCenter,
+            footerText: "Please override the footer text by giving a \"footerText\" property to the Layout component."
+        };
+    },
+    render: function render() {
+        return React.createElement(
+            "div",
+            { className: this._getStyleClassName(), "data-focus": "layout" },
+            React.createElement(this.props.LoadingBar, null),
+            React.createElement(this.props.MessageCenter, null),
+            React.createElement(this.props.ErrorCenter, null),
+            React.createElement(this.props.AppHeader, null),
+            React.createElement(
+                "div",
+                { "data-focus": "menu" },
+                this.props.MenuLeft && React.createElement(this.props.MenuLeft, null)
+            ),
+            React.createElement("div", { "data-focus": "page-content" }),
+            React.createElement(
+                "footer",
+                { "data-focus": "footer" },
+                this.props.footerText
+            ),
+            this.props.children
+        );
+    }
 };
 
 module.exports = builder(contentActionsMixin);
 
-},{"../../mixin/stylable":85,"../loading-bar":12,"../message-center":14,"./app-header":10}],12:[function(require,module,exports){
+},{"../../mixin/stylable":91,"../error-center":7,"../loading-bar":13,"../message-center":15,"./app-header":11}],13:[function(require,module,exports){
 "use strict";
 
 var builder = window.Focus.component.builder;
@@ -677,7 +775,7 @@ var LoadingBarMixin = {
 
 module.exports = builder(LoadingBarMixin);
 
-},{"../../common/icon":36,"../../common/progress-bar":58,"object-assign":274}],13:[function(require,module,exports){
+},{"../../common/icon":40,"../../common/progress-bar":63,"object-assign":315}],14:[function(require,module,exports){
 "use strict";
 
 var builder = window.Focus.component.builder;
@@ -748,7 +846,7 @@ var menuMixin = {
 
 module.exports = builder(menuMixin);
 
-},{"../../common/button/action":18,"../../common/icon":36,"../../mixin/stylable":85,"../mixin/popin-behaviour":15}],14:[function(require,module,exports){
+},{"../../common/button/action":22,"../../common/icon":40,"../../mixin/stylable":91,"../mixin/popin-behaviour":16}],15:[function(require,module,exports){
 "use strict";
 
 var builder = window.Focus.component.builder;
@@ -822,7 +920,7 @@ var messageCenterMixin = {
 
 module.exports = builder(messageCenterMixin);
 
-},{"../../message":84,"lodash/string/capitalize":266,"object-assign":274}],15:[function(require,module,exports){
+},{"../../message":90,"lodash/string/capitalize":290,"object-assign":315}],16:[function(require,module,exports){
 "use strict";
 
 var type = window.Focus.component.types;
@@ -853,7 +951,7 @@ var PopinProperties = {
 
 module.exports = { mixin: PopinProperties };
 
-},{}],16:[function(require,module,exports){
+},{}],17:[function(require,module,exports){
 "use strict";
 
 var _extends = Object.assign || function (target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i]; for (var key in source) { if (Object.prototype.hasOwnProperty.call(source, key)) { target[key] = source[key]; } } } return target; };
@@ -878,8 +976,21 @@ var Overlay = React.createClass({
      */
     componentDidMount: function componentDidMount() {
         React.findDOMNode(this.refs.overlay).addEventListener("mousewheel", this._onScroll);
+    },
+    /**
+     * Store the body overgflow property, and set it to hidden
+     * @private
+     */
+    _storeAndHideBodyOverflow: function _storeAndHideBodyOverflow() {
         this._oldScroll = document.body.style["overflow-y"];
         document.body.style["overflow-y"] = "hidden";
+    },
+    /**
+     * Restore body overflow property
+     * @private
+     */
+    _restoreBodyOverflow: function _restoreBodyOverflow() {
+        document.body.style["overflow-y"] = this._oldScroll;
     },
     /**
      * Component will unmount event handler.
@@ -887,7 +998,6 @@ var Overlay = React.createClass({
      */
     componentWillUnmount: function componentWillUnmount() {
         React.findDOMNode(this.refs.overlay).removeEventListener("mousewheel", this._onScroll);
-        document.body.style["overflow-y"] = this._oldScroll;
     },
     /**
      * Mouse wheel event handler.
@@ -964,6 +1074,9 @@ var popin = {
         overlay: type("bool"),
         open: type("bool")
     },
+    _onWheel: function _onWheel(event) {
+        React.findDOMNode(this.refs["popin-window"]).scrollTop += event.deltaY > 0 ? 100 : -100;
+    },
     /**
      * Toggle the popin's open state
      */
@@ -980,10 +1093,16 @@ var popin = {
             popinOverlay.classList.add(popinOverlay.getAttribute("data-closing-animation"));
             timeout = 200;
         }
+        if (this.state.opened && this.props.onPopinClose) {
+            this.props.onPopinClose();
+        }
         setTimeout(function () {
             _this.setState({
                 opened: !_this.state.opened
             });
+            if (_this.refs["popin-overlay"]) {
+                _this.state.opened ? _this.refs["popin-overlay"]._restoreBodyOverflow() : _this.refs["popin-overlay"]._storeAndHideBodyOverflow();
+            }
         }, timeout);
     },
     /**
@@ -1003,7 +1122,11 @@ var popin = {
                     "div",
                     _extends({}, this._getAnimationProps(), { "data-focus": "popin-window", onClick: this._preventPopinClose, ref: "popin-window" }),
                     React.createElement("i", { className: "fa fa-close", onClick: this.toggleOpen }),
-                    this.props.children
+                    React.createElement(
+                        "div",
+                        { onWheel: this._onWheel },
+                        this.props.children
+                    )
                 )
             )
         );
@@ -1059,7 +1182,358 @@ var popin = {
 
 module.exports = builder(popin);
 
-},{"lodash":129}],17:[function(require,module,exports){
+},{"lodash":136}],18:[function(require,module,exports){
+/* globals Awesomplete */
+
+// Dependencies
+
+"use strict";
+
+var builder = Focus.component.builder;
+var types = Focus.component.types;
+var find = require("lodash/collection/find");
+
+/**
+ * Autocomplete component.
+ * Get a pickList as an input, then let the user type and suggests values from the picklist.
+ * Can force values in the input field to be taken from the pick list only.
+ * @type {Object}
+ */
+var Autocomplete = {
+    /**
+     * Component will mount.
+     * Check if the Awesomplete library is in the Window object.
+     */
+    componentWillMount: function componentWillMount() {
+        // Check if Awesomplete is set in Window
+        if (!window.Awesomplete) {
+            throw new Error("Please include Awesomplete to your application. See http://leaverou.github.io/awesomplete/ for more information");
+        }
+    },
+    /**
+     * Component did mount.
+     * Initiates the Awesomplete object.
+     */
+    componentDidMount: function componentDidMount() {
+        var _this = this;
+
+        var input = this.refs.input;
+        var pickList = this.props.pickList;
+
+        this._awesomeplete = new Awesomplete(React.findDOMNode(input), {
+            list: this._extractListFromData(pickList)
+        });
+        this._awesomeplete.input.addEventListener("awesomplete-select", function (event) {
+            return _this._selectionHandler(event.text);
+        });
+    },
+    /**
+     * Default props.
+     * @return {Object} default props
+     */
+    getDefaultProps: function getDefaultProps() {
+        return {
+            code: "",
+            isEdit: false,
+            pickList: [],
+            timeoutDuration: 200,
+            validate: true
+        };
+    },
+    /**
+     * Prop validation
+     * @type {Object}
+     */
+    propTypes: {
+        code: types("string"), // the field code value
+        inputChangeHandler: types("function"), // callback when input changed
+        isEdit: types("bool"), // is in edit mode
+        pickList: types("array"), // list of values, looking like [{code: '', value: ''}, {code: '', value: ''}, ...]
+        selectionHandler: types("function"), // selection callback
+        timeoutDuration: types("number"), // the throttle duration of the input rate
+        validate: types("bool") // restrict user input to values of the list, or allow freestyle
+    },
+    /**
+     * Initial state.
+     * Retrieve the value from the provided code and pick list.
+     * @return {Object} initial state
+     */
+    getInitialState: function getInitialState() {
+        var _props = this.props;
+        var code = _props.code;
+        var pickList = _props.pickList;
+
+        return {
+            value: 0 < pickList.length ? this._getValueFromCode(code) : code
+        };
+    },
+    /**
+     * Component will receive props.
+     * Update the pick list, and try to resolve the new value.
+     * @param  {Object} nextProps new props
+     */
+    componentWillReceiveProps: function componentWillReceiveProps(nextProps) {
+        var pickList = nextProps.pickList;
+        var code = nextProps.code;
+
+        if (code) {
+            var value = this._getValueFromCode(code, pickList);
+            this.setState({ value: value });
+        }
+        this._awesomeplete._list = this._extractListFromData(pickList);
+    },
+    /**
+     * Selection handler.
+     * If a selection handler is set in the props, send it the selected pick.
+     * Also, set a flag to tell the blur listener not to empty the value, because the selection, as it is a click outside the input, raises a blur event.
+     * @param  {String} value selected value from the dropdown list
+     */
+    _selectionHandler: function _selectionHandler(value) {
+        var selectionHandler = this.props.selectionHandler;
+
+        if (selectionHandler) {
+            var pickList = this.props.pickList;
+
+            var selectedPick = find(pickList, { value: value });
+            selectionHandler(selectedPick);
+        }
+        this._isSelecting = true; // Private flag to tell the blur listener not to replace the value
+        this.setState({ value: value });
+    },
+    /**
+     * Extract list of suggestions from pick list
+     * @param  {Object} data the pick list
+     * @return {Array}      the suggestion array
+     */
+    _extractListFromData: function _extractListFromData(data) {
+        return data.map(function (datum) {
+            return datum.value;
+        });
+    },
+    /**
+     * Get code from value in the pick list
+     * @param  {String} value the value
+     * @return {String} the code
+     */
+    _getCodeFromValue: function _getCodeFromValue(value) {
+        var pickList = this.props.pickList;
+
+        var pick = find(pickList, { value: value });
+        return pick ? pick.code : pick;
+    },
+    /**
+     * Get value from code in the pick list
+     * @param  {String} code the code
+     * @param  {Object} pickList=this.props.pickList  optional pick list to resolve the value from
+     * @return {String} value
+     */
+    _getValueFromCode: function _getValueFromCode(code) {
+        var pickList = arguments[1] === undefined ? this.props.pickList : arguments[1];
+
+        var pick = find(pickList, { code: code });
+        return pick ? pick.value : "";
+    },
+    /**
+     * Get the current code
+     * @return {String} the code
+     */
+    getValue: function getValue() {
+        var value = this.state.value;
+
+        return this._getCodeFromValue(value);
+    },
+    /**
+     * On input blur.
+     * If validate is set in the props, validate the current value and erase it if not valid.
+     */
+    _onInputBlur: function _onInputBlur() {
+        var value = this.state.value;
+        var validate = this.props.validate;
+
+        var code = this._getCodeFromValue(value);
+        if (!code && validate && !this._isSelecting) {
+            this.setState({ value: "" });
+        }
+        this._isSelecting = false;
+    },
+    /**
+     * On input change
+     * @param  {Object} event change event
+     */
+    _onInputChange: function _onInputChange(event) {
+        var _this = this;
+
+        var value = event.target.value;
+
+        this.setState({ value: value });
+        if (this._changeTimeout) {
+            clearTimeout(this._changeTimeout);
+        }
+        this._changeTimeout = setTimeout(function () {
+            var inputChangeHandler = _this.props.inputChangeHandler;
+
+            if (inputChangeHandler) {
+                inputChangeHandler(value);
+            }
+        }, 200);
+    },
+    /**
+     * Render
+     * @return {HTML} rendered element
+     */
+    render: function render() {
+        var value = this.state.value;
+
+        var _ref = this;
+
+        var _onInputBlur = _ref._onInputBlur;
+        var _onInputChange = _ref._onInputChange;
+
+        return React.createElement(
+            "div",
+            { "data-focus": "autocomplete" },
+            React.createElement("input", { onBlur: _onInputBlur, onChange: _onInputChange, ref: "input", value: value })
+        );
+    }
+};
+
+module.exports = builder(Autocomplete);
+
+},{"lodash/collection/find":107}],19:[function(require,module,exports){
+// Dependencies
+
+"use strict";
+
+var builder = Focus.component.builder;
+var types = Focus.component.types;
+var find = require("lodash/collection/find");
+
+// Components
+
+var Autocomplete = require("./awesomplete").component;
+
+/**
+ * Autocomplete for component
+ * @type {Object}
+ */
+var AutocompleteFor = {
+    /**
+     * Default props
+     * @return {Object} default props
+     */
+    getDefaultProps: function getDefaultProps() {
+        return {
+            AutocompleteComponent: Autocomplete,
+            pickList: [],
+            value: ""
+        };
+    },
+    /**
+     * Props validation
+     * @type {Object}
+     */
+    propTypes: {
+        AutocompleteComponent: types("function"),
+        code: types("string"),
+        isEdit: types("bool"),
+        loader: types("function"),
+        pickList: types("array")
+    },
+    /**
+     * Get initial state
+     * @return {Object} initial state
+     */
+    getInitialState: function getInitialState() {
+        var pickList = this.props.pickList;
+
+        return { pickList: pickList };
+    },
+    /**
+     * Component will mount, load the list
+     */
+    componentWillMount: function componentWillMount() {
+        this._doLoad();
+    },
+    /**
+     * List loader
+     * @param  {string} text='' input text to search from
+     */
+    _doLoad: function _doLoad() {
+        var _this = this;
+
+        var text = arguments[0] === undefined ? "" : arguments[0];
+        var loader = this.props.loader;
+
+        if (loader) {
+            loader(text).then(function (pickList) {
+                return _this.setState({ pickList: pickList });
+            });
+        }
+    },
+    /**
+     * Get value of the field
+     * @return {string} the code of the curren value
+     */
+    getValue: function getValue() {
+        var autocomplete = this.refs.autocomplete;
+
+        return autocomplete.getValue();
+    },
+    /**
+     * Render the edit mode
+     * @return {HTML} rendered element
+     */
+    _renderEdit: function _renderEdit() {
+        var _props = this.props;
+        var AutocompleteComponent = _props.AutocompleteComponent;
+        var value = _props.value;
+        var pickList = this.state.pickList;
+
+        return React.createElement(AutocompleteComponent, {
+            code: value,
+            inputChangeHandler: this._doLoad,
+            pickList: pickList,
+            ref: "autocomplete"
+        });
+    },
+    /**
+     * Render the consult mode
+     * @return {HTML} rendered element
+     */
+    _renderConsult: function _renderConsult() {
+        var value = this.props.value;
+        var pickList = this.state.pickList;
+
+        var pick = find(pickList, { code: value });
+        var text = pick ? pick.value : value;
+        return React.createElement(
+            "span",
+            null,
+            text
+        );
+    },
+    /**
+     * Render the component
+     * @return {HTML} the rendered component
+     */
+    render: function render() {
+        var isEdit = this.props.isEdit;
+
+        return isEdit ? this._renderEdit() : this._renderConsult();
+    }
+};
+
+module.exports = builder(AutocompleteFor);
+
+},{"./awesomplete":18,"lodash/collection/find":107}],20:[function(require,module,exports){
+"use strict";
+
+module.exports = {
+    awesomplete: require("./awesomplete"),
+    field: require("./field")
+};
+
+},{"./awesomplete":18,"./field":19}],21:[function(require,module,exports){
 "use strict";
 
 var React = window.React;
@@ -1129,7 +1603,7 @@ var blockMixin = {
 module.exports = builder(blockMixin);
 // actions -->
 
-},{"../i18n":34,"../title":65,"lodash/string/trim":268,"uuid":276}],18:[function(require,module,exports){
+},{"../i18n":38,"../title":71,"lodash/string/trim":306,"uuid":317}],22:[function(require,module,exports){
 "use strict";
 
 var React = window.React;
@@ -1229,7 +1703,7 @@ var buttonMixin = {
 
 module.exports = builder(buttonMixin);
 
-},{"../../../mixin/stylable":85,"../../i18n/mixin":35,"../../icon":36,"../../img":37}],19:[function(require,module,exports){
+},{"../../../mixin/stylable":91,"../../i18n/mixin":39,"../../icon":40,"../../img":41}],23:[function(require,module,exports){
 "use strict";
 
 var React = window.React;
@@ -1293,9 +1767,13 @@ var buttonMixin = {
     _scrollSpy: function _scrollSpy() {
         var scrollPosition = document.querySelector(this.props.scrolledElementSelector).scrollTop;
         if (scrollPosition > this.props.scrollTriggerBorder) {
-            this.setState({ isVisible: true });
+            if (!this.state.isVisible) {
+                this.setState({ isVisible: true });
+            }
         } else {
-            this.setState({ isVisible: false });
+            if (this.state.isVisible) {
+                this.setState({ isVisible: false });
+            }
         }
     },
     /**
@@ -1324,7 +1802,7 @@ var buttonMixin = {
 
 module.exports = builder(buttonMixin);
 
-},{"../../../mixin/stylable":85,"../../i18n/mixin":35,"../../icon":36,"../../mixin/scroll-to":54}],20:[function(require,module,exports){
+},{"../../../mixin/stylable":91,"../../i18n/mixin":39,"../../icon":40,"../../mixin/scroll-to":59}],24:[function(require,module,exports){
 "use strict";
 
 var React = window.React;
@@ -1366,7 +1844,7 @@ var buttonBackMixin = {
 
 module.exports = builder(buttonBackMixin);
 
-},{"../../../mixin/stylable":85,"../../i18n/mixin":35,"../../icon":36,"../../mixin/scroll-to":54}],21:[function(require,module,exports){
+},{"../../../mixin/stylable":91,"../../i18n/mixin":39,"../../icon":40,"../../mixin/scroll-to":59}],25:[function(require,module,exports){
 "use strict";
 
 module.exports = {
@@ -1375,7 +1853,7 @@ module.exports = {
 	back: require("./back")
 };
 
-},{"./action":18,"./back":20,"./back-to-top":19}],22:[function(require,module,exports){
+},{"./action":22,"./back":24,"./back-to-top":23}],26:[function(require,module,exports){
 "use strict";
 
 var React = window.React;
@@ -1435,7 +1913,7 @@ var detailMixin = {
 };
 module.exports = builder(detailMixin);
 
-},{"../../mixin/stylable":85,"../button/back-to-top":19,"../sticky-navigation":64}],23:[function(require,module,exports){
+},{"../../mixin/stylable":91,"../button/back-to-top":23,"../sticky-navigation":70}],27:[function(require,module,exports){
 //Dependencies.
 "use strict";
 
@@ -1490,7 +1968,7 @@ var displayCheckboxMixin = {
 
 module.exports = builder(displayCheckboxMixin);
 
-},{"../../i18n/mixin":35}],24:[function(require,module,exports){
+},{"../../i18n/mixin":39}],28:[function(require,module,exports){
 "use strict";
 
 module.exports = {
@@ -1498,7 +1976,7 @@ module.exports = {
   checkbox: require("./checkbox")
 };
 
-},{"./checkbox":23,"./text":25}],25:[function(require,module,exports){
+},{"./checkbox":27,"./text":29}],29:[function(require,module,exports){
 //Dependencies.
 "use strict";
 
@@ -1551,7 +2029,7 @@ var displayTextMixin = {
 
 module.exports = builder(displayTextMixin);
 
-},{}],26:[function(require,module,exports){
+},{}],30:[function(require,module,exports){
 "use strict";
 
 var builder = window.Focus.component.builder;
@@ -1564,122 +2042,160 @@ var emptyMixin = {
 
 module.exports = builder(emptyMixin);
 
-},{}],27:[function(require,module,exports){
+},{}],31:[function(require,module,exports){
+// Dependencies
+
 "use strict";
 
 var builder = window.Focus.component.builder;
 var type = window.Focus.component.types;
-var React = window.React;
+
+// Mixins
+
 var valueBehaviour = require("./mixin/value-behaviour");
 var validationBehaviour = require("./mixin/validation-behaviour");
+
+// Components
+
 var builtInComponents = require("./mixin/built-in-components");
+
+/**
+ * Mixin for the field helper.
+ * @type {Object}
+ */
 var FieldMixin = {
-  mixins: [valueBehaviour, validationBehaviour, builtInComponents],
-  /**
-  * Get field default properties.
-  */
-  getDefaultProps: function getFieldDefaultProps() {
-    return {
+    /** @inheriteDoc */
+    mixins: [valueBehaviour, validationBehaviour, builtInComponents],
+    /** @inheriteDoc */
+    getDefaultProps: function getDefaultProps() {
+        return {
 
-      /**
-       * Edition mode of the field.
-       * @type {Boolean}
-       */
-      isEdit: true,
-      /**
-       * HTML input type.
-       * @type {String}
-       */
-      type: "text",
-      /**
-       * Field name.
-       * @type {string}
-       */
-      name: undefined,
-      /**
-       * Css properties of the component.
-       * @type {Object}
-       */
-      style: {}
-    };
-  },
-  /** @inheritdoc */
-  propTypes: {
-    isEdit: type("bool"),
-    type: type("string"),
-    name: type("string"),
-    value: type(["string", "number"])
-  },
+            /**
+            * Edition mode of the field.
+            * @type {Boolean}
+            */
+            isEdit: true,
+            /**
+            * HTML input type.
+            * @type {String}
+            */
+            type: "text",
+            /**
+            * Field name.
+            * @type {string}
+            */
+            name: undefined,
+            /**
+            * Css properties of the component.
+            * @type {Object}
+            */
+            style: {}
+        };
+    },
+    /** @inheritdoc */
+    propTypes: {
+        isEdit: type("bool"),
+        type: type("string"),
+        name: type("string"),
+        value: type(["string", "number"])
+    },
+    /** @inheritdoc */
+    componentWillReceiveProps: function fieldWillReceiveProps(newProps) {
+        this.setState({ value: newProps.value, values: newProps.values });
+    },
+    /**
+    * Get the css class of the field component.
+    */
+    _className: function _className() {
+        var stateClass = this.state.error ? "has-feedback has-error" : "";
+        return "form-group " + stateClass + " " + this.props.style.className;
+    },
+    /** @inheritdoc */
+    render: function render() {
+        var _props = this.props;
+        var domain = _props.domain;
+        var isRequired = _props.isRequired;
+        var isEdit = _props.isEdit;
+        var values = _props.values;
 
-  /** @inheritdoc */
-  componentWillReceiveProps: function fieldWillReceiveProps(newProps) {
-    this.setState({ value: newProps.value, values: newProps.values });
-  },
-  /**
-  * Get the css class of the field component.
-  */
-  _className: function _className() {
-    var stateClass = this.state.error ? "has-feedback has-error" : "";
-    return "form-group " + stateClass + " " + this.props.style.className;
-  },
+        var _ref = this;
 
-  render: function renderField() {
-    return React.createElement(
-      "div",
-      { className: this._className(), "data-focus": "field", "data-domain": this.props.domain, "data-mode": this.props.isEdit ? "edit" : "consult" },
-      this.label(),
-      this.props.isEdit ? this.props.values ? this.select() : this.input() : this.display(),
-      this.help(),
-      this.error()
-    );
-  }
+        var input = _ref.input;
+        var label = _ref.label;
+        var select = _ref.select;
+        var display = _ref.display;
+        var help = _ref.help;
+        var error = _ref.error;
+        var _className = _ref._className;
+
+        return React.createElement(
+            "div",
+            { className: _className(), "data-domain": domain, "data-focus": "field", "data-mode": isEdit ? "edit" : "consult", "data-required": isRequired },
+            label(),
+            isEdit ? values ? select() : input() : display(),
+            help(),
+            error()
+        );
+    }
 };
 module.exports = builder(FieldMixin);
 
-},{"./mixin/built-in-components":28,"./mixin/validation-behaviour":29,"./mixin/value-behaviour":30}],28:[function(require,module,exports){
+},{"./mixin/built-in-components":32,"./mixin/validation-behaviour":33,"./mixin/value-behaviour":34}],32:[function(require,module,exports){
 "use strict";
+
+var _defineProperty = function (obj, key, value) { return Object.defineProperty(obj, key, { value: value, enumerable: true, configurable: true, writable: true }); };
+
+// Dependencies
+
+var React = window.React;
+var type = window.Focus.component.types;
+var find = require("lodash/collection/find");
+var result = require("lodash/object/result");
+var assign = require("object-assign");
+// Components
 
 var InputText = require("../../input/text").component;
 var DisplayText = require("../../display/text").component;
 var SelectClassic = require("../../select/classic").component;
 var Label = require("../../label").component;
+
+// Mixins
+
 var fieldGridBehaviourMixin = require("../../mixin/field-grid-behaviour");
-var type = window.Focus.component.types;
 
 var fieldBuiltInComponentsMixin = {
     mixins: [fieldGridBehaviourMixin],
-    /** @inheriteDoc */
-    getDefaultProps: function getDefaultPropsBuiltInComponents() {
+    getDefaultProps: function getDefaultProps() {
         return {
             /**
-             * Does the component has a Label.
-             * @type {Boolean}
-             */
+            * Does the component has a Label.
+            * @type {Boolean}
+            */
             hasLabel: true,
             /**
-             * Redefine complety the component.
-             * @type {Object}
-             */
+            * Redefine complety the component.
+            * @type {Object}
+            */
             FieldComponent: undefined,
             /**
-             * Redefine only the input and label component.
-             * @type {Object}
-             */
+            * Redefine only the input and label component.
+            * @type {Object}
+            */
             InputLabelComponent: undefined,
             /**
-             * Component for the input.
-             * @type {Object}
-             */
+            * Component for the input.
+            * @type {Object}
+            */
             InputComponent: InputText,
             /**
-             * Component for the select.
-             * @type {Object}
-             */
+            * Component for the select.
+            * @type {Object}
+            */
             SelectComponent: SelectClassic,
             /**
-             * Component for the display.
-             * @type {Object}
-             */
+            * Component for the display.
+            * @type {Object}
+            */
             DisplayComponent: DisplayText
         };
     },
@@ -1693,154 +2209,203 @@ var fieldBuiltInComponentsMixin = {
         SelectComponent: type(["object", "function"]),
         DisplayComponent: type(["object", "function"])
     },
+    _buildStyle: function _buildStyle() {
+        var style = this.props.style;
+
+        style = style || {};
+        style.className = style && style.className ? style.className : "";
+        return style;
+    },
     /**
-     * Render the label part of the component.
-     * @returns {[type]} [description]
-     */
-    label: function fieldLabel() {
+    * Render the label part of the component.
+    * @returns {Component} - The builded label component.
+    */
+    label: function label() {
         if (this.props.FieldComponent || this.props.InputLabelComponent) {
             return undefined;
         }
         if (this.props.hasLabel) {
+            //In the labelCasen there is no reason to pass all props.
             var labelClassName = this._getLabelGridClassName();
+            var _props = this.props;
+            var isEdit = _props.isEdit;
+            var isRequired = _props.isRequired;
+            var _name = _props.name;
+
             return React.createElement(Label, {
-                style: { className: labelClassName },
-                name: this.props.name,
-                key: this.props.name
+                isEdit: isEdit,
+                isRequired: isRequired,
+                key: _name,
+                name: _name,
+                style: { className: labelClassName }
             });
         }
     },
     /**
-     * Rendet the input part of the component.
-     * @return {[type]} [description]
-     */
-    input: function renderInput() {
+    * Rendet the input part of the component.
+    * @return {Component} - The constructed input component.
+    */
+    input: function input() {
         if (this.props.FieldComponent || this.props.InputLabelComponent) {
             return this.renderFieldComponent();
         }
-        var inputClassName = "form-control";
+        var _props = this.props;
+        var name = _props.name;
+        var style = _props.style;
+        var value = this.state.value;
+
+        var inputClassName = "form-control " + (style.className ? style.className : "");
+        var inputBuildedProps = assign({}, this.props, {
+            id: name,
+            style: this._buildStyle(),
+            onChange: this.onInputChange,
+            value: value,
+            ref: "input"
+        });
         return React.createElement(
             "div",
             { className: "" + this._getContentGridClassName() + " input-group" },
-            React.createElement(this.props.InputComponent, {
-                style: { "class": inputClassName },
-                id: this.props.name,
-                name: this.props.name,
-                value: this.state.value,
-                type: this.props.type,
-                onChange: this.onInputChange,
-                formatter: this.props.formatter,
-                unformatter: this.props.unformatter,
-                ref: "input"
-            })
+            React.createElement(this.props.InputComponent, inputBuildedProps)
         );
     },
     /**
-     * [select description]
-     * @return {[type]} [description]
+     * Build a select component depending on the domain, definition and props.
+     * @return {Component} - The builded select component.
      */
-    select: function renderSelect() {
+    select: function select() {
         if (this.props.FieldComponent || this.props.InputLabelComponent) {
             return this.renderFieldComponent();
         }
-        var selectClassName = "form-control";
+        var _state = this.state;
+        var value = _state.value;
+        var values = _state.values;
+
+        var buildedSelectProps = assign({}, this.props, {
+            value: value,
+            values: values,
+            style: this._buildStyle(),
+            onChange: this.onInputChange,
+            ref: "input"
+        });
         return React.createElement(
             "div",
             { className: "input-group " + this._getContentGridClassName() },
-            React.createElement(this.props.SelectComponent, {
-                style: { "class": selectClassName },
-                id: this.props.name,
-                name: this.props.name,
-                value: this.state.value,
-                values: this.state.values,
-                type: this.props.type,
-                onChange: this.onInputChange,
-                ref: "input"
-            })
+            React.createElement(this.props.SelectComponent, buildedSelectProps)
         );
     },
     /**
-     * Render the display part of the component.
-     * @return {object} - The display part of the compoennt if the mode is not edit.
-     */
-    display: function renderDisplay() {
+    * Render the display part of the component.
+    * @return {object} - The display part of the compoennt if the mode is not edit.
+    */
+    display: function display() {
         if (this.props.FieldComponent || this.props.InputLabelComponent) {
             return this.renderFieldComponent();
         }
-        var displayClassName = "";
+        var _state = this.state;
+        var values = _state.values;
+        var value = _state.value;
+        var _props = this.props;
+        var name = _props.name;
+        var valueKey = _props.valueKey;
+        var labelKey = _props.labelKey;
+
+        var _processValue = values ? result(find(values, _defineProperty({}, valueKey || "code", value)), labelKey || "label") : value;
+        var buildedDislplayProps = assign({}, this.props, {
+            id: name,
+            style: this._buildStyle(),
+            value: _processValue,
+            ref: "display"
+        });
         return React.createElement(
             "div",
             { className: "input-group " + this._getContentGridClassName() },
-            React.createElement(this.props.DisplayComponent, {
-                style: { "class": displayClassName },
-                id: this.props.name,
-                name: this.props.name,
-                value: this.state.value,
-                type: this.props.type,
-                ref: "display",
-                formatter: this.props.formatter
-            })
+            React.createElement(this.props.DisplayComponent, buildedDislplayProps)
         );
     },
     /**
-     * Render the error part of the component.
-     * @return {object} - The error part of the component.
-     */
-    error: function renderError() {
-        if (this.state.error) {
-            if (this.props.FieldComponent) {
-                return;
-            }
-            return (
-                /*<span class="glyphicon glyphicon-remove form-control-feedback" aria-hidden="true"></span>*/
-                React.createElement(
-                    "span",
-                    { className: "help-block" },
-                    this.state.error
-                )
-            );
-        }
-    },
-    /**
-     * Render the help component.
-     * @return {object} - The help part of the component.
-     */
-    help: function renderHelp() {
-        if (this.props.help) {
+    * Render the error part of the component.
+    * @return {object} - The error part of the component.
+    */
+    error: (function (_error) {
+        var _errorWrapper = function error() {
+            return _error.apply(this, arguments);
+        };
+
+        _errorWrapper.toString = function () {
+            return _error.toString();
+        };
+
+        return _errorWrapper;
+    })(function () {
+        var error = this.state.error;
+
+        if (error) {
             if (this.props.FieldComponent) {
                 return;
             }
             return React.createElement(
                 "span",
                 { className: "help-block" },
-                this.props.help
+                error
             );
         }
-    },
+        return;
+    }),
+    /**
+    * Render the help component.
+    * @return {object} - The help part of the component.
+    */
+    help: (function (_help) {
+        var _helpWrapper = function help() {
+            return _help.apply(this, arguments);
+        };
+
+        _helpWrapper.toString = function () {
+            return _help.toString();
+        };
+
+        return _helpWrapper;
+    })(function () {
+        var _props = this.props;
+        var help = _props.help;
+        var FieldComponent = _props.FieldComponent;
+
+        if (help) {
+            if (FieldComponent) {
+                return;
+            }
+            return React.createElement(
+                "span",
+                { className: "help-block" },
+                help
+            );
+        }
+    }),
     /**
      * Render the field component if it is overriden in the component definition.
+     * @return {Component} - The builded field component.
      */
     renderFieldComponent: function renderFieldComponent() {
-        var Component = this.props.FieldComponent || this.props.InputLabelComponent;
-        return React.createElement(Component, {
+        var FieldComponent = this.props.FieldComponent || this.props.InputLabelComponent;
+        var _state = this.state;
+        var value = _state.value;
+        var error = _state.error;
+
+        var buildedProps = assign({}, this.props, {
             id: this.props.name,
-            name: this.props.name,
-            label: this.props.label,
-            value: this.state.value,
-            type: this.props.type,
-            style: this.props.style.input,
-            labelSize: this.props.labelSize,
-            error: this.state.error,
-            help: this.props.help,
+            style: this._buildStyle(),
+            value: value,
+            error: error,
             onChange: this.onInputChange,
             ref: "input"
         });
+        return React.createElement(FieldComponent, buildedProps);
     }
 };
 
 module.exports = fieldBuiltInComponentsMixin;
 
-},{"../../display/text":25,"../../input/text":43,"../../label":46,"../../mixin/field-grid-behaviour":51,"../../select/classic":61}],29:[function(require,module,exports){
+},{"../../display/text":29,"../../input/text":47,"../../label":50,"../../mixin/field-grid-behaviour":55,"../../select/classic":67,"lodash/collection/find":107,"lodash/object/result":286,"object-assign":315}],33:[function(require,module,exports){
 "use strict";
 
 var i18nMixin = require("../../i18n").mixin;
@@ -1904,7 +2469,7 @@ var validationMixin = {
 };
 module.exports = validationMixin;
 
-},{"../../i18n":34}],30:[function(require,module,exports){
+},{"../../i18n":38}],34:[function(require,module,exports){
 "use strict";
 
 var _require = require("lodash/lang");
@@ -1944,13 +2509,16 @@ var valueBehaviourMixin = {
    * @param {event} event - The event to set.
    */
   onInputChange: function fieldOnInputChanges(event) {
+    if (this.props.onChange) {
+      return this.props.onChange(event);
+    }
     this.setState({ error: undefined, value: this.getValue() });
   }
 };
 
 module.exports = valueBehaviourMixin;
 
-},{"lodash/lang":227}],31:[function(require,module,exports){
+},{"lodash/lang":247}],35:[function(require,module,exports){
 "use strict";
 
 var _defineProperty = function (obj, key, value) { return Object.defineProperty(obj, key, { value: value, enumerable: true, configurable: true, writable: true }); };
@@ -1966,10 +2534,10 @@ var isFunction = _require.isFunction;
 
 // Common mixins.
 var definitionMixin = require("../mixin/definition");
-//var fieldComponentBehaviour = require('../mixin/field-component-behaviour');
+//let fieldComponentBehaviour = require('../mixin/field-component-behaviour');
 var builtInComponents = require("../mixin/built-in-components");
 var storeBehaviour = require("../mixin/store-behaviour");
-
+var ownIdentifierBehaviour = require("../mixin/own-identifier");
 //Form mixins.
 var referenceBehaviour = require("./mixin/reference-behaviour");
 var actionBehaviour = require("./mixin/action-behaviour");
@@ -1979,7 +2547,7 @@ var actionBehaviour = require("./mixin/action-behaviour");
  * @type {Object}
  */
 var formMixin = {
-  mixins: [definitionMixin, referenceBehaviour, storeBehaviour, actionBehaviour, builtInComponents],
+  mixins: [ownIdentifierBehaviour, definitionMixin, referenceBehaviour, storeBehaviour, actionBehaviour, builtInComponents],
   /** @inheritdoc */
   getDefaultProps: function getFormDefaultProps() {
     return {
@@ -1989,6 +2557,16 @@ var formMixin = {
        * @type {Boolean}
        */
       hasEdit: true,
+      /**
+       * Defines if the form has a delete action button.
+       * @type {Boolean}
+       */
+      hasDelete: false,
+      /**
+       * Does the form call the load action on componentdid mount.
+       * @type {Boolean}
+       */
+      hasLoad: true,
       /**
        * Defines
        * @type {Boolean}
@@ -2014,7 +2592,9 @@ var formMixin = {
   },
   /** @inheritdoc */
   callMountedActions: function formCallMountedActions() {
-    this._loadData();
+    if (this.props.hasLoad) {
+      this._loadData();
+    }
     this._loadReference();
   },
   /** @inheritdoc */
@@ -2067,27 +2647,23 @@ var formMixin = {
     if (this.renderActions) {
       return this.renderActions();
     }
-    if (this.state.isEdit) {
-      return this._renderEditActions();
-    }
-    return this._renderConsultActions();
+    return this.state.isEdit ? this._renderEditActions() : this._renderConsultActions();
   },
   _renderEditActions: function _renderEditActions() {
-    if (this.renderEditActions) {
-      return this.renderEditActions();
-    }
-    return React.createElement(
-      "div",
-      { className: "button-bar" },
+    return this.renderEditActions ? this.renderEditActions() : React.createElement(
+      "span",
+      null,
       this.buttonSave(),
       this.buttonCancel()
     );
   },
   _renderConsultActions: function _renderConsultActions() {
-    if (this.renderConsultActions) {
-      return this.renderConsultActions();
-    }
-    return this.buttonEdit();
+    return this.renderConsultActions ? this.renderConsultActions() : React.createElement(
+      "div",
+      null,
+      this.props.hasEdit && this.buttonEdit(),
+      this.props.hasDelete && this.buttonDelete()
+    );
   },
   /**
    * Handle the form submission.
@@ -2096,7 +2672,7 @@ var formMixin = {
   _handleSubmitForm: function handleSumbitForm(e) {
     e.preventDefault();
     if (this.validate()) {
-      this.action.save(this._getEntity());
+      this.action.save.call(this, this._getEntity());
     }
     //return false;
   },
@@ -2124,74 +2700,95 @@ var formMixin = {
 
 module.exports = builder(formMixin);
 
-},{"../mixin/built-in-components":48,"../mixin/definition":49,"../mixin/store-behaviour":55,"./mixin/action-behaviour":32,"./mixin/reference-behaviour":33,"lodash/lang":227,"object-assign":274}],32:[function(require,module,exports){
+},{"../mixin/built-in-components":52,"../mixin/definition":53,"../mixin/own-identifier":57,"../mixin/store-behaviour":60,"./mixin/action-behaviour":36,"./mixin/reference-behaviour":37,"lodash/lang":247,"object-assign":315}],36:[function(require,module,exports){
 "use strict";
 
 var assign = require("object-assign");
 var isFunction = require("lodash/lang/isFunction");
 var omit = require("lodash/object/omit");
+
+var FocusException = window.Focus.exception.FocusException;
+
 var actionMixin = {
 
-  /**
-     * Get the entity identifier for the form loading.
-     * @returns {object} - The identifier of the entity.
+    /**
+       * Get the entity identifier for the form loading.
+       * @returns {object} - The identifier of the entity.
+       */
+    _getId: function _getId() {
+        if (this.getId) {
+            return this.getId();
+        }
+        return this.state.id;
+    },
+    /**
+     * Get a clean state to send data to the server.
+     * @returns {object} - The state json cleanded
      */
-  _getId: function formGetId() {
-    if (this.getId) {
-      return this.getId();
+    _getCleanState: function _getCleanState() {
+        return omit(this.state, ["reference", "isLoading", "isEdit"]);
+    },
+    /**
+     * Compute the entity read from the html givent the keys and the definition Path, this operation is reversed from the _computeEntityFromStore operation.
+     * @param {object} htmlData - Data read from the html form.
+     * @returns {object} - The computed entity from html.
+     */
+    _computeEntityFromHtml: function _computeEntityFromHtml(htmlData) {
+        var DEF = "" + this.definitionPath + ".";
+        var EMPTY = "";
+        var computedEntity = {};
+        for (var prop in htmlData) {
+            computedEntity[prop.replace(DEF, EMPTY)] = htmlData[prop];
+        }
+        return computedEntity;
+    },
+    /**
+     * Get the constructed entity from the state.
+     * If you need to perform a custom getEntity just write a getEntity function in your mixin.
+     * @returns {object} - the entity informations.
+     */
+    _getEntity: function _getEntity() {
+        if (this.getEntity) {
+            return this.getEntity();
+        }
+        //Build the entity value from the ref getVaue.
+        var htmlData = {};
+
+        var _ref = this;
+
+        var refs = _ref.refs;
+
+        for (var r in refs) {
+            //If the reference has a getValue function if is read.
+            if (refs[r] && isFunction(refs[r].getValue)) {
+                htmlData[r] = refs[r].getValue();
+            }
+        }
+        //Maybe a merge cold be done if we need a deeper property merge.
+        return assign({}, this._getCleanState(), this._computeEntityFromHtml(htmlData));
+    },
+    /**
+     * This is the load action of the form.
+     */
+    _loadData: function _loadData() {
+        if (!this.action || !isFunction(this.action.load)) {
+            throw new FocusException("It seems your form component does not have a load action, and your props is set to hasLoad={true}.", this);
+        }
+        this.action.load.call(this, this._getId());
+    },
+    clearError: function clearError() {
+        for (var r in this.refs) {
+            //If the reference has a getValue function if is read.
+            if (this.refs[r] && isFunction(this.refs[r].setError)) {
+                this.refs[r].setError(undefined);
+            }
+        }
     }
-    return this.state.id;
-  },
-  /**
-   * Get a clean state to send data to the server.
-   * @returns {object} - The state json cleanded
-   */
-  _getCleanState: function _getCleanState() {
-    return omit(this.state, ["reference", "isLoading", "isEdit"]);
-  },
-  /**
-   * Compute the entity read from the html givent the keys and the definition Path, this operation is reversed from the _computeEntityFromStore operation.
-   * @param {object} htmlData - Data read from the html form.
-   */
-  _computeEntityFromHtml: function _computeEntityFromHtml(htmlData) {
-    var DEF = "" + this.definitionPath + ".";
-    var EMPTY = "";
-    var computedEntity = {};
-    for (var prop in htmlData) {
-      computedEntity[prop.replace(DEF, EMPTY)] = htmlData[prop];
-    }
-    return computedEntity;
-  },
-  /**
-   * Get the constructed entity from the state.
-   * @returns {object} - the entity informations.
-   */
-  _getEntity: function formGetEntity() {
-    if (this.getEntity) {
-      return this.getEntity();
-    }
-    //Build the entity value from the ref getVaue.
-    var htmlData = {};
-    for (var r in this.refs) {
-      //If the reference has a getValue function if is read.
-      if (this.refs[r] && isFunction(this.refs[r].getValue)) {
-        htmlData[r] = this.refs[r].getValue();
-      }
-    }
-    //Maybe a merge cold be done if we need a deeper property merge.
-    return assign({}, this._getCleanState(), this._computeEntityFromHtml(htmlData));
-  },
-  /**
-   * Load data action call.
-   */
-  _loadData: function formLoadData() {
-    this.action.load(this._getId());
-  }
 };
 
 module.exports = actionMixin;
 
-},{"lodash/lang/isFunction":242,"lodash/object/omit":263,"object-assign":274}],33:[function(require,module,exports){
+},{"lodash/lang/isFunction":262,"lodash/object/omit":284,"object-assign":315}],37:[function(require,module,exports){
 //Focus.reference.builder.loadListByName('papas').then(function(data){Focus.dispatcher.dispatch({action: {type: "update",data: {papas: data}}})})
 
 "use strict";
@@ -2258,14 +2855,14 @@ var referenceMixin = {
 
 module.exports = referenceMixin;
 
-},{"lodash/lang/isEmpty":238}],34:[function(require,module,exports){
+},{"lodash/lang/isEmpty":258}],38:[function(require,module,exports){
 "use strict";
 
 module.exports = {
   mixin: require("./mixin")
 };
 
-},{"./mixin":35}],35:[function(require,module,exports){
+},{"./mixin":39}],39:[function(require,module,exports){
 /*global window*/
 /*todo check the library presence*/
 "use strict";
@@ -2285,7 +2882,7 @@ module.exports = {
     }
 };
 
-},{}],36:[function(require,module,exports){
+},{}],40:[function(require,module,exports){
 "use strict";
 
 var builder = window.Focus.component.builder;
@@ -2326,7 +2923,7 @@ var iconMixin = {
 
 module.exports = builder(iconMixin);
 
-},{}],37:[function(require,module,exports){
+},{}],41:[function(require,module,exports){
 "use strict";
 
 var builder = window.Focus.component.builder;
@@ -2363,34 +2960,36 @@ var imgMixin = {
 
 module.exports = builder(imgMixin);
 
-},{}],38:[function(require,module,exports){
+},{}],42:[function(require,module,exports){
 "use strict";
 
 module.exports = {
-  block: require("./block"),
-  button: require("./button"),
-  empty: require("./empty"),
-  field: require("./field"),
-  form: require("./form"),
-  img: require("./img"),
-  i18n: require("./i18n"),
-  icon: require("./icon"),
-  input: require("./input"),
-  label: require("./label"),
-  panel: require("./panel"),
-  select: require("./select"),
-  selectAction: require("./select-action"),
-  stickyNavigation: require("./sticky-navigation"),
-  title: require("./title"),
-  topicDisplayer: require("./topic-displayer"),
-  list: require("./list"),
-  mixin: require("./mixin"),
-  display: require("./display"),
-  detail: require("./detail"),
-  progressBar: require("./progress-bar")
+    autocomplete: require("./autocomplete"),
+    block: require("./block"),
+    button: require("./button"),
+    empty: require("./empty"),
+    field: require("./field"),
+    form: require("./form"),
+    img: require("./img"),
+    i18n: require("./i18n"),
+    icon: require("./icon"),
+    input: require("./input"),
+    label: require("./label"),
+    panel: require("./panel"),
+    select: require("./select"),
+    selectAction: require("./select-action"),
+    stickyNavigation: require("./sticky-navigation"),
+    title: require("./title"),
+    topicDisplayer: require("./topic-displayer"),
+    list: require("./list"),
+    mixin: require("./mixin"),
+    display: require("./display"),
+    detail: require("./detail"),
+    progressBar: require("./progress-bar"),
+    role: require("./role")
 };
 
-},{"./block":17,"./button":21,"./detail":22,"./display":24,"./empty":26,"./field":27,"./form":31,"./i18n":34,"./icon":36,"./img":37,"./input":41,"./label":46,"./list":47,"./mixin":52,"./panel":57,"./progress-bar":58,"./select":62,"./select-action":59,"./sticky-navigation":64,"./title":65,"./topic-displayer":66}],39:[function(require,module,exports){
+},{"./autocomplete":20,"./block":21,"./button":25,"./detail":26,"./display":28,"./empty":30,"./field":31,"./form":35,"./i18n":38,"./icon":40,"./img":41,"./input":45,"./label":50,"./list":51,"./mixin":56,"./panel":62,"./progress-bar":63,"./role":64,"./select":68,"./select-action":65,"./sticky-navigation":70,"./title":71,"./topic-displayer":72}],43:[function(require,module,exports){
 //Target
 //http://codepen.io/Sambego/pen/zDLxe
 /*
@@ -2501,54 +3100,64 @@ var checkBoxMixin = {
 
 module.exports = builder(checkBoxMixin);
 
-},{"../../mixin/field-grid-behaviour":51,"lodash/lang/isBoolean":235,"uuid":276}],40:[function(require,module,exports){
-"use strict";
-
-var jQuery = window.jQuery;
+},{"../../mixin/field-grid-behaviour":55,"lodash/lang/isBoolean":255,"uuid":317}],44:[function(require,module,exports){
 //Dependencies.
 ////http://www.daterangepicker.com/#ex2
+"use strict";
+
 var builder = window.Focus.component.builder;
 var React = window.React;
 var inputTextMixin = require("../text").mixin;
-
+var assign = require("object-assign");
 /**
  * Input text mixin.
  * @type {Object}
  */
 var inputDateMixin = {
-  /** @inheritdoc */
-  mixins: [inputTextMixin],
-  /** @inheritdoc */
-  componentDidMount: function inputDateDidMount() {
-    if (!jQuery.fn.daterangepicker) {
-      console.warn("The jquery daterangepicker plugin should be loaded: see https://github.com/dangrossman/bootstrap-daterangepicker.");
+    /** @inheritdoc */
+    mixins: [inputTextMixin],
+    /** @inheritdoc */
+    componentDidMount: function componentDidMount() {
+        var jQuery = window.jQuery;
+        var moment = window.moment;
+        if (!jQuery.fn.daterangepicker) {
+            console.warn("The jquery daterangepicker plugin should be loaded: see https://github.com/dangrossman/bootstrap-daterangepicker.");
+        }
+        if (!moment) {
+            console.warn("The moment library should be loaded: http://http://momentjs.com/");
+        }
+        var component = this;
+        //If the domains set options.
+        var propsOptions = this.props.options && this.props.options.dateRangePicker ? this.props.options.dateRangePicker : {};
+        //console.log('parentEL............', `div [data-reactid="${React.findDOMNode(this).parentElement.getAttribute('data-reactid')}"]`);
+        var dateRangeOptions = assign(propsOptions, {
+            //Check if the parentElement is the correct container.
+            parentEl: "[data-reactid=\"" + React.findDOMNode(this).parentElement.getAttribute("data-reactid") + "\"]",
+            singleDatePicker: true,
+            showDropdowns: true
+        });
+        jQuery(React.findDOMNode(this)).daterangepicker(dateRangeOptions, function (start) {
+            ///*, end, label*/
+            component.setState({ value: component.props.formatter(start.toDate()) });
+        });
     }
-    var component = this;
-    jQuery(React.findDOMNode(this)).daterangepicker({
-      singleDatePicker: true,
-      showDropdowns: true
-    }, function (start) {
-      ///*, end, label*/
-      component.setState({ value: component.props.formatter(start.toDate()) });
-    });
-  }
 };
 
 module.exports = builder(inputDateMixin);
 
-},{"../text":43}],41:[function(require,module,exports){
+},{"../text":47,"object-assign":315}],45:[function(require,module,exports){
 "use strict";
 
 module.exports = {
-  checkbox: require("./checkbox"),
-  date: require("./date"),
-  text: require("./text"),
-  textarea: require("./textarea"),
-  toggle: require("./toggle"),
-  markdown: require("./markdown")
+    checkbox: require("./checkbox"),
+    date: require("./date"),
+    text: require("./text"),
+    textarea: require("./textarea"),
+    toggle: require("./toggle"),
+    markdown: require("./markdown")
 };
 
-},{"./checkbox":39,"./date":40,"./markdown":42,"./text":43,"./textarea":44,"./toggle":45}],42:[function(require,module,exports){
+},{"./checkbox":43,"./date":44,"./markdown":46,"./text":47,"./textarea":48,"./toggle":49}],46:[function(require,module,exports){
 //Dependencies.
 "use strict";
 
@@ -2596,7 +3205,7 @@ var markdownEditorMixin = {
 
 module.exports = builder(markdownEditorMixin);
 
-},{}],43:[function(require,module,exports){
+},{}],47:[function(require,module,exports){
 //Dependencies.
 "use strict";
 
@@ -2609,79 +3218,102 @@ var type = window.Focus.component.types;
  * @type {Object}
  */
 var inputTextMixin = {
-  /** @inheritdoc */
-  getDefaultProps: function getInputDefaultProps() {
-    return {
-      type: "text",
-      value: undefined,
-      name: undefined,
-      style: {},
-      formatter: function formatter(d) {
-        return d;
-      },
-      unformatter: function unformatter(d) {
-        return d;
-      }
-    };
-  },
-  /** @inheritdoc */
-  propTypes: {
-    type: type("string"),
-    value: type(["string", "number"]),
-    name: type("string"),
-    style: type("object")
-  },
-  /** @inheritdoc */
-  getInitialState: function getInitialStateInputText() {
-    return {
-      value: this.props.formatter(this.props.value)
-    };
-  },
-  /**
-   * Update the component.
-   * @param {object} newProps - The new props to update.
-   */
-  componentWillReceiveProps: function inputWillReceiveProps(newProps) {
-    this.setState({ value: this.props.formatter(newProps.value) });
-  },
-  /**
-   * Get the value from the input in the DOM.
-   */
-  getValue: function getInputTextValue() {
-    return this.props.unformatter(this.getDOMNode().value);
-  },
-  /**
-   * Handle the change value of the input.
-   * @param {object} event - The sanitize event of input.
-   */
-  _handleOnChange: function inputOnChange(event) {
-    //On change handler.
-    if (this.props.onChange) {
-      return this.props.onChange(event);
-    } else {
-      //Set the state then call the change handler.
-      this.setState({ value: event.target.value });
+    /** @inheritdoc */
+    getDefaultProps: function getDefaultProps() {
+        return {
+            type: "text",
+            value: undefined,
+            name: undefined,
+            style: {},
+            /**
+             * Default formatter.
+             * @param  {object} d - Data to format.
+             * @return {object}   - The formatted data.
+             */
+            formatter: function formatter(d) {
+                return d;
+            },
+            /**
+             * Default unformatter.
+             * @param  {object} d - Data to unformat.
+             * @return {object}   - The unformatted data.
+             */
+            unformatter: function unformatter(d) {
+                return d;
+            }
+        };
+    },
+    /** @inheritdoc */
+    propTypes: {
+        type: type("string"),
+        value: type(["string", "number"]),
+        name: type("string"),
+        style: type("object")
+    },
+    /** @inheritdoc */
+    getInitialState: function getInitialState() {
+        var _props = this.props;
+        var formatter = _props.formatter;
+        var value = _props.value;
+
+        return {
+            value: formatter(value)
+        };
+    },
+    /**
+     * Update the component.
+     * @param {object} newProps - The new props to update.
+     */
+    componentWillReceiveProps: function inputWillReceiveProps(newProps) {
+        this.setState({ value: this.props.formatter(newProps.value) });
+    },
+    /**
+     * Get the value from the input in the DOM.
+     */
+    getValue: function getInputTextValue() {
+        return this.props.unformatter(React.findDOMNode(this).value);
+    },
+    /**
+     * Handle the change value of the input.
+     * @param {object} event - The sanitize event of input.
+     */
+    _handleOnChange: function inputOnChange(event) {
+        //On change handler.
+        var onChange = this.props.onChange;
+
+        if (onChange) {
+            return onChange(event);
+        } else {
+            //Set the state then call the change handler.
+            this.setState({ value: event.target.value });
+        }
+    },
+    /**
+     * Render an input.
+     * @return {DOM} - The dom of an input.
+     */
+    render: function renderInput() {
+        var _props = this.props;
+        var name = _props.name;
+        var style = _props.style;
+
+        var htmlType = this.props.type;
+        var value = this.state.value;
+
+        return React.createElement("input", {
+            id: name,
+            name: name,
+            onChange: this._handleOnChange,
+            style: style,
+            type: htmlType,
+            value: value
+        });
     }
-  },
-  /**
-   * Render an input.
-   * @return {DOM} - The dom of an input.
-   */
-  render: function renderInput() {
-    return React.createElement("input", {
-      id: this.props.name,
-      name: this.props.name,
-      value: this.state.value,
-      type: this.props.type,
-      className: this.props.style["class"],
-      onChange: this._handleOnChange
-    });
-  }
 };
 
 module.exports = builder(inputTextMixin);
 
-},{}],44:[function(require,module,exports){
+},{}],48:[function(require,module,exports){
 //Target
 /*
 <div class="checkbox">
@@ -2775,7 +3407,7 @@ var textAreaMixin = {
 
 module.exports = builder(textAreaMixin);
 
-},{}],45:[function(require,module,exports){
+},{}],49:[function(require,module,exports){
 //Target
 /*
 <label>
@@ -2862,36 +3494,41 @@ var toggleMixin = {
 
 module.exports = builder(toggleMixin);
 
-},{"../../mixin/field-grid-behaviour":51}],46:[function(require,module,exports){
+},{"../../mixin/field-grid-behaviour":55}],50:[function(require,module,exports){
+// Dependencies
+
 "use strict";
 
 var builder = window.Focus.component.builder;
-var React = window.React;
+
 /**
- * Label mixin for form.
- * @type {Object}
- */
+* Label mixin for form.
+* @type {Object}
+*/
 var labelMixin = {
-  mixins: [require("../i18n/mixin")],
-  getDefaultProps: function getDefaultProps() {
-    return {
-      name: undefined,
-      key: undefined,
-      style: { className: "" }
-    };
-  },
-  render: function render() {
-    return React.createElement(
-      "label",
-      { className: this.props.style.className, htmlFor: this.props.name },
-      this.i18n(this.props.name)
-    );
-  }
+    mixins: [require("../i18n/mixin")],
+    getDefaultProps: function getDefaultProps() {
+        return {
+            name: undefined,
+            key: undefined,
+            style: { className: "" },
+            isRequired: false,
+            requiredChar: " *",
+            isEdit: false
+        };
+    },
+    render: function render() {
+        return React.createElement(
+            "label",
+            { className: this.props.style.className, htmlFor: this.props.name },
+            this.i18n(this.props.name) + (this.props.isRequired && this.props.isEdit ? this.props.requiredChar : "  ")
+        );
+    }
 };
 
 module.exports = builder(labelMixin);
 
-},{"../i18n/mixin":35}],47:[function(require,module,exports){
+},{"../i18n/mixin":39}],51:[function(require,module,exports){
 "use strict";
 
 var _extends = Object.assign || function (target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i]; for (var key in source) { if (Object.prototype.hasOwnProperty.call(source, key)) { target[key] = source[key]; } } } return target; };
@@ -2930,7 +3567,7 @@ var MemoryListMixin = {
 
 module.exports = builder(MemoryListMixin);
 
-},{"../../list/mixin/memory-scroll":72,"lodash/object/omit":263,"object-assign":274}],48:[function(require,module,exports){
+},{"../../list/mixin/memory-scroll":78,"lodash/object/omit":284,"object-assign":315}],52:[function(require,module,exports){
 "use strict";
 
 var React = window.React;
@@ -2957,6 +3594,17 @@ module.exports = {
     options = assign({}, options);
     var fieldProps = this._buildFieldProps(name, options, this);
     return React.createElement(Field, fieldProps);
+  },
+  /**
+   * Display two different fields, depending on wheter the user is editing the form or not
+   * @param  {Object} config the configuration, with the structure {consultField: ..., editField: ...}
+   * @return {Object} the rendered resulting field
+   */
+  dualFieldFor: function dualFieldFor(_ref) {
+    var consultField = _ref.consultField;
+    var editField = _ref.editField;
+
+    return this.state.isEdit ? editField : consultField;
   },
   /**
    * Select component for the component.
@@ -3039,9 +3687,11 @@ module.exports = {
     return React.createElement(Button, {
       label: "button.delete",
       type: "button",
+      shape: "link",
+      icon: "trash",
       style: { className: "delete" },
       handleOnClick: function handleOnClickEdit() {
-        form.action["delete"](form._getId());
+        form.action["delete"](form._getEntity());
       }
     });
   },
@@ -3075,6 +3725,7 @@ module.exports = {
       type: "button",
       icon: "undo",
       handleOnClick: function handleOnClickCancel() {
+        form.clearError();
         form.setState({ isEdit: !form.state.isEdit }, function () {
           changeMode("consult", "edit");
         });
@@ -3101,7 +3752,7 @@ module.exports = {
     });
   } };
 
-},{"../../list/selection":74,"../../list/table":78,"../button/action":18,"../display/text":25,"../field":27,"../list":47,"./field-component-behaviour":50,"object-assign":274}],49:[function(require,module,exports){
+},{"../../list/selection":80,"../../list/table":84,"../button/action":22,"../display/text":29,"../field":31,"../list":51,"./field-component-behaviour":54,"object-assign":315}],53:[function(require,module,exports){
 //Dependencies.
 /**
  * Accessor on the entity informations.
@@ -3129,7 +3780,7 @@ var definitionMixin = {
 
 module.exports = definitionMixin;
 
-},{}],50:[function(require,module,exports){
+},{}],54:[function(require,module,exports){
 "use strict";
 
 var assign = require("object-assign");
@@ -3170,7 +3821,7 @@ var fieldBehaviourMixin = {
       //Mode
       isEdit: isEdit,
       hasLabel: hasLabel,
-      isRequired: def.isRequired,
+      isRequired: def.isRequired || def.required, //ToDO: check with the generators.
       //Style
       style: options.style,
       //Methods
@@ -3186,7 +3837,8 @@ var fieldBehaviourMixin = {
       InputLabelComponent: def.InputLabelComponent,
       InputComponent: def.InputComponent,
       TextComponent: def.TextComponent,
-      DisplayComponent: def.DisplayComponent
+      DisplayComponent: def.DisplayComponent,
+      options: options.options || def.options //Add options to the fields
     };
     //Extend the options object in order to be able to specify more options to thie son's component.
     var fieldProps = assign(options, propsContainer);
@@ -3201,7 +3853,7 @@ var fieldBehaviourMixin = {
 
 module.exports = fieldBehaviourMixin;
 
-},{"object-assign":274}],51:[function(require,module,exports){
+},{"object-assign":315}],55:[function(require,module,exports){
 "use strict";
 
 var gridSize = 12;
@@ -3240,7 +3892,7 @@ var fieldGridBehaviourMixin = {
 };
 module.exports = fieldGridBehaviourMixin;
 
-},{}],52:[function(require,module,exports){
+},{}],56:[function(require,module,exports){
 "use strict";
 
 module.exports = {
@@ -3248,10 +3900,32 @@ module.exports = {
   fieldComponentBehaviour: require("./field-component-behaviour"),
   fieldGridBehaviour: require("./field-grid-behaviour"),
   referenceProperty: require("./reference-property"),
-  storeBehaviour: require("./store-behaviour")
+  storeBehaviour: require("./store-behaviour"),
+  builtInComponents: require("./built-in-components"),
+  ownIdentifier: require("./own-identifier")
 };
 
-},{"./definition":49,"./field-component-behaviour":50,"./field-grid-behaviour":51,"./reference-property":53,"./store-behaviour":55}],53:[function(require,module,exports){
+},{"./built-in-components":52,"./definition":53,"./field-component-behaviour":54,"./field-grid-behaviour":55,"./own-identifier":57,"./reference-property":58,"./store-behaviour":60}],57:[function(require,module,exports){
+"use strict";
+
+var uuid = require("uuid");
+/**
+ * Export a method which add an identifier to component;
+ * @type {Object}
+ */
+module.exports = {
+    /** @inheriteDoc */
+    componentWillMount: function componentWillMount() {
+        Object.defineProperty(this, "_identifier", {
+            value: uuid.v4(),
+            writable: false,
+            enumerable: true,
+            configurable: false
+        });
+    }
+};
+
+},{"uuid":317}],58:[function(require,module,exports){
 "use strict";
 
 var type = window.Focus.component.types;
@@ -3281,7 +3955,7 @@ var referenceMixin = {
 };
 module.exports = referenceMixin;
 
-},{}],54:[function(require,module,exports){
+},{}],59:[function(require,module,exports){
 "use strict";
 
 var scrollTo = function (element, to, duration) {
@@ -3302,14 +3976,19 @@ var scrollTo = function (element, to, duration) {
 
 module.exports = { scrollTo: scrollTo };
 
-},{}],55:[function(require,module,exports){
+},{}],60:[function(require,module,exports){
 "use strict";
 
 var _defineProperty = function (obj, key, value) { return Object.defineProperty(obj, key, { value: value, enumerable: true, configurable: true, writable: true }); };
 
 var capitalize = require("lodash/string/capitalize");
 var assign = require("object-assign");
-var isArray = require("lodash/lang/isArray");
+
+var _require = require("lodash/lang");
+
+var isObject = _require.isObject;
+var isArray = _require.isArray;
+
 var keys = require("lodash/object/keys");
 var storeChangeBehaviour = require("./store-change-behaviour");
 
@@ -3382,7 +4061,7 @@ var storeMixin = {
         entity.reference[key] = data[key];
       } else {
         var d = data[key];
-        if (isArray(d)) {
+        if (isArray(d) || !isObject(d)) {
           d = _defineProperty({}, key, d);
         }
         assign(entity, d);
@@ -3437,70 +4116,84 @@ var storeMixin = {
 
 module.exports = storeMixin;
 
-},{"./store-change-behaviour":56,"lodash/lang/isArray":234,"lodash/object/keys":261,"lodash/string/capitalize":266,"object-assign":274}],56:[function(require,module,exports){
+},{"./store-change-behaviour":61,"lodash/lang":247,"lodash/object/keys":282,"lodash/string/capitalize":290,"object-assign":315}],61:[function(require,module,exports){
 "use strict";
 
+var message = window.Focus.message;
 var changeBehaviourMixin = {
-  /**
-   * Display a message on change.
-   */
-  _displayMessageOnChange: function displayMessageOnChange(changeInfos) {
-    if (this.displayMessageOnChange) {
-      return this.displayMessageOnChange(changeInfos);
-    }
-    if (changeInfos && changeInfos.status && changeInfos.status.name) {
-      switch (changeInfos.status.name) {
-        /* case 'loading':
-           Focus.message.addInformationMessage('detail.loading');
-           break;
-         case 'loaded':
-           Focus.message.addSuccessMessage('detail.loaded');
-           break;
-         case 'saving':
-           Focus.message.addInformationMessage('detail.saving');
-           break;*/
-        case "saved":
-          Focus.message.addSuccessMessage("detail.saved");
-          //Change the page mode as edit
-          this.setState({ isEdit: false });
-          break;
-      }
-    }
-  },
-  /**
-   * After change informations.
-   * You can override this method using afterChange function.
-   * @param {object} changeInfos - All informations relative to the change.
-   * @returns {undefined} -  The return value is the callback.
-   */
-  _afterChange: function afterChangeForm(changeInfos) {
-    if (this.afterChange) {
-      return this.afterChange(changeInfos);
-    }
-    return this._displayMessageOnChange(changeInfos);
-  },
-  /**
-   * Event handler for 'change' events coming from the stores
-   * @param {object} changeInfos - The changing informations.
-   */
-  _onChange: function onFormStoreChangeHandler(changeInfos) {
-    this.setState(this._getStateFromStores(), this._afterChange(changeInfos));
-  },
-  /**
+    /**
+     * Display a message when there is a change on a store property resulting from a component action call.
+     * @param  {object} changeInfos - An object containing all the event informations, without the data.
+     * @return {function} - An override function can be called.
+     */
+    _displayMessageOnChange: function displayMessageOnChange(changeInfos) {
+        if (this.displayMessageOnChange) {
+            return this.displayMessageOnChange(changeInfos);
+        }
+        if (changeInfos && changeInfos.status && changeInfos.status.name) {
+            switch (changeInfos.status.name) {
+                /* case 'loading':
+                 Focus.message.addInformationMessage('detail.loading');
+                 break;
+                 case 'loaded':
+                 Focus.message.addSuccessMessage('detail.loaded');
+                 break;
+                 case 'saving':
+                 Focus.message.addInformationMessage('detail.saving');
+                 break;*/
+                case "saved":
+                    //Maybe the action result or the event should have a caller notion.
+                    message.addSuccessMessage("detail.saved");
+                    //Change the page mode as edit
+                    this.setState({ isEdit: false });
+                    break;
+                default:
+                    break;
+            }
+        }
+    },
+    /**
+     * After change informations.
+     * You can override this method using afterChange function.
+     * @param {object} changeInfos - All informations relative to the change.
+     * @returns {undefined} -  The return value is the callback.
+     */
+    _afterChange: function afterChangeForm(changeInfos) {
+        if (this.afterChange) {
+            return this.afterChange(changeInfos);
+        }
+        //If there is no callerId in the event, the display message does not have any sens.
+        //Other component responding to the store property change does not need to react on it.
+        if (changeInfos && changeInfos.informations && changeInfos.informations.callerId && this._identifier === changeInfos.informations.callerId) {
+            return this._displayMessageOnChange(changeInfos);
+        }
+    },
+    /**
+     * Event handler for 'change' events coming from the stores
+     * @param {object} changeInfos - The changing informations.
+     */
+    _onChange: function onFormStoreChangeHandler(changeInfos) {
+        var onChange = this.props.onChange || this.onChange;
+        if (onChange) {
+            onChange.call(this, changeInfos);
+        }
+        this.setState(this._getStateFromStores(), this._afterChange(changeInfos));
+    },
+    /**
      * Event handler for 'error' events coming from the stores.
-      */
-  _onError: function onFormErrorHandler() {
-    var errorState = this._getErrorStateFromStores();
-    for (var key in errorState) {
-      if (this.refs[key]) {
-        this.refs[key].setError(errorState[key]);
-      }
+     */
+    _onError: function onFormErrorHandler() {
+        var errorState = this._getErrorStateFromStores();
+        for (var key in errorState) {
+            if (this.refs[key]) {
+                this.refs[key].setError(errorState[key]);
+            }
+        }
     }
-  }
 };
 module.exports = changeBehaviourMixin;
 
-},{}],57:[function(require,module,exports){
+},{}],62:[function(require,module,exports){
 "use strict";
 
 var React = window.React;
@@ -3547,7 +4240,7 @@ var panelMixin = {
 };
 module.exports = builder(panelMixin);
 
-},{}],58:[function(require,module,exports){
+},{}],63:[function(require,module,exports){
 //Code from https://raw.githubusercontent.com/paramaggarwal/react-progressbar/master/index.js
 //
 "use strict";
@@ -3590,7 +4283,39 @@ var progressMixin = {
 
 module.exports = builder(progressMixin);
 
-},{}],59:[function(require,module,exports){
+},{}],64:[function(require,module,exports){
+"use strict";
+
+var React = window.React;
+var builder = window.Focus.component.builder;
+var user = window.Focus.user;
+var intersection = require("lodash/array/intersection");
+var isArray = require("lodash/lang/isArray");
+var type = window.Focus.component.types;
+
+/**
+ * Mixin button.
+ * @type {Object}
+ */
+var roleMixin = {
+  propTypes: {
+    hasOne: type("array"),
+    hasAll: type("array")
+  },
+  render: function render() {
+    var userRoles = user.getRoles();
+    if (isArray(this.props.hasAll) && intersection(userRoles, this.props.hasAll).length === this.props.hasAll.length) {
+      return this.props.children;
+    } else if (isArray(this.props.hasOne) && intersection(userRoles, this.props.hasOne).length > 0) {
+      return this.props.children;
+    }
+    return null;
+  }
+};
+
+module.exports = builder(roleMixin);
+
+},{"lodash/array/intersection":92,"lodash/lang/isArray":254}],65:[function(require,module,exports){
 "use strict";
 
 var builder = window.Focus.component.builder;
@@ -3624,9 +4349,6 @@ var selectActionMixin = {
         var _this = this;
 
         return function (event) {
-            if (event) {
-                event.preventDefault();
-            }
             if (_this.props.operationParam) {
                 action(_this.props.operationParam);
             } else {
@@ -3671,9 +4393,6 @@ var selectActionMixin = {
         }
         return liList;
     },
-    _dropdownToggleClickHandler: function _dropdownToggleClickHandler() {
-        React.findDOMNode(this.refs["dropdown-toggle"]).click();
-    },
     /**
      * Render the component.
      * @returns  {XML} Htm code.
@@ -3683,14 +4402,11 @@ var selectActionMixin = {
             return React.createElement("div", null);
         }
         var liList = this._getList(this.props.operationList);
+        //todo : a revoir pour gérer les boutons d'action groupés
         return React.createElement(
             "div",
-            { className: "select-action btn btn-fab btn-default", onClick: this._dropdownToggleClickHandler },
-            React.createElement(
-                "a",
-                { className: "dropdown-toggle", "data-toggle": "dropdown", ref: "dropdown-toggle" },
-                React.createElement("i", { className: "fa fa-" + this.props.icon })
-            ),
+            { "data-focus": "select-action", className: "" },
+            React.createElement("a", { className: "dropdown-toggle btn btn-fab btn-default fa fa-" + this.props.icon, "data-toggle": "dropdown", ref: "dropdown-toggle" }),
             React.createElement(
                 "ul",
                 { className: "dropdown-menu" },
@@ -3702,7 +4418,7 @@ var selectActionMixin = {
 
 module.exports = builder(selectActionMixin);
 
-},{"../icon":36,"../img":37}],60:[function(require,module,exports){
+},{"../icon":40,"../img":41}],66:[function(require,module,exports){
 "use strict";
 
 var builder = window.Focus.component.builder;
@@ -3822,7 +4538,7 @@ var checkboxMixin = {
 
 module.exports = builder(checkboxMixin);
 
-},{"../../input/checkbox":39}],61:[function(require,module,exports){
+},{"../../input/checkbox":43}],67:[function(require,module,exports){
 "use strict";
 
 var _defineProperty = function (obj, key, value) { return Object.defineProperty(obj, key, { value: value, enumerable: true, configurable: true, writable: true }); };
@@ -3948,7 +4664,7 @@ var selectTextMixin = {
 
 module.exports = builder(selectTextMixin);
 
-},{"../../../mixin/stylable":85,"../../i18n/mixin":35,"lodash/array/union":87,"uuid":276}],62:[function(require,module,exports){
+},{"../../../mixin/stylable":91,"../../i18n/mixin":39,"lodash/array/union":94,"uuid":317}],68:[function(require,module,exports){
 "use strict";
 
 module.exports = {
@@ -3957,7 +4673,7 @@ module.exports = {
   checkbox: require("./checkbox")
 };
 
-},{"./checkbox":60,"./classic":61,"./radio":63}],63:[function(require,module,exports){
+},{"./checkbox":66,"./classic":67,"./radio":69}],69:[function(require,module,exports){
 "use strict";
 
 var builder = window.Focus.component.builder;
@@ -4074,7 +4790,7 @@ var radioMixin = {
 
 module.exports = builder(radioMixin);
 
-},{}],64:[function(require,module,exports){
+},{}],70:[function(require,module,exports){
 // Dependencies
 
 "use strict";
@@ -4148,7 +4864,7 @@ var StickyNavigation = {
         var rawTitleList = document.querySelectorAll(this.props.titleSelector);
         return [].map.call(rawTitleList, function (titleElement, titleIndex) {
             return {
-                label: titleElement.innerText,
+                label: titleElement.innerHTML,
                 id: titleElement.getAttribute("id"),
                 offsetTop: titleIndex === 0 ? 0 : titleElement.offsetTop,
                 offsetHeight: titleElement.parentElement.offsetHeight
@@ -4237,7 +4953,7 @@ var StickyNavigation = {
 
 module.exports = builder(StickyNavigation);
 
-},{"../../mixin/stylable":85,"../mixin/scroll-to":54}],65:[function(require,module,exports){
+},{"../../mixin/stylable":91,"../mixin/scroll-to":59}],71:[function(require,module,exports){
 "use strict";
 
 var builder = window.Focus.component.builder;
@@ -4276,7 +4992,7 @@ var titleMixin = {
 
 module.exports = builder(titleMixin);
 
-},{}],66:[function(require,module,exports){
+},{}],72:[function(require,module,exports){
 "use strict";
 
 var builder = window.Focus.component.builder;
@@ -4297,7 +5013,8 @@ var topicDisplayerMixin = {
         return {
             style: undefined, // Component css style.
             topicClickAction: function topicClickAction(key) {}, // Action when click on topic
-            topicList: {} // {topic1: "Label of topic one", topic2:"Label of topic 2"} List f topics
+            topicList: {}, // {topic1: "Label of topic one", topic2:"Label of topic 2"} List f topics,
+            displayLabels: false
         };
     },
 
@@ -4309,10 +5026,11 @@ var topicDisplayerMixin = {
         var topicList = [];
         var className = "btn btn-primary btn-raised topic";
         for (var key in this.props.topicList) {
+            var text = this.props.displayLabels ? "" + this.props.topicList[key].label + ": " + this.props.topicList[key].value : this.props.topicList[key].value;
             topicList.push(React.createElement(
                 "a",
                 { key: key, href: "javascript:void(0)", onClick: this.topicClickHandler(key), className: className },
-                this.props.topicList[key]
+                text
             ));
         }
         var style = "topic-displayer bs-component ";
@@ -4343,7 +5061,7 @@ var topicDisplayerMixin = {
 
 module.exports = builder(topicDisplayerMixin);
 
-},{}],67:[function(require,module,exports){
+},{}],73:[function(require,module,exports){
 /**@jsx*/
 "use strict";
 
@@ -4351,6 +5069,7 @@ var builder = window.Focus.component.builder;
 var SelectAction = require("../../common/select-action").component;
 var ActionContextual = require("../action-contextual").component;
 var TopicDisplayer = require("../../common/topic-displayer").component;
+var translationMixin = require("../../common/i18n/mixin");
 
 var actionBarMixin = {
 
@@ -4358,6 +5077,8 @@ var actionBarMixin = {
      * Display name.
      */
     displayName: "list-action-bar",
+
+    mixins: [translationMixin],
 
     /**
      * INit default props
@@ -4383,7 +5104,8 @@ var actionBarMixin = {
                 console.warn(key);
             }, // Action on group function
             groupSelectedKey: undefined, // Defautl grouped key.
-            operationList: [] // List of contextual operations
+            operationList: [], // List of contextual operations
+            groupLabelPrefix: ""
         };
     },
 
@@ -4393,7 +5115,15 @@ var actionBarMixin = {
      */
     _getSelectionObject: function _getSelectionObject() {
         // Selection datas
-        var selectionOperationList = [{ action: this._selectionFunction("selected"), label: "all", style: this._getSelectedStyle(this.props.selectionStatus, "selected") }, { action: this._selectionFunction("none"), label: "none", style: this._getSelectedStyle(this.props.selectionStatus, "none") }];
+        var selectionOperationList = [{
+            action: this._selectionFunction("selected"),
+            label: "all",
+            style: this._getSelectedStyle(this.props.selectionStatus, "selected")
+        }, {
+            action: this._selectionFunction("none"),
+            label: "none",
+            style: this._getSelectedStyle(this.props.selectionStatus, "none")
+        }];
         return React.createElement(SelectAction, { icon: this._getSelectionObjectIcon(), operationList: selectionOperationList });
     },
 
@@ -4413,7 +5143,7 @@ var actionBarMixin = {
                     style: this._getSelectedStyle(description.key + description.order, orderSelectedParsedKey)
                 });
             }
-            var orderIcon = this.props.orderSelected.order ? "unsorted" : "sort-amount-asc";
+            var orderIcon = this.props.orderSelected.order ? "sort-alpha-desc" : "sort-alpha-asc";
             return React.createElement(SelectAction, { key: "down", icon: orderIcon, operationList: orderOperationList });
         }
         return "";
@@ -4428,12 +5158,18 @@ var actionBarMixin = {
         for (var key in this.props.groupableColumnList) {
             groupList.push({
                 action: this._groupFunction(key),
-                label: this.props.groupableColumnList[key],
+                label: this.i18n(this.props.groupLabelPrefix + this.props.groupableColumnList[key]),
                 style: this._getSelectedStyle(key, this.props.groupSelectedKey)
             });
         }
-        var groupOperationList = [{ label: "action.group", childOperationList: groupList }, { label: "action.ungroup", action: this._groupFunction(null) }];
-        var groupIcon = this.props.groupSelectedKey ? "th-list" : "th-large";
+        var groupOperationList = [{
+            label: this.i18n("action.group"),
+            childOperationList: groupList
+        }, {
+            label: this.i18n("action.ungroup"),
+            action: this._groupFunction()
+        }];
+        var groupIcon = this.props.groupSelectedKey ? "folder-open-o" : "folder-o";
         return React.createElement(SelectAction, { icon: groupIcon, operationList: groupOperationList });
     },
 
@@ -4492,10 +5228,11 @@ var actionBarMixin = {
     render: function renderActionBar() {
         return React.createElement(
             "div",
-            { className: "action-bar panel" },
+            { "data-focus": "list-action-bar", className: "panel" },
             React.createElement(
                 "div",
-                { className: "general-action" },
+                {
+                    "data-focus": "global-list-content" },
                 this._getSelectionObject(),
                 " ",
                 this._getOrderObject(),
@@ -4504,13 +5241,15 @@ var actionBarMixin = {
             ),
             React.createElement(
                 "div",
-                { className: "facet-container" },
-                React.createElement(TopicDisplayer, { topicList: this.props.facetList, topicClickAction: this.props.facetClickAction })
+                { "data-focus": "contextual-action-content" },
+                React.createElement(ActionContextual, { operationList: this.props.operationList })
             ),
             React.createElement(
                 "div",
-                { className: "contextual-action" },
-                React.createElement(ActionContextual, { operationList: this.props.operationList })
+                { "data-focus": "selected-facet-content" },
+                React.createElement(TopicDisplayer, { displayLabels: true,
+                    topicList: this.props.facetList,
+                    topicClickAction: this.props.facetClickAction })
             )
         );
     }
@@ -4518,7 +5257,7 @@ var actionBarMixin = {
 
 module.exports = builder(actionBarMixin);
 
-},{"../../common/select-action":59,"../../common/topic-displayer":66,"../action-contextual":68}],68:[function(require,module,exports){
+},{"../../common/i18n/mixin":39,"../../common/select-action":65,"../../common/topic-displayer":72,"../action-contextual":74}],74:[function(require,module,exports){
 /**@jsx*/
 "use strict";
 
@@ -4601,7 +5340,7 @@ var actionContextualMixin = {
 
 module.exports = builder(actionContextualMixin);
 
-},{"../../common/button/action":18,"../../common/select-action":59}],69:[function(require,module,exports){
+},{"../../common/button/action":22,"../../common/select-action":65}],75:[function(require,module,exports){
 "use strict";
 
 module.exports = {
@@ -4613,7 +5352,7 @@ module.exports = {
 	table: require("./table")
 };
 
-},{"./action-bar":67,"./action-contextual":68,"./selection":74,"./summary":77,"./table":78,"./timeline":81}],70:[function(require,module,exports){
+},{"./action-bar":73,"./action-contextual":74,"./selection":80,"./summary":83,"./table":84,"./timeline":87}],76:[function(require,module,exports){
 "use strict";
 
 var React = window.React;
@@ -4707,7 +5446,7 @@ var builtInComponentsMixin = {
 
 module.exports = builtInComponentsMixin;
 
-},{"../../common/display/text":25,"../../common/field":27,"../../common/mixin/field-component-behaviour":50,"object-assign":274}],71:[function(require,module,exports){
+},{"../../common/display/text":29,"../../common/field":31,"../../common/mixin/field-component-behaviour":54,"object-assign":315}],77:[function(require,module,exports){
 "use strict";
 
 var topOfElement = (function (_topOfElement) {
@@ -4825,7 +5564,7 @@ var InfiniteScrollMixin = {
 
 module.exports = { mixin: InfiniteScrollMixin };
 
-},{"../mixin/pagination":73}],72:[function(require,module,exports){
+},{"../mixin/pagination":79}],78:[function(require,module,exports){
 "use strict";
 
 var memoryMixin = {
@@ -4880,7 +5619,7 @@ var memoryMixin = {
 
 module.exports = memoryMixin;
 
-},{}],73:[function(require,module,exports){
+},{}],79:[function(require,module,exports){
 "use strict";
 
 var type = window.Focus.component.types;
@@ -4928,7 +5667,7 @@ var paginationMixin = {
 
 module.exports = { mixin: paginationMixin };
 
-},{}],74:[function(require,module,exports){
+},{}],80:[function(require,module,exports){
 "use strict";
 
 module.exports = {
@@ -4936,7 +5675,7 @@ module.exports = {
     list: require("./list")
 };
 
-},{"./line":75,"./list":76}],75:[function(require,module,exports){
+},{"./line":81,"./list":82}],81:[function(require,module,exports){
 /**@jsx*/
 "use strict";
 
@@ -4952,19 +5691,19 @@ var builtInComponentsMixin = require("../mixin/built-in-components");
 
 var lineMixin = {
     /**
-     * React component name.
-     */
+    * React component name.
+    */
     displayName: "selection-line",
 
     /**
-     * Mixin dependancies.
-     */
+    * Mixin dependancies.
+    */
     mixins: [translationMixin, definitionMixin, referenceMixin, builtInComponentsMixin],
 
     /**
-     * Default properties for the line.
-     * @returns {{isSelection: boolean}}
-     */
+    * Default properties for the line.
+    * @returns {{isSelection: boolean}}
+    */
     getDefaultProps: function getLineDefaultProps() {
         return {
             isSelection: true,
@@ -4973,22 +5712,22 @@ var lineMixin = {
     },
 
     /**
-     * line property validation.
-     * @type {Object}
-     */
+    * line property validation.
+    * @type {Object}
+    */
     propTypes: {
         data: type("object"),
-        isSelection: type("bool"),
         isSelected: type("bool"),
+        isSelection: type("bool"),
         onLineClick: type("func"),
         onSelection: type("func"),
         operationList: type("array")
     },
 
     /**
-     * State initialization.
-     * @returns {{isSelected: boolean, lineItem: *}}
-     */
+    * State initialization.
+    * @returns {{isSelected: boolean, lineItem: *}}
+    */
     getInitialState: function getLineInitialState() {
         return {
             isSelected: this.props.isSelected || false
@@ -4996,9 +5735,9 @@ var lineMixin = {
     },
 
     /**
-     * Update properties on component.
-     * @param nextProps next properties
-     */
+    * Update properties on component.
+    * @param nextProps next properties
+    */
     componentWillReceiveProps: function componentWillReceiveProps(nextProps) {
         if (nextProps.isSelected !== undefined) {
             this.setState({ isSelected: nextProps.isSelected });
@@ -5006,9 +5745,9 @@ var lineMixin = {
     },
 
     /**
-     * Get the line value.
-     * @returns {{item: *, isSelected: (*|isSelected|boolean)}}
-     */
+    * Get the line value.
+    * @returns {{item: *, isSelected: (*|isSelected|boolean)}}
+    */
     getValue: function getLineValue() {
         return {
             item: this.props.data,
@@ -5017,9 +5756,9 @@ var lineMixin = {
     },
 
     /**
-     * Selection Click handler.
-     * @param event
-     */
+    * Selection Click handler.
+    * @param event
+    */
     _handleSelectionClick: function handleSelectionClick(event) {
         var select = !this.state.isSelected;
         this.setState({ isSelected: select });
@@ -5029,9 +5768,9 @@ var lineMixin = {
     },
 
     /**
-     * Line Click handler.
-     * @param event
-     */
+    * Line Click handler.
+    * @param event
+    */
     _handleLineClick: function handleLineClick(event) {
         if (this.props.onLineClick) {
             this.props.onLineClick(this.props.data);
@@ -5039,13 +5778,13 @@ var lineMixin = {
     },
 
     /**
-     * Render the left box for selection
-     * @returns {XML}
-     */
+    * Render the left box for selection
+    * @returns {XML}
+    */
     _renderSelectionBox: function renderSelectionBox() {
         if (this.props.isSelection) {
             var selectionClass = this.state.isSelected ? "selected" : "no-selection";
-            //var image = this.state.isSelected? undefined : <img src={this.state.lineItem[this.props.iconfield]}/>
+            //let image = this.state.isSelected? undefined : <img src={this.state.lineItem[this.props.iconfield]}/>
             return React.createElement(
                 "div",
                 { className: "sl-selection " + selectionClass },
@@ -5056,9 +5795,9 @@ var lineMixin = {
     },
 
     /**
-     * render content for a line.
-     * @returns {*}
-     */
+    * render content for a line.
+    * @returns {*}
+    */
     _renderLineContent: function renderLineContent() {
         if (this.renderLineContent) {
             return this.renderLineContent(this.props.data);
@@ -5081,8 +5820,8 @@ var lineMixin = {
     },
 
     /**
-     * Render actions wich can be applied on the line
-     */
+    * Render actions wich can be applied on the line
+    */
     _renderActions: function renderLineActions() {
         if (this.props.operationList.length > 0) {
             return React.createElement(
@@ -5094,9 +5833,9 @@ var lineMixin = {
     },
 
     /**
-     * Render line in list.
-     * @returns {*}
-     */
+    * Render line in list.
+    * @returns {*}
+    */
     render: function renderLine() {
         if (this.renderLine) {
             return this.renderLine();
@@ -5118,8 +5857,7 @@ var lineMixin = {
 
 module.exports = { mixin: lineMixin };
 
-},{"../../common/i18n":34,"../../common/input/checkbox":39,"../../common/mixin/definition":49,"../../common/mixin/reference-property":53,"../action-contextual":68,"../mixin/built-in-components":70}],76:[function(require,module,exports){
-/**@jsx*/
+},{"../../common/i18n":38,"../../common/input/checkbox":43,"../../common/mixin/definition":53,"../../common/mixin/reference-property":58,"../action-contextual":74,"../mixin/built-in-components":76}],82:[function(require,module,exports){
 "use strict";
 
 var builder = window.Focus.component.builder;
@@ -5134,19 +5872,19 @@ var checkIsNotNull = window.Focus.util.object.checkIsNotNull;
 
 var listMixin = {
     /**
-     * Display name.
-     */
+    * Display name.
+    */
     displayName: "selection-list",
 
     /**
-     * Mixin dependancies.
-     */
+    * Mixin dependancies.
+    */
     mixins: [translationMixin, infiniteScrollMixin, referenceMixin],
 
     /**
-     * Default properties for the list.
-     * @returns {{isSelection: boolean}} the default properties
-     */
+    * Default properties for the list.
+    * @returns {{isSelection: boolean}} the default properties
+    */
     getDefaultProps: function getListDefaultProps() {
         return {
             data: [],
@@ -5159,33 +5897,34 @@ var listMixin = {
     },
 
     /**
-     * list property validation.
-     * @type {Object}
-     */
+    * list property validation.
+    * @type {Object}
+    */
     propTypes: {
         data: type("array"),
-        isSelection: type("bool"),
-        onSelection: type("func"),
-        onLineClick: type("func"),
-        isLoading: type("bool"),
-        loader: type("func"),
-        operationList: type("array"),
         idField: type("string"),
+        isLoading: type("bool"),
+        isSelection: type("bool"),
         lineComponent: type("func", true),
+        loader: type("func"),
+        onLineClick: type("func"),
+        onSelection: type("func"),
+        operationList: type("array"),
+        selectionData: type("array"),
         selectionStatus: type("string")
     },
 
     /**
-     * called before component mount
-     */
+    * called before component mount
+    */
     componentWillMount: function componentWillMount() {
         checkIsNotNull("lineComponent", this.props.lineComponent);
     },
 
     /**
-     * Return selected items in the list.
-     * @return {Array} selected items
-     */
+    * Return selected items in the list.
+    * @return {Array} selected items
+    */
     getSelectedItems: function getListSelectedItems() {
         var selected = [];
         for (var i = 1; i < this.props.data.length + 1; i++) {
@@ -5199,16 +5938,16 @@ var listMixin = {
     },
 
     /**
-     * Render lines of the list.
-     * @returns {*} DOM for lines
-     */
+    * Render lines of the list.
+    * @returns {*} DOM for lines
+    */
     _renderLines: function renderLines() {
         var _this = this;
 
         var lineCount = 1;
         var LineComponent = this.props.lineComponent;
         return this.props.data.map(function (line) {
-            var isSelected;
+            var isSelected = undefined;
             switch (_this.props.selectionStatus) {
                 case "none":
                     isSelected = false;
@@ -5255,18 +5994,20 @@ var listMixin = {
             return React.createElement(
                 "li",
                 { className: "sl-button" },
-                React.createElement(Button, { label: "list.button.showMore",
-                    type: "button",
+                React.createElement(Button, {
                     handleOnClick: this.handleShowMore,
-                    style: style })
+                    label: "list.button.showMore",
+                    style: style,
+                    type: "button"
+                })
             );
         }
     },
 
     /**
-     * Render the list.
-     * @returns {XML} DOM of the component
-     */
+    * Render the list.
+    * @returns {XML} DOM of the component
+    */
     render: function renderList() {
         return React.createElement(
             "ul",
@@ -5280,7 +6021,7 @@ var listMixin = {
 
 module.exports = builder(listMixin);
 
-},{"../../common/button/action":18,"../../common/i18n":34,"../../common/mixin/reference-property":53,"../mixin/infinite-scroll":71,"./line":75}],77:[function(require,module,exports){
+},{"../../common/button/action":22,"../../common/i18n":38,"../../common/mixin/reference-property":58,"../mixin/infinite-scroll":77,"./line":81}],83:[function(require,module,exports){
 /**@jsx*/
 "use strict";
 
@@ -5354,7 +6095,7 @@ var listSummaryMixin = {
 
 module.exports = builder(listSummaryMixin);
 
-},{"../../common/button/action":18,"../../common/i18n/mixin":35,"../../common/topic-displayer":66}],78:[function(require,module,exports){
+},{"../../common/button/action":22,"../../common/i18n/mixin":39,"../../common/topic-displayer":72}],84:[function(require,module,exports){
 "use strict";
 
 module.exports = {
@@ -5362,15 +6103,23 @@ module.exports = {
     list: require("./list")
 };
 
-},{"./line":79,"./list":80}],79:[function(require,module,exports){
+},{"./line":85,"./list":86}],85:[function(require,module,exports){
+// Dependencies
+
 "use strict";
 
-var React = window.React;
 var type = window.Focus.component.types;
+
+// Mixins
+
 var translationMixin = require("../../common/i18n").mixin;
 var referenceMixin = require("../../common/mixin/reference-property");
 var definitionMixin = require("../../common/mixin/definition");
 var builtInComponentsMixin = require("../mixin/built-in-components");
+
+// Components
+
+var ContextualActions = require("../action-contextual").component;
 
 var lineMixin = {
     /**
@@ -5384,12 +6133,12 @@ var lineMixin = {
     mixins: [translationMixin, definitionMixin, referenceMixin, builtInComponentsMixin],
 
     /**@inheritDoc**/
-    getDefaultProps: function getLineDefaultProps() {
+    getDefaultProps: function getDefaultProps() {
         return {};
     },
 
     /**@inheritDoc**/
-    getInitialState: function getInitialSate() {
+    getInitialState: function getInitialState() {
         return {};
     },
 
@@ -5398,37 +6147,58 @@ var lineMixin = {
      * @type {Object}
      */
     propTypes: {
+        data: type("object"),
         saveAction: type("func"),
         deleteAction: type("func"),
         onLineClick: type("func"),
-        onSelection: type("func")
+        onSelection: type("func"),
+        operationList: type("array", true)
     },
 
     /**
      * Render line Actions.
      */
-    renderActions: function renderLineActions() {
-        //TODO ajouter les actions sur une ligne : edit save et delete
-        console.warn("line actions not implemented");
+    renderLineActions: function renderLineActions() {
+        if (this.props.operationList.length > 0) {
+            return React.createElement(
+                "div",
+                { "data-focus": "table-line-actions" },
+                React.createElement(ContextualActions, { operationList: this.props.operationList, operationParam: this.props.data })
+            );
+        }
     },
+    _onLineClickHandler: function _onLineClickHandler(data) {
+        var _this = this;
 
-    render: function renderLine() {
-        return this.renderLineContent();
+        return function () {
+            _this.props.onLineClick(data);
+        };
+    },
+    render: function render() {
+        return this.renderLineContent(this.props.data);
     }
 };
 
 module.exports = { mixin: lineMixin };
 
-},{"../../common/i18n":34,"../../common/mixin/definition":49,"../../common/mixin/reference-property":53,"../mixin/built-in-components":70}],80:[function(require,module,exports){
+},{"../../common/i18n":38,"../../common/mixin/definition":53,"../../common/mixin/reference-property":58,"../action-contextual":74,"../mixin/built-in-components":76}],86:[function(require,module,exports){
+// Dependencies
+
 "use strict";
 
 var builder = window.Focus.component.builder;
-var React = window.React;
 var type = window.Focus.component.types;
+var checkIsNotNull = window.Focus.util.object.checkIsNotNull;
+var React = window.React;
+
+// Mixins
+
 var infiniteScrollMixin = require("../mixin/infinite-scroll").mixin;
 var translationMixin = require("../../common/i18n").mixin;
 var referenceMixin = require("../../common/mixin/reference-property");
-var checkIsNotNull = window.Focus.util.object.checkIsNotNull;
+
+// Components
+
 var Button = require("../../common/button/action").component;
 
 var tableMixin = {
@@ -5442,11 +6212,12 @@ var tableMixin = {
      */
     mixins: [translationMixin, infiniteScrollMixin, referenceMixin],
 
-    getDefaultProps: function getListDefaultProps() {
+    getDefaultProps: function getDefaultProps() {
         return {
             data: [],
             idField: "id",
-            isLoading: false
+            isLoading: false,
+            operationList: []
         };
     },
 
@@ -5455,6 +6226,7 @@ var tableMixin = {
         onLineClick: type("func"),
         idField: type("string"),
         lineComponent: type("func", true),
+        operationList: type("array"),
         columns: type("object"),
         sortColumn: type("func"),
         isloading: type("bool"),
@@ -5468,7 +6240,7 @@ var tableMixin = {
         checkIsNotNull("lineComponent", this.props.lineComponent);
     },
 
-    _renderTableHeader: function renderTableHeader() {
+    _renderTableHeader: function _renderTableHeader() {
         var headerCols = [];
         for (var field in this.props.columns) {
             headerCols.push(this._renderColumnHeader(field));
@@ -5484,7 +6256,7 @@ var tableMixin = {
         );
     },
 
-    _sortColumnAction: function sortColumnAction(column, order) {
+    _sortColumnAction: function _sortColumnAction(column, order) {
         var currentComponent = this;
         return function (event) {
             event.preventDefault();
@@ -5494,7 +6266,7 @@ var tableMixin = {
 
     _renderColumnHeader: function _renderColumnHeader(name) {
         var colProperties = this.props.columns[name];
-        var sort;
+        var sort = undefined;
         if (!this.props.isEdit && !colProperties.noSort) {
             var order = colProperties.sort ? colProperties.sort : "asc";
             var iconClass = "fa fa-sort-" + order;
@@ -5516,21 +6288,20 @@ var tableMixin = {
     _renderTableBody: function renderTableBody() {
         var _this = this;
 
-        var lineCount = 1;
-        var lineComponent = this.props.lineComponent;
-        var content = this.props.data.map(function (line) {
-            return React.createElement(lineComponent, {
-                key: line[_this.props.idField],
-                data: line,
-                ref: "line" + lineCount++,
-                reference: _this._getReference(),
-                onSelection: _this.props.onSelection
-            });
-        });
         return React.createElement(
             "tbody",
             { className: "table-body" },
-            content
+            this.props.data.map(function (line, index) {
+                return React.createElement(_this.props.lineComponent, {
+                    key: line[_this.props.idField],
+                    data: line,
+                    ref: "line" + index,
+                    reference: _this._getReference(),
+                    onSelection: _this.props.onSelection,
+                    onLineClick: _this.props.onLineClick,
+                    operationList: _this.props.operationList
+                });
+            })
         );
     },
 
@@ -5548,8 +6319,7 @@ var tableMixin = {
                     React.createElement(
                         "td",
                         null,
-                        this.i18n("list.loading"),
-                        " ..."
+                        "" + this.i18n("list.loading") + " ..."
                     )
                 )
             );
@@ -5568,10 +6338,12 @@ var tableMixin = {
                     React.createElement(
                         "td",
                         { colSpan: Object.keys(this.props.columns).length },
-                        React.createElement(Button, { label: "list.button.showMore",
+                        React.createElement(Button, {
+                            label: "list.button.showMore",
                             type: "button",
                             handleOnClick: this.handleShowMore,
-                            style: style })
+                            style: style
+                        })
                     )
                 )
             );
@@ -5597,7 +6369,7 @@ var tableMixin = {
 
 module.exports = builder(tableMixin);
 
-},{"../../common/button/action":18,"../../common/i18n":34,"../../common/mixin/reference-property":53,"../mixin/infinite-scroll":71}],81:[function(require,module,exports){
+},{"../../common/button/action":22,"../../common/i18n":38,"../../common/mixin/reference-property":58,"../mixin/infinite-scroll":77}],87:[function(require,module,exports){
 "use strict";
 
 module.exports = {
@@ -5605,7 +6377,7 @@ module.exports = {
     list: require("./list")
 };
 
-},{"./line":82,"./list":83}],82:[function(require,module,exports){
+},{"./line":88,"./list":89}],88:[function(require,module,exports){
 /**@jsx*/
 "use strict";
 
@@ -5725,7 +6497,7 @@ var lineMixin = {
 
 module.exports = { mixin: lineMixin };
 
-},{"../../common/i18n":34,"../../common/mixin/definition":49,"../../common/mixin/reference-property":53,"../mixin/built-in-components":70}],83:[function(require,module,exports){
+},{"../../common/i18n":38,"../../common/mixin/definition":53,"../../common/mixin/reference-property":58,"../mixin/built-in-components":76}],89:[function(require,module,exports){
 "use strict";
 
 var builder = window.Focus.component.builder;
@@ -5849,7 +6621,7 @@ var listMixin = {
 
 module.exports = builder(listMixin);
 
-},{"../../common/button/action":18,"../../common/i18n":34,"../../common/mixin/reference-property":53,"../mixin/infinite-scroll":71,"./line":82,"uuid":276}],84:[function(require,module,exports){
+},{"../../common/button/action":22,"../../common/i18n":38,"../../common/mixin/reference-property":58,"../mixin/infinite-scroll":77,"./line":88,"uuid":317}],90:[function(require,module,exports){
 "use strict";
 
 var builder = window.Focus.component.builder;
@@ -5913,13 +6685,14 @@ var messageMixin = {
    * @return {JSX} The jsx.
    */
   render: function renderAlert() {
-    var cssClass = "alert alert-dismissable alert-" + this.props.type + " " + this.props.style.className;
+    var type = this.props.type && this.props.type === "error" ? "danger" : this.props.type;
+    var cssClass = "alert alert-dismissable alert-" + type + " " + this.props.style.className;
     return React.createElement(
       "div",
       { className: cssClass, "data-id": this.props.id, "data-focus": "message" },
       React.createElement(
         "button",
-        { type: "button", className: "close", "data-dismiss": "alert", onClick: this._handleOnClick },
+        { type: "button", className: "close", onClick: this._handleOnClick },
         "×"
       ),
       this._renderTitle(),
@@ -5933,7 +6706,7 @@ var messageMixin = {
 };
 module.exports = builder(messageMixin);
 
-},{}],85:[function(require,module,exports){
+},{}],91:[function(require,module,exports){
 "use strict";
 
 var type = window.Focus.component.types;
@@ -5956,7 +6729,67 @@ module.exports = {
   }
 };
 
-},{}],86:[function(require,module,exports){
+},{}],92:[function(require,module,exports){
+var baseIndexOf = require('../internal/baseIndexOf'),
+    cacheIndexOf = require('../internal/cacheIndexOf'),
+    createCache = require('../internal/createCache'),
+    isArrayLike = require('../internal/isArrayLike'),
+    restParam = require('../function/restParam');
+
+/**
+ * Creates an array of unique values that are included in all of the provided
+ * arrays using [`SameValueZero`](http://ecma-international.org/ecma-262/6.0/#sec-samevaluezero)
+ * for equality comparisons.
+ *
+ * @static
+ * @memberOf _
+ * @category Array
+ * @param {...Array} [arrays] The arrays to inspect.
+ * @returns {Array} Returns the new array of shared values.
+ * @example
+ * _.intersection([1, 2], [4, 2], [2, 1]);
+ * // => [2]
+ */
+var intersection = restParam(function(arrays) {
+  var othLength = arrays.length,
+      othIndex = othLength,
+      caches = Array(length),
+      indexOf = baseIndexOf,
+      isCommon = true,
+      result = [];
+
+  while (othIndex--) {
+    var value = arrays[othIndex] = isArrayLike(value = arrays[othIndex]) ? value : [];
+    caches[othIndex] = (isCommon && value.length >= 120) ? createCache(othIndex && value) : null;
+  }
+  var array = arrays[0],
+      index = -1,
+      length = array ? array.length : 0,
+      seen = caches[0];
+
+  outer:
+  while (++index < length) {
+    value = array[index];
+    if ((seen ? cacheIndexOf(seen, value) : indexOf(result, value, 0)) < 0) {
+      var othIndex = othLength;
+      while (--othIndex) {
+        var cache = caches[othIndex];
+        if ((cache ? cacheIndexOf(cache, value) : indexOf(arrays[othIndex], value, 0)) < 0) {
+          continue outer;
+        }
+      }
+      if (seen) {
+        seen.push(value);
+      }
+      result.push(value);
+    }
+  }
+  return result;
+});
+
+module.exports = intersection;
+
+},{"../function/restParam":135,"../internal/baseIndexOf":173,"../internal/cacheIndexOf":194,"../internal/createCache":204,"../internal/isArrayLike":227}],93:[function(require,module,exports){
 /**
  * Gets the last element of `array`.
  *
@@ -5977,14 +6810,14 @@ function last(array) {
 
 module.exports = last;
 
-},{}],87:[function(require,module,exports){
+},{}],94:[function(require,module,exports){
 var baseFlatten = require('../internal/baseFlatten'),
     baseUniq = require('../internal/baseUniq'),
     restParam = require('../function/restParam');
 
 /**
  * Creates an array of unique values, in order, from all of the provided arrays
- * using [`SameValueZero`](https://people.mozilla.org/~jorendorff/es6-draft.html#sec-samevaluezero)
+ * using [`SameValueZero`](http://ecma-international.org/ecma-262/6.0/#sec-samevaluezero)
  * for equality comparisons.
  *
  * @static
@@ -6003,7 +6836,7 @@ var union = restParam(function(arrays) {
 
 module.exports = union;
 
-},{"../function/restParam":128,"../internal/baseFlatten":156,"../internal/baseUniq":181}],88:[function(require,module,exports){
+},{"../function/restParam":135,"../internal/baseFlatten":166,"../internal/baseUniq":190}],95:[function(require,module,exports){
 module.exports = {
   'all': require('./collection/all'),
   'any': require('./collection/any'),
@@ -6049,13 +6882,13 @@ module.exports = {
   'where': require('./collection/where')
 };
 
-},{"./collection/all":89,"./collection/any":90,"./collection/at":91,"./collection/collect":92,"./collection/contains":93,"./collection/countBy":94,"./collection/detect":95,"./collection/each":96,"./collection/eachRight":97,"./collection/every":98,"./collection/filter":99,"./collection/find":100,"./collection/findLast":101,"./collection/findWhere":102,"./collection/foldl":103,"./collection/foldr":104,"./collection/forEach":105,"./collection/forEachRight":106,"./collection/groupBy":107,"./collection/include":108,"./collection/includes":109,"./collection/indexBy":110,"./collection/inject":111,"./collection/invoke":112,"./collection/map":113,"./collection/partition":114,"./collection/pluck":115,"./collection/reduce":116,"./collection/reduceRight":117,"./collection/reject":118,"./collection/sample":119,"./collection/select":120,"./collection/shuffle":121,"./collection/size":122,"./collection/some":123,"./collection/sortBy":124,"./collection/sortByAll":125,"./collection/sortByOrder":126,"./collection/where":127,"./math/max":258,"./math/min":259,"./math/sum":260}],89:[function(require,module,exports){
+},{"./collection/all":96,"./collection/any":97,"./collection/at":98,"./collection/collect":99,"./collection/contains":100,"./collection/countBy":101,"./collection/detect":102,"./collection/each":103,"./collection/eachRight":104,"./collection/every":105,"./collection/filter":106,"./collection/find":107,"./collection/findLast":108,"./collection/findWhere":109,"./collection/foldl":110,"./collection/foldr":111,"./collection/forEach":112,"./collection/forEachRight":113,"./collection/groupBy":114,"./collection/include":115,"./collection/includes":116,"./collection/indexBy":117,"./collection/inject":118,"./collection/invoke":119,"./collection/map":120,"./collection/partition":121,"./collection/pluck":122,"./collection/reduce":123,"./collection/reduceRight":124,"./collection/reject":125,"./collection/sample":126,"./collection/select":127,"./collection/shuffle":128,"./collection/size":129,"./collection/some":130,"./collection/sortBy":131,"./collection/sortByAll":132,"./collection/sortByOrder":133,"./collection/where":134,"./math/max":278,"./math/min":279,"./math/sum":280}],96:[function(require,module,exports){
 module.exports = require('./every');
 
-},{"./every":98}],90:[function(require,module,exports){
+},{"./every":105}],97:[function(require,module,exports){
 module.exports = require('./some');
 
-},{"./some":123}],91:[function(require,module,exports){
+},{"./some":130}],98:[function(require,module,exports){
 var baseAt = require('../internal/baseAt'),
     baseFlatten = require('../internal/baseFlatten'),
     restParam = require('../function/restParam');
@@ -6086,13 +6919,13 @@ var at = restParam(function(collection, props) {
 
 module.exports = at;
 
-},{"../function/restParam":128,"../internal/baseAt":143,"../internal/baseFlatten":156}],92:[function(require,module,exports){
+},{"../function/restParam":135,"../internal/baseAt":153,"../internal/baseFlatten":166}],99:[function(require,module,exports){
 module.exports = require('./map');
 
-},{"./map":113}],93:[function(require,module,exports){
+},{"./map":120}],100:[function(require,module,exports){
 module.exports = require('./includes');
 
-},{"./includes":109}],94:[function(require,module,exports){
+},{"./includes":116}],101:[function(require,module,exports){
 var createAggregator = require('../internal/createAggregator');
 
 /** Used for native method references. */
@@ -6148,16 +6981,16 @@ var countBy = createAggregator(function(result, value, key) {
 
 module.exports = countBy;
 
-},{"../internal/createAggregator":191}],95:[function(require,module,exports){
+},{"../internal/createAggregator":200}],102:[function(require,module,exports){
 module.exports = require('./find');
 
-},{"./find":100}],96:[function(require,module,exports){
+},{"./find":107}],103:[function(require,module,exports){
 module.exports = require('./forEach');
 
-},{"./forEach":105}],97:[function(require,module,exports){
+},{"./forEach":112}],104:[function(require,module,exports){
 module.exports = require('./forEachRight');
 
-},{"./forEachRight":106}],98:[function(require,module,exports){
+},{"./forEachRight":113}],105:[function(require,module,exports){
 var arrayEvery = require('../internal/arrayEvery'),
     baseCallback = require('../internal/baseCallback'),
     baseEvery = require('../internal/baseEvery'),
@@ -6215,7 +7048,7 @@ var arrayEvery = require('../internal/arrayEvery'),
 function every(collection, predicate, thisArg) {
   var func = isArray(collection) ? arrayEvery : baseEvery;
   if (thisArg && isIterateeCall(collection, predicate, thisArg)) {
-    predicate = null;
+    predicate = undefined;
   }
   if (typeof predicate != 'function' || thisArg !== undefined) {
     predicate = baseCallback(predicate, thisArg, 3);
@@ -6225,7 +7058,7 @@ function every(collection, predicate, thisArg) {
 
 module.exports = every;
 
-},{"../internal/arrayEvery":134,"../internal/baseCallback":144,"../internal/baseEvery":151,"../internal/isIterateeCall":212,"../lang/isArray":234}],99:[function(require,module,exports){
+},{"../internal/arrayEvery":141,"../internal/baseCallback":154,"../internal/baseEvery":161,"../internal/isIterateeCall":229,"../lang/isArray":254}],106:[function(require,module,exports){
 var arrayFilter = require('../internal/arrayFilter'),
     baseCallback = require('../internal/baseCallback'),
     baseFilter = require('../internal/baseFilter'),
@@ -6288,7 +7121,7 @@ function filter(collection, predicate, thisArg) {
 
 module.exports = filter;
 
-},{"../internal/arrayFilter":136,"../internal/baseCallback":144,"../internal/baseFilter":153,"../lang/isArray":234}],100:[function(require,module,exports){
+},{"../internal/arrayFilter":143,"../internal/baseCallback":154,"../internal/baseFilter":163,"../lang/isArray":254}],107:[function(require,module,exports){
 var baseEach = require('../internal/baseEach'),
     createFind = require('../internal/createFind');
 
@@ -6346,7 +7179,7 @@ var find = createFind(baseEach);
 
 module.exports = find;
 
-},{"../internal/baseEach":149,"../internal/createFind":196}],101:[function(require,module,exports){
+},{"../internal/baseEach":159,"../internal/createFind":207}],108:[function(require,module,exports){
 var baseEachRight = require('../internal/baseEachRight'),
     createFind = require('../internal/createFind');
 
@@ -6373,7 +7206,7 @@ var findLast = createFind(baseEachRight, true);
 
 module.exports = findLast;
 
-},{"../internal/baseEachRight":150,"../internal/createFind":196}],102:[function(require,module,exports){
+},{"../internal/baseEachRight":160,"../internal/createFind":207}],109:[function(require,module,exports){
 var baseMatches = require('../internal/baseMatches'),
     find = require('./find');
 
@@ -6412,13 +7245,13 @@ function findWhere(collection, source) {
 
 module.exports = findWhere;
 
-},{"../internal/baseMatches":169,"./find":100}],103:[function(require,module,exports){
+},{"../internal/baseMatches":178,"./find":107}],110:[function(require,module,exports){
 module.exports = require('./reduce');
 
-},{"./reduce":116}],104:[function(require,module,exports){
+},{"./reduce":123}],111:[function(require,module,exports){
 module.exports = require('./reduceRight');
 
-},{"./reduceRight":117}],105:[function(require,module,exports){
+},{"./reduceRight":124}],112:[function(require,module,exports){
 var arrayEach = require('../internal/arrayEach'),
     baseEach = require('../internal/baseEach'),
     createForEach = require('../internal/createForEach');
@@ -6457,7 +7290,7 @@ var forEach = createForEach(arrayEach, baseEach);
 
 module.exports = forEach;
 
-},{"../internal/arrayEach":132,"../internal/baseEach":149,"../internal/createForEach":197}],106:[function(require,module,exports){
+},{"../internal/arrayEach":139,"../internal/baseEach":159,"../internal/createForEach":208}],113:[function(require,module,exports){
 var arrayEachRight = require('../internal/arrayEachRight'),
     baseEachRight = require('../internal/baseEachRight'),
     createForEach = require('../internal/createForEach');
@@ -6485,7 +7318,7 @@ var forEachRight = createForEach(arrayEachRight, baseEachRight);
 
 module.exports = forEachRight;
 
-},{"../internal/arrayEachRight":133,"../internal/baseEachRight":150,"../internal/createForEach":197}],107:[function(require,module,exports){
+},{"../internal/arrayEachRight":140,"../internal/baseEachRight":160,"../internal/createForEach":208}],114:[function(require,module,exports){
 var createAggregator = require('../internal/createAggregator');
 
 /** Used for native method references. */
@@ -6546,9 +7379,9 @@ var groupBy = createAggregator(function(result, value, key) {
 
 module.exports = groupBy;
 
-},{"../internal/createAggregator":191}],108:[function(require,module,exports){
-arguments[4][93][0].apply(exports,arguments)
-},{"./includes":109,"dup":93}],109:[function(require,module,exports){
+},{"../internal/createAggregator":200}],115:[function(require,module,exports){
+arguments[4][100][0].apply(exports,arguments)
+},{"./includes":116,"dup":100}],116:[function(require,module,exports){
 var baseIndexOf = require('../internal/baseIndexOf'),
     getLength = require('../internal/getLength'),
     isArray = require('../lang/isArray'),
@@ -6562,7 +7395,7 @@ var nativeMax = Math.max;
 
 /**
  * Checks if `value` is in `collection` using
- * [`SameValueZero`](https://people.mozilla.org/~jorendorff/es6-draft.html#sec-samevaluezero)
+ * [`SameValueZero`](http://ecma-international.org/ecma-262/6.0/#sec-samevaluezero)
  * for equality comparisons. If `fromIndex` is negative, it is used as the offset
  * from the end of `collection`.
  *
@@ -6595,22 +7428,19 @@ function includes(collection, target, fromIndex, guard) {
     collection = values(collection);
     length = collection.length;
   }
-  if (!length) {
-    return false;
-  }
   if (typeof fromIndex != 'number' || (guard && isIterateeCall(target, fromIndex, guard))) {
     fromIndex = 0;
   } else {
     fromIndex = fromIndex < 0 ? nativeMax(length + fromIndex, 0) : (fromIndex || 0);
   }
   return (typeof collection == 'string' || !isArray(collection) && isString(collection))
-    ? (fromIndex < length && collection.indexOf(target, fromIndex) > -1)
-    : (baseIndexOf(collection, target, fromIndex) > -1);
+    ? (fromIndex <= length && collection.indexOf(target, fromIndex) > -1)
+    : (!!length && baseIndexOf(collection, target, fromIndex) > -1);
 }
 
 module.exports = includes;
 
-},{"../internal/baseIndexOf":163,"../internal/getLength":202,"../internal/isIterateeCall":212,"../internal/isLength":214,"../lang/isArray":234,"../lang/isString":251,"../object/values":265}],110:[function(require,module,exports){
+},{"../internal/baseIndexOf":173,"../internal/getLength":219,"../internal/isIterateeCall":229,"../internal/isLength":231,"../lang/isArray":254,"../lang/isString":271,"../object/values":287}],117:[function(require,module,exports){
 var createAggregator = require('../internal/createAggregator');
 
 /**
@@ -6665,9 +7495,9 @@ var indexBy = createAggregator(function(result, value, key) {
 
 module.exports = indexBy;
 
-},{"../internal/createAggregator":191}],111:[function(require,module,exports){
-arguments[4][103][0].apply(exports,arguments)
-},{"./reduce":116,"dup":103}],112:[function(require,module,exports){
+},{"../internal/createAggregator":200}],118:[function(require,module,exports){
+arguments[4][110][0].apply(exports,arguments)
+},{"./reduce":123,"dup":110}],119:[function(require,module,exports){
 var baseEach = require('../internal/baseEach'),
     invokePath = require('../internal/invokePath'),
     isArrayLike = require('../internal/isArrayLike'),
@@ -6703,7 +7533,7 @@ var invoke = restParam(function(collection, path, args) {
       result = isArrayLike(collection) ? Array(collection.length) : [];
 
   baseEach(collection, function(value) {
-    var func = isFunc ? path : ((isProp && value != null) ? value[path] : null);
+    var func = isFunc ? path : ((isProp && value != null) ? value[path] : undefined);
     result[++index] = func ? func.apply(value, args) : invokePath(value, path, args);
   });
   return result;
@@ -6711,7 +7541,7 @@ var invoke = restParam(function(collection, path, args) {
 
 module.exports = invoke;
 
-},{"../function/restParam":128,"../internal/baseEach":149,"../internal/invokePath":209,"../internal/isArrayLike":210,"../internal/isKey":213}],113:[function(require,module,exports){
+},{"../function/restParam":135,"../internal/baseEach":159,"../internal/invokePath":226,"../internal/isArrayLike":227,"../internal/isKey":230}],120:[function(require,module,exports){
 var arrayMap = require('../internal/arrayMap'),
     baseCallback = require('../internal/baseCallback'),
     baseMap = require('../internal/baseMap'),
@@ -6781,7 +7611,7 @@ function map(collection, iteratee, thisArg) {
 
 module.exports = map;
 
-},{"../internal/arrayMap":137,"../internal/baseCallback":144,"../internal/baseMap":168,"../lang/isArray":234}],114:[function(require,module,exports){
+},{"../internal/arrayMap":144,"../internal/baseCallback":154,"../internal/baseMap":177,"../lang/isArray":254}],121:[function(require,module,exports){
 var createAggregator = require('../internal/createAggregator');
 
 /**
@@ -6849,7 +7679,7 @@ var partition = createAggregator(function(result, value, key) {
 
 module.exports = partition;
 
-},{"../internal/createAggregator":191}],115:[function(require,module,exports){
+},{"../internal/createAggregator":200}],122:[function(require,module,exports){
 var map = require('./map'),
     property = require('../utility/property');
 
@@ -6882,7 +7712,7 @@ function pluck(collection, path) {
 
 module.exports = pluck;
 
-},{"../utility/property":273,"./map":113}],116:[function(require,module,exports){
+},{"../utility/property":314,"./map":120}],123:[function(require,module,exports){
 var arrayReduce = require('../internal/arrayReduce'),
     baseEach = require('../internal/baseEach'),
     createReduce = require('../internal/createReduce');
@@ -6899,7 +7729,8 @@ var arrayReduce = require('../internal/arrayReduce'),
  * `_.reduce`, `_.reduceRight`, and `_.transform`.
  *
  * The guarded methods are:
- * `assign`, `defaults`, `includes`, `merge`, `sortByAll`, and `sortByOrder`
+ * `assign`, `defaults`, `defaultsDeep`, `includes`, `merge`, `sortByAll`,
+ * and `sortByOrder`
  *
  * @static
  * @memberOf _
@@ -6927,7 +7758,7 @@ var reduce = createReduce(arrayReduce, baseEach);
 
 module.exports = reduce;
 
-},{"../internal/arrayReduce":138,"../internal/baseEach":149,"../internal/createReduce":198}],117:[function(require,module,exports){
+},{"../internal/arrayReduce":146,"../internal/baseEach":159,"../internal/createReduce":211}],124:[function(require,module,exports){
 var arrayReduceRight = require('../internal/arrayReduceRight'),
     baseEachRight = require('../internal/baseEachRight'),
     createReduce = require('../internal/createReduce');
@@ -6958,7 +7789,7 @@ var reduceRight = createReduce(arrayReduceRight, baseEachRight);
 
 module.exports = reduceRight;
 
-},{"../internal/arrayReduceRight":139,"../internal/baseEachRight":150,"../internal/createReduce":198}],118:[function(require,module,exports){
+},{"../internal/arrayReduceRight":147,"../internal/baseEachRight":160,"../internal/createReduce":211}],125:[function(require,module,exports){
 var arrayFilter = require('../internal/arrayFilter'),
     baseCallback = require('../internal/baseCallback'),
     baseFilter = require('../internal/baseFilter'),
@@ -7010,7 +7841,7 @@ function reject(collection, predicate, thisArg) {
 
 module.exports = reject;
 
-},{"../internal/arrayFilter":136,"../internal/baseCallback":144,"../internal/baseFilter":153,"../lang/isArray":234}],119:[function(require,module,exports){
+},{"../internal/arrayFilter":143,"../internal/baseCallback":154,"../internal/baseFilter":163,"../lang/isArray":254}],126:[function(require,module,exports){
 var baseRandom = require('../internal/baseRandom'),
     isIterateeCall = require('../internal/isIterateeCall'),
     toArray = require('../lang/toArray'),
@@ -7062,10 +7893,10 @@ function sample(collection, n, guard) {
 
 module.exports = sample;
 
-},{"../internal/baseRandom":173,"../internal/isIterateeCall":212,"../internal/toIterable":222,"../lang/toArray":256}],120:[function(require,module,exports){
+},{"../internal/baseRandom":182,"../internal/isIterateeCall":229,"../internal/toIterable":241,"../lang/toArray":276}],127:[function(require,module,exports){
 module.exports = require('./filter');
 
-},{"./filter":99}],121:[function(require,module,exports){
+},{"./filter":106}],128:[function(require,module,exports){
 var sample = require('./sample');
 
 /** Used as references for `-Infinity` and `Infinity`. */
@@ -7091,7 +7922,7 @@ function shuffle(collection) {
 
 module.exports = shuffle;
 
-},{"./sample":119}],122:[function(require,module,exports){
+},{"./sample":126}],129:[function(require,module,exports){
 var getLength = require('../internal/getLength'),
     isLength = require('../internal/isLength'),
     keys = require('../object/keys');
@@ -7123,7 +7954,7 @@ function size(collection) {
 
 module.exports = size;
 
-},{"../internal/getLength":202,"../internal/isLength":214,"../object/keys":261}],123:[function(require,module,exports){
+},{"../internal/getLength":219,"../internal/isLength":231,"../object/keys":282}],130:[function(require,module,exports){
 var arraySome = require('../internal/arraySome'),
     baseCallback = require('../internal/baseCallback'),
     baseSome = require('../internal/baseSome'),
@@ -7182,7 +8013,7 @@ var arraySome = require('../internal/arraySome'),
 function some(collection, predicate, thisArg) {
   var func = isArray(collection) ? arraySome : baseSome;
   if (thisArg && isIterateeCall(collection, predicate, thisArg)) {
-    predicate = null;
+    predicate = undefined;
   }
   if (typeof predicate != 'function' || thisArg !== undefined) {
     predicate = baseCallback(predicate, thisArg, 3);
@@ -7192,7 +8023,7 @@ function some(collection, predicate, thisArg) {
 
 module.exports = some;
 
-},{"../internal/arraySome":140,"../internal/baseCallback":144,"../internal/baseSome":176,"../internal/isIterateeCall":212,"../lang/isArray":234}],124:[function(require,module,exports){
+},{"../internal/arraySome":148,"../internal/baseCallback":154,"../internal/baseSome":185,"../internal/isIterateeCall":229,"../lang/isArray":254}],131:[function(require,module,exports){
 var baseCallback = require('../internal/baseCallback'),
     baseMap = require('../internal/baseMap'),
     baseSortBy = require('../internal/baseSortBy'),
@@ -7252,7 +8083,7 @@ function sortBy(collection, iteratee, thisArg) {
     return [];
   }
   if (thisArg && isIterateeCall(collection, iteratee, thisArg)) {
-    iteratee = null;
+    iteratee = undefined;
   }
   var index = -1;
   iteratee = baseCallback(iteratee, thisArg, 3);
@@ -7265,7 +8096,7 @@ function sortBy(collection, iteratee, thisArg) {
 
 module.exports = sortBy;
 
-},{"../internal/baseCallback":144,"../internal/baseMap":168,"../internal/baseSortBy":177,"../internal/compareAscending":189,"../internal/isIterateeCall":212}],125:[function(require,module,exports){
+},{"../internal/baseCallback":154,"../internal/baseMap":177,"../internal/baseSortBy":186,"../internal/compareAscending":198,"../internal/isIterateeCall":229}],132:[function(require,module,exports){
 var baseFlatten = require('../internal/baseFlatten'),
     baseSortByOrder = require('../internal/baseSortByOrder'),
     isIterateeCall = require('../internal/isIterateeCall'),
@@ -7319,16 +8150,16 @@ var sortByAll = restParam(function(collection, iteratees) {
 
 module.exports = sortByAll;
 
-},{"../function/restParam":128,"../internal/baseFlatten":156,"../internal/baseSortByOrder":178,"../internal/isIterateeCall":212}],126:[function(require,module,exports){
+},{"../function/restParam":135,"../internal/baseFlatten":166,"../internal/baseSortByOrder":187,"../internal/isIterateeCall":229}],133:[function(require,module,exports){
 var baseSortByOrder = require('../internal/baseSortByOrder'),
     isArray = require('../lang/isArray'),
     isIterateeCall = require('../internal/isIterateeCall');
 
 /**
  * This method is like `_.sortByAll` except that it allows specifying the
- * sort orders of the iteratees to sort by. A truthy value in `orders` will
- * sort the corresponding property name in ascending order while a falsey
- * value will sort it in descending order.
+ * sort orders of the iteratees to sort by. If `orders` is unspecified, all
+ * values are sorted in ascending order. Otherwise, a value is sorted in
+ * ascending order if its corresponding order is "asc", and descending if "desc".
  *
  * If a property name is provided for an iteratee the created `_.property`
  * style callback returns the property value of the given element.
@@ -7342,7 +8173,7 @@ var baseSortByOrder = require('../internal/baseSortByOrder'),
  * @category Collection
  * @param {Array|Object|string} collection The collection to iterate over.
  * @param {Function[]|Object[]|string[]} iteratees The iteratees to sort by.
- * @param {boolean[]} orders The sort orders of `iteratees`.
+ * @param {boolean[]} [orders] The sort orders of `iteratees`.
  * @param- {Object} [guard] Enables use as a callback for functions like `_.reduce`.
  * @returns {Array} Returns the new sorted array.
  * @example
@@ -7355,7 +8186,7 @@ var baseSortByOrder = require('../internal/baseSortByOrder'),
  * ];
  *
  * // sort by `user` in ascending order and by `age` in descending order
- * _.map(_.sortByOrder(users, ['user', 'age'], [true, false]), _.values);
+ * _.map(_.sortByOrder(users, ['user', 'age'], ['asc', 'desc']), _.values);
  * // => [['barney', 36], ['barney', 34], ['fred', 48], ['fred', 42]]
  */
 function sortByOrder(collection, iteratees, orders, guard) {
@@ -7363,7 +8194,7 @@ function sortByOrder(collection, iteratees, orders, guard) {
     return [];
   }
   if (guard && isIterateeCall(iteratees, orders, guard)) {
-    orders = null;
+    orders = undefined;
   }
   if (!isArray(iteratees)) {
     iteratees = iteratees == null ? [] : [iteratees];
@@ -7376,7 +8207,7 @@ function sortByOrder(collection, iteratees, orders, guard) {
 
 module.exports = sortByOrder;
 
-},{"../internal/baseSortByOrder":178,"../internal/isIterateeCall":212,"../lang/isArray":234}],127:[function(require,module,exports){
+},{"../internal/baseSortByOrder":187,"../internal/isIterateeCall":229,"../lang/isArray":254}],134:[function(require,module,exports){
 var baseMatches = require('../internal/baseMatches'),
     filter = require('./filter');
 
@@ -7415,7 +8246,7 @@ function where(collection, source) {
 
 module.exports = where;
 
-},{"../internal/baseMatches":169,"./filter":99}],128:[function(require,module,exports){
+},{"../internal/baseMatches":178,"./filter":106}],135:[function(require,module,exports){
 /** Used as the `TypeError` message for "Functions" methods. */
 var FUNC_ERROR_TEXT = 'Expected a function';
 
@@ -7475,11 +8306,11 @@ function restParam(func, start) {
 
 module.exports = restParam;
 
-},{}],129:[function(require,module,exports){
+},{}],136:[function(require,module,exports){
 (function (global){
 /**
  * @license
- * lodash 3.9.3 (Custom Build) <https://lodash.com/>
+ * lodash 3.10.0 (Custom Build) <https://lodash.com/>
  * Build: `lodash modern -d -o ./index.js`
  * Copyright 2012-2015 The Dojo Foundation <http://dojofoundation.org/>
  * Based on Underscore.js 1.8.3 <http://underscorejs.org/LICENSE>
@@ -7492,7 +8323,7 @@ module.exports = restParam;
   var undefined;
 
   /** Used as the semantic version number. */
-  var VERSION = '3.9.3';
+  var VERSION = '3.10.0';
 
   /** Used to compose bitmasks for wrapper metadata. */
   var BIND_FLAG = 1,
@@ -7513,9 +8344,11 @@ module.exports = restParam;
   var HOT_COUNT = 150,
       HOT_SPAN = 16;
 
+  /** Used as the size to enable large array optimizations. */
+  var LARGE_ARRAY_SIZE = 200;
+
   /** Used to indicate the type of lazy iteratees. */
-  var LAZY_DROP_WHILE_FLAG = 0,
-      LAZY_FILTER_FLAG = 1,
+  var LAZY_FILTER_FLAG = 1,
       LAZY_MAP_FLAG = 2;
 
   /** Used as the `TypeError` message for "Functions" methods. */
@@ -7572,11 +8405,10 @@ module.exports = restParam;
       rePropName = /[^.[\]]+|\[(?:(-?\d+(?:\.\d+)?)|(["'])((?:(?!\2)[^\n\\]|\\.)*?)\2)\]/g;
 
   /**
-   * Used to match `RegExp` [special characters](http://www.regular-expressions.info/characters.html#special).
-   * In addition to special characters the forward slash is escaped to allow for
-   * easier `eval` use and `Function` compilation.
+   * Used to match `RegExp` [syntax characters](http://ecma-international.org/ecma-262/6.0/#sec-patterns)
+   * and those outlined by [`EscapeRegExpPattern`](http://ecma-international.org/ecma-262/6.0/#sec-escaperegexppattern).
    */
-  var reRegExpChars = /[.*+?^${}()|[\]\/\\]/g,
+  var reRegExpChars = /^[:!,]|[\\^$.*+?()[\]{}|\/]|(^[0-9a-fA-Fnrtuvx])|([\n\r\u2028\u2029])/g,
       reHasRegExpChars = RegExp(reRegExpChars.source);
 
   /** Used to match [combining diacritical marks](https://en.wikipedia.org/wiki/Combining_Diacritical_Marks). */
@@ -7585,7 +8417,7 @@ module.exports = restParam;
   /** Used to match backslashes in property paths. */
   var reEscapeChar = /\\(\\)?/g;
 
-  /** Used to match [ES template delimiters](https://people.mozilla.org/~jorendorff/es6-draft.html#sec-template-literal-lexical-components). */
+  /** Used to match [ES template delimiters](http://ecma-international.org/ecma-262/6.0/#sec-template-literal-lexical-components). */
   var reEsTemplate = /\$\{([^\\}]*(?:\\.[^\\}]*)*)\}/g;
 
   /** Used to match `RegExp` flags from their coerced string values. */
@@ -7617,25 +8449,13 @@ module.exports = restParam;
     return RegExp(upper + '+(?=' + upper + lower + ')|' + upper + '?' + lower + '|' + upper + '+|[0-9]+', 'g');
   }());
 
-  /** Used to detect and test for whitespace. */
-  var whitespace = (
-    // Basic whitespace characters.
-    ' \t\x0b\f\xa0\ufeff' +
-
-    // Line terminators.
-    '\n\r\u2028\u2029' +
-
-    // Unicode category "Zs" space separators.
-    '\u1680\u180e\u2000\u2001\u2002\u2003\u2004\u2005\u2006\u2007\u2008\u2009\u200a\u202f\u205f\u3000'
-  );
-
   /** Used to assign default `context` object properties. */
   var contextProps = [
     'Array', 'ArrayBuffer', 'Date', 'Error', 'Float32Array', 'Float64Array',
     'Function', 'Int8Array', 'Int16Array', 'Int32Array', 'Math', 'Number',
-    'Object', 'RegExp', 'Set', 'String', '_', 'clearTimeout', 'document',
-    'isFinite', 'parseFloat', 'parseInt', 'setTimeout', 'TypeError', 'Uint8Array',
-    'Uint8ClampedArray', 'Uint16Array', 'Uint32Array', 'WeakMap', 'window'
+    'Object', 'RegExp', 'Set', 'String', '_', 'clearTimeout', 'isFinite',
+    'parseFloat', 'parseInt', 'setTimeout', 'TypeError', 'Uint8Array',
+    'Uint8ClampedArray', 'Uint16Array', 'Uint32Array', 'WeakMap'
   ];
 
   /** Used to make template sourceURLs easier to identify. */
@@ -7670,13 +8490,6 @@ module.exports = restParam;
   cloneableTags[errorTag] = cloneableTags[funcTag] =
   cloneableTags[mapTag] = cloneableTags[setTag] =
   cloneableTags[weakMapTag] = false;
-
-  /** Used as an internal `_.debounce` options object by `_.throttle`. */
-  var debounceOptions = {
-    'leading': false,
-    'maxWait': 0,
-    'trailing': false
-  };
 
   /** Used to map latin-1 supplementary letters to basic latin letters. */
   var deburredLetters = {
@@ -7723,6 +8536,15 @@ module.exports = restParam;
   var objectTypes = {
     'function': true,
     'object': true
+  };
+
+  /** Used to escape characters for inclusion in compiled regexes. */
+  var regexpEscapes = {
+    '0': 'x30', '1': 'x31', '2': 'x32', '3': 'x33', '4': 'x34',
+    '5': 'x35', '6': 'x36', '7': 'x37', '8': 'x38', '9': 'x39',
+    'A': 'x41', 'B': 'x42', 'C': 'x43', 'D': 'x44', 'E': 'x45', 'F': 'x46',
+    'a': 'x61', 'b': 'x62', 'c': 'x63', 'd': 'x64', 'e': 'x65', 'f': 'x66',
+    'n': 'x6e', 'r': 'x72', 't': 'x74', 'u': 'x75', 'v': 'x76', 'x': 'x78'
   };
 
   /** Used to escape characters for inclusion in compiled string literals. */
@@ -7865,9 +8687,6 @@ module.exports = restParam;
    * @returns {string} Returns the string.
    */
   function baseToString(value) {
-    if (typeof value == 'string') {
-      return value;
-    }
     return value == null ? '' : (value + '');
   }
 
@@ -7909,8 +8728,8 @@ module.exports = restParam;
    * sort them in ascending order.
    *
    * @private
-   * @param {Object} object The object to compare to `other`.
-   * @param {Object} other The object to compare to `object`.
+   * @param {Object} object The object to compare.
+   * @param {Object} other The other object to compare.
    * @returns {number} Returns the sort order indicator for `object`.
    */
   function compareAscending(object, other) {
@@ -7918,16 +8737,16 @@ module.exports = restParam;
   }
 
   /**
-   * Used by `_.sortByOrder` to compare multiple properties of each element
-   * in a collection and stable sort them in the following order:
+   * Used by `_.sortByOrder` to compare multiple properties of a value to another
+   * and stable sort them.
    *
-   * If `orders` is unspecified, sort in ascending order for all properties.
-   * Otherwise, for each property, sort in ascending order if its corresponding value in
-   * orders is true, and descending order if false.
+   * If `orders` is unspecified, all valuess are sorted in ascending order. Otherwise,
+   * a value is sorted in ascending order if its corresponding order is "asc", and
+   * descending if "desc".
    *
    * @private
-   * @param {Object} object The object to compare to `other`.
-   * @param {Object} other The object to compare to `object`.
+   * @param {Object} object The object to compare.
+   * @param {Object} other The other object to compare.
    * @param {boolean[]} orders The order to sort by for each property.
    * @returns {number} Returns the sort order indicator for `object`.
    */
@@ -7944,7 +8763,8 @@ module.exports = restParam;
         if (index >= ordersLength) {
           return result;
         }
-        return result * (orders[index] ? 1 : -1);
+        var order = orders[index];
+        return result * ((order === 'asc' || order === true) ? 1 : -1);
       }
     }
     // Fixes an `Array#sort` bug in the JS engine embedded in Adobe applications
@@ -7980,8 +8800,25 @@ module.exports = restParam;
   }
 
   /**
-   * Used by `_.template` to escape characters for inclusion in compiled
-   * string literals.
+   * Used by `_.escapeRegExp` to escape characters for inclusion in compiled regexes.
+   *
+   * @private
+   * @param {string} chr The matched character to escape.
+   * @param {string} leadingChar The capture group for a leading character.
+   * @param {string} whitespaceChar The capture group for a whitespace character.
+   * @returns {string} Returns the escaped character.
+   */
+  function escapeRegExpChar(chr, leadingChar, whitespaceChar) {
+    if (leadingChar) {
+      chr = regexpEscapes[chr];
+    } else if (whitespaceChar) {
+      chr = stringEscapes[chr];
+    }
+    return '\\' + chr;
+  }
+
+  /**
+   * Used by `_.template` to escape characters for inclusion in compiled string literals.
    *
    * @private
    * @param {string} chr The matched character to escape.
@@ -8192,9 +9029,6 @@ module.exports = restParam;
         objectProto = Object.prototype,
         stringProto = String.prototype;
 
-    /** Used to detect DOM support. */
-    var document = (document = context.window) ? document.document : null;
-
     /** Used to resolve the decompiled source of functions. */
     var fnToString = Function.prototype.toString;
 
@@ -8205,56 +9039,42 @@ module.exports = restParam;
     var idCounter = 0;
 
     /**
-     * Used to resolve the [`toStringTag`](https://people.mozilla.org/~jorendorff/es6-draft.html#sec-object.prototype.tostring)
+     * Used to resolve the [`toStringTag`](http://ecma-international.org/ecma-262/6.0/#sec-object.prototype.tostring)
      * of values.
      */
     var objToString = objectProto.toString;
 
     /** Used to restore the original `_` reference in `_.noConflict`. */
-    var oldDash = context._;
+    var oldDash = root._;
 
     /** Used to detect if a method is native. */
     var reIsNative = RegExp('^' +
-      escapeRegExp(fnToString.call(hasOwnProperty))
+      fnToString.call(hasOwnProperty).replace(/[\\^$.*+?()[\]{}|]/g, '\\$&')
       .replace(/hasOwnProperty|(function).*?(?=\\\()| for .+?(?=\\\])/g, '$1.*?') + '$'
     );
 
     /** Native method references. */
-    var ArrayBuffer = getNative(context, 'ArrayBuffer'),
-        bufferSlice = getNative(ArrayBuffer && new ArrayBuffer(0), 'slice'),
-        ceil = Math.ceil,
+    var ArrayBuffer = context.ArrayBuffer,
         clearTimeout = context.clearTimeout,
-        floor = Math.floor,
-        getPrototypeOf = getNative(Object, 'getPrototypeOf'),
         parseFloat = context.parseFloat,
-        push = arrayProto.push,
+        pow = Math.pow,
+        propertyIsEnumerable = objectProto.propertyIsEnumerable,
         Set = getNative(context, 'Set'),
         setTimeout = context.setTimeout,
         splice = arrayProto.splice,
-        Uint8Array = getNative(context, 'Uint8Array'),
+        Uint8Array = context.Uint8Array,
         WeakMap = getNative(context, 'WeakMap');
 
-    /** Used to clone array buffers. */
-    var Float64Array = (function() {
-      // Safari 5 errors when using an array buffer to initialize a typed array
-      // where the array buffer's `byteLength` is not a multiple of the typed
-      // array's `BYTES_PER_ELEMENT`.
-      try {
-        var func = getNative(context, 'Float64Array'),
-            result = new func(new ArrayBuffer(10), 0, 1) && func;
-      } catch(e) {}
-      return result || null;
-    }());
-
     /* Native method references for those with the same name as other `lodash` methods. */
-    var nativeCreate = getNative(Object, 'create'),
+    var nativeCeil = Math.ceil,
+        nativeCreate = getNative(Object, 'create'),
+        nativeFloor = Math.floor,
         nativeIsArray = getNative(Array, 'isArray'),
         nativeIsFinite = context.isFinite,
         nativeKeys = getNative(Object, 'keys'),
         nativeMax = Math.max,
         nativeMin = Math.min,
         nativeNow = getNative(Date, 'now'),
-        nativeNumIsFinite = getNative(Number, 'isFinite'),
         nativeParseInt = context.parseInt,
         nativeRandom = Math.random;
 
@@ -8267,11 +9087,8 @@ module.exports = restParam;
         MAX_ARRAY_INDEX = MAX_ARRAY_LENGTH - 1,
         HALF_MAX_ARRAY_LENGTH = MAX_ARRAY_LENGTH >>> 1;
 
-    /** Used as the size, in bytes, of each `Float64Array` element. */
-    var FLOAT64_BYTES_PER_ELEMENT = Float64Array ? Float64Array.BYTES_PER_ELEMENT : 0;
-
     /**
-     * Used as the [maximum length](https://people.mozilla.org/~jorendorff/es6-draft.html#sec-number.max_safe_integer)
+     * Used as the [maximum length](http://ecma-international.org/ecma-262/6.0/#sec-number.max_safe_integer)
      * of an array-like value.
      */
     var MAX_SAFE_INTEGER = 9007199254740991;
@@ -8287,15 +9104,16 @@ module.exports = restParam;
     /**
      * Creates a `lodash` object which wraps `value` to enable implicit chaining.
      * Methods that operate on and return arrays, collections, and functions can
-     * be chained together. Methods that return a boolean or single value will
-     * automatically end the chain returning the unwrapped value. Explicit chaining
-     * may be enabled using `_.chain`. The execution of chained methods is lazy,
-     * that is, execution is deferred until `_#value` is implicitly or explicitly
-     * called.
+     * be chained together. Methods that retrieve a single value or may return a
+     * primitive value will automatically end the chain returning the unwrapped
+     * value. Explicit chaining may be enabled using `_.chain`. The execution of
+     * chained methods is lazy, that is, execution is deferred until `_#value`
+     * is implicitly or explicitly called.
      *
      * Lazy evaluation allows several methods to support shortcut fusion. Shortcut
-     * fusion is an optimization that merges iteratees to avoid creating intermediate
-     * arrays and reduce the number of iteratee executions.
+     * fusion is an optimization strategy which merge iteratee calls; this can help
+     * to avoid the creation of intermediate data structures and greatly reduce the
+     * number of iteratee executions.
      *
      * Chaining is supported in custom builds as long as the `_#value` method is
      * directly or indirectly included in the build.
@@ -8318,36 +9136,37 @@ module.exports = restParam;
      * The chainable wrapper methods are:
      * `after`, `ary`, `assign`, `at`, `before`, `bind`, `bindAll`, `bindKey`,
      * `callback`, `chain`, `chunk`, `commit`, `compact`, `concat`, `constant`,
-     * `countBy`, `create`, `curry`, `debounce`, `defaults`, `defer`, `delay`,
-     * `difference`, `drop`, `dropRight`, `dropRightWhile`, `dropWhile`, `fill`,
-     * `filter`, `flatten`, `flattenDeep`, `flow`, `flowRight`, `forEach`,
-     * `forEachRight`, `forIn`, `forInRight`, `forOwn`, `forOwnRight`, `functions`,
-     * `groupBy`, `indexBy`, `initial`, `intersection`, `invert`, `invoke`, `keys`,
-     * `keysIn`, `map`, `mapKeys`, `mapValues`, `matches`, `matchesProperty`,
-     * `memoize`, `merge`, `method`, `methodOf`, `mixin`, `negate`, `omit`, `once`,
-     * `pairs`, `partial`, `partialRight`, `partition`, `pick`, `plant`, `pluck`,
-     * `property`, `propertyOf`, `pull`, `pullAt`, `push`, `range`, `rearg`,
-     * `reject`, `remove`, `rest`, `restParam`, `reverse`, `set`, `shuffle`,
-     * `slice`, `sort`, `sortBy`, `sortByAll`, `sortByOrder`, `splice`, `spread`,
-     * `take`, `takeRight`, `takeRightWhile`, `takeWhile`, `tap`, `throttle`,
-     * `thru`, `times`, `toArray`, `toPlainObject`, `transform`, `union`, `uniq`,
-     * `unshift`, `unzip`, `unzipWith`, `values`, `valuesIn`, `where`, `without`,
-     * `wrap`, `xor`, `zip`, `zipObject`, `zipWith`
+     * `countBy`, `create`, `curry`, `debounce`, `defaults`, `defaultsDeep`,
+     * `defer`, `delay`, `difference`, `drop`, `dropRight`, `dropRightWhile`,
+     * `dropWhile`, `fill`, `filter`, `flatten`, `flattenDeep`, `flow`, `flowRight`,
+     * `forEach`, `forEachRight`, `forIn`, `forInRight`, `forOwn`, `forOwnRight`,
+     * `functions`, `groupBy`, `indexBy`, `initial`, `intersection`, `invert`,
+     * `invoke`, `keys`, `keysIn`, `map`, `mapKeys`, `mapValues`, `matches`,
+     * `matchesProperty`, `memoize`, `merge`, `method`, `methodOf`, `mixin`,
+     * `modArgs`, `negate`, `omit`, `once`, `pairs`, `partial`, `partialRight`,
+     * `partition`, `pick`, `plant`, `pluck`, `property`, `propertyOf`, `pull`,
+     * `pullAt`, `push`, `range`, `rearg`, `reject`, `remove`, `rest`, `restParam`,
+     * `reverse`, `set`, `shuffle`, `slice`, `sort`, `sortBy`, `sortByAll`,
+     * `sortByOrder`, `splice`, `spread`, `take`, `takeRight`, `takeRightWhile`,
+     * `takeWhile`, `tap`, `throttle`, `thru`, `times`, `toArray`, `toPlainObject`,
+     * `transform`, `union`, `uniq`, `unshift`, `unzip`, `unzipWith`, `values`,
+     * `valuesIn`, `where`, `without`, `wrap`, `xor`, `zip`, `zipObject`, `zipWith`
      *
      * The wrapper methods that are **not** chainable by default are:
-     * `add`, `attempt`, `camelCase`, `capitalize`, `clone`, `cloneDeep`, `deburr`,
-     * `endsWith`, `escape`, `escapeRegExp`, `every`, `find`, `findIndex`, `findKey`,
-     * `findLast`, `findLastIndex`, `findLastKey`, `findWhere`, `first`, `get`,
-     * `gt`, `gte`, `has`, `identity`, `includes`, `indexOf`, `inRange`, `isArguments`,
-     * `isArray`, `isBoolean`, `isDate`, `isElement`, `isEmpty`, `isEqual`, `isError`,
-     * `isFinite` `isFunction`, `isMatch`, `isNative`, `isNaN`, `isNull`, `isNumber`,
-     * `isObject`, `isPlainObject`, `isRegExp`, `isString`, `isUndefined`,
-     * `isTypedArray`, `join`, `kebabCase`, `last`, `lastIndexOf`, `lt`, `lte`,
-     * `max`, `min`, `noConflict`, `noop`, `now`, `pad`, `padLeft`, `padRight`,
-     * `parseInt`, `pop`, `random`, `reduce`, `reduceRight`, `repeat`, `result`,
-     * `runInContext`, `shift`, `size`, `snakeCase`, `some`, `sortedIndex`,
-     * `sortedLastIndex`, `startCase`, `startsWith`, `sum`, `template`, `trim`,
-     * `trimLeft`, `trimRight`, `trunc`, `unescape`, `uniqueId`, `value`, and `words`
+     * `add`, `attempt`, `camelCase`, `capitalize`, `ceil`, `clone`, `cloneDeep`,
+     * `deburr`, `endsWith`, `escape`, `escapeRegExp`, `every`, `find`, `findIndex`,
+     * `findKey`, `findLast`, `findLastIndex`, `findLastKey`, `findWhere`, `first`,
+     * `floor`, `get`, `gt`, `gte`, `has`, `identity`, `includes`, `indexOf`,
+     * `inRange`, `isArguments`, `isArray`, `isBoolean`, `isDate`, `isElement`,
+     * `isEmpty`, `isEqual`, `isError`, `isFinite` `isFunction`, `isMatch`,
+     * `isNative`, `isNaN`, `isNull`, `isNumber`, `isObject`, `isPlainObject`,
+     * `isRegExp`, `isString`, `isUndefined`, `isTypedArray`, `join`, `kebabCase`,
+     * `last`, `lastIndexOf`, `lt`, `lte`, `max`, `min`, `noConflict`, `noop`,
+     * `now`, `pad`, `padLeft`, `padRight`, `parseInt`, `pop`, `random`, `reduce`,
+     * `reduceRight`, `repeat`, `result`, `round`, `runInContext`, `shift`, `size`,
+     * `snakeCase`, `some`, `sortedIndex`, `sortedLastIndex`, `startCase`,
+     * `startsWith`, `sum`, `template`, `trim`, `trimLeft`, `trimRight`, `trunc`,
+     * `unescape`, `uniqueId`, `value`, and `words`
      *
      * The wrapper method `sample` will return a wrapped value when `n` is provided,
      * otherwise an unwrapped value is returned.
@@ -8422,27 +9241,6 @@ module.exports = restParam;
      */
     var support = lodash.support = {};
 
-    (function(x) {
-      var Ctor = function() { this.x = x; },
-          object = { '0': x, 'length': x },
-          props = [];
-
-      Ctor.prototype = { 'valueOf': x, 'y': x };
-      for (var key in new Ctor) { props.push(key); }
-
-      /**
-       * Detect if the DOM is supported.
-       *
-       * @memberOf _.support
-       * @type boolean
-       */
-      try {
-        support.dom = document.createDocumentFragment().nodeType === 11;
-      } catch(e) {
-        support.dom = false;
-      }
-    }(1, 0));
-
     /**
      * By default, the template delimiters used by lodash are like those in
      * embedded Ruby (ERB). Change the following template settings to use
@@ -8514,13 +9312,12 @@ module.exports = restParam;
      */
     function LazyWrapper(value) {
       this.__wrapped__ = value;
-      this.__actions__ = null;
+      this.__actions__ = [];
       this.__dir__ = 1;
-      this.__dropCount__ = 0;
       this.__filtered__ = false;
-      this.__iteratees__ = null;
+      this.__iteratees__ = [];
       this.__takeCount__ = POSITIVE_INFINITY;
-      this.__views__ = null;
+      this.__views__ = [];
     }
 
     /**
@@ -8532,17 +9329,13 @@ module.exports = restParam;
      * @returns {Object} Returns the cloned `LazyWrapper` object.
      */
     function lazyClone() {
-      var actions = this.__actions__,
-          iteratees = this.__iteratees__,
-          views = this.__views__,
-          result = new LazyWrapper(this.__wrapped__);
-
-      result.__actions__ = actions ? arrayCopy(actions) : null;
+      var result = new LazyWrapper(this.__wrapped__);
+      result.__actions__ = arrayCopy(this.__actions__);
       result.__dir__ = this.__dir__;
       result.__filtered__ = this.__filtered__;
-      result.__iteratees__ = iteratees ? arrayCopy(iteratees) : null;
+      result.__iteratees__ = arrayCopy(this.__iteratees__);
       result.__takeCount__ = this.__takeCount__;
-      result.__views__ = views ? arrayCopy(views) : null;
+      result.__views__ = arrayCopy(this.__views__);
       return result;
     }
 
@@ -8575,22 +9368,25 @@ module.exports = restParam;
      * @returns {*} Returns the unwrapped value.
      */
     function lazyValue() {
-      var array = this.__wrapped__.value();
-      if (!isArray(array)) {
-        return baseWrapperValue(array, this.__actions__);
-      }
-      var dir = this.__dir__,
+      var array = this.__wrapped__.value(),
+          dir = this.__dir__,
+          isArr = isArray(array),
           isRight = dir < 0,
-          view = getView(0, array.length, this.__views__),
+          arrLength = isArr ? array.length : 0,
+          view = getView(0, arrLength, this.__views__),
           start = view.start,
           end = view.end,
           length = end - start,
           index = isRight ? end : (start - 1),
-          takeCount = nativeMin(length, this.__takeCount__),
           iteratees = this.__iteratees__,
-          iterLength = iteratees ? iteratees.length : 0,
+          iterLength = iteratees.length,
           resIndex = 0,
-          result = [];
+          takeCount = nativeMin(length, this.__takeCount__);
+
+      if (!isArr || arrLength < LARGE_ARRAY_SIZE || (arrLength == length && takeCount == length)) {
+        return baseWrapperValue((isRight && isArr) ? array.reverse() : array, this.__actions__);
+      }
+      var result = [];
 
       outer:
       while (length-- && resIndex < takeCount) {
@@ -8602,30 +9398,16 @@ module.exports = restParam;
         while (++iterIndex < iterLength) {
           var data = iteratees[iterIndex],
               iteratee = data.iteratee,
-              type = data.type;
+              type = data.type,
+              computed = iteratee(value);
 
-          if (type == LAZY_DROP_WHILE_FLAG) {
-            if (data.done && (isRight ? (index > data.index) : (index < data.index))) {
-              data.count = 0;
-              data.done = false;
-            }
-            data.index = index;
-            if (!data.done) {
-              var limit = data.limit;
-              if (!(data.done = limit > -1 ? (data.count++ >= limit) : !iteratee(value))) {
-                continue outer;
-              }
-            }
-          } else {
-            var computed = iteratee(value);
-            if (type == LAZY_MAP_FLAG) {
-              value = computed;
-            } else if (!computed) {
-              if (type == LAZY_FILTER_FLAG) {
-                continue outer;
-              } else {
-                break outer;
-              }
+          if (type == LAZY_MAP_FLAG) {
+            value = computed;
+          } else if (!computed) {
+            if (type == LAZY_FILTER_FLAG) {
+              continue outer;
+            } else {
+              break outer;
             }
           }
         }
@@ -8756,6 +9538,30 @@ module.exports = restParam;
     }
 
     /*------------------------------------------------------------------------*/
+
+    /**
+     * Creates a new array joining `array` with `other`.
+     *
+     * @private
+     * @param {Array} array The array to join.
+     * @param {Array} other The other array to join.
+     * @returns {Array} Returns the new concatenated array.
+     */
+    function arrayConcat(array, other) {
+      var index = -1,
+          length = array.length,
+          othIndex = -1,
+          othLength = other.length,
+          result = Array(length + othLength);
+
+      while (++index < length) {
+        result[index] = array[index];
+      }
+      while (++othIndex < othLength) {
+        result[index++] = other[othIndex];
+      }
+      return result;
+    }
 
     /**
      * Copies the values of `source` to `array`.
@@ -8913,6 +9719,25 @@ module.exports = restParam;
     }
 
     /**
+     * Appends the elements of `values` to `array`.
+     *
+     * @private
+     * @param {Array} array The array to modify.
+     * @param {Array} values The values to append.
+     * @returns {Array} Returns `array`.
+     */
+    function arrayPush(array, values) {
+      var index = -1,
+          length = values.length,
+          offset = array.length;
+
+      while (++index < length) {
+        array[offset + index] = values[index];
+      }
+      return array;
+    }
+
+    /**
      * A specialized version of `_.reduce` for arrays without support for callback
      * shorthands and `this` binding.
      *
@@ -8983,18 +9808,20 @@ module.exports = restParam;
     }
 
     /**
-     * A specialized version of `_.sum` for arrays without support for iteratees.
+     * A specialized version of `_.sum` for arrays without support for callback
+     * shorthands and `this` binding..
      *
      * @private
      * @param {Array} array The array to iterate over.
+     * @param {Function} iteratee The function invoked per iteration.
      * @returns {number} Returns the sum.
      */
-    function arraySum(array) {
+    function arraySum(array, iteratee) {
       var length = array.length,
           result = 0;
 
       while (length--) {
-        result += +array[length] || 0;
+        result += +iteratee(array[length]) || 0;
       }
       return result;
     }
@@ -9198,7 +10025,7 @@ module.exports = restParam;
             : (object ? value : {});
         }
       }
-      // Check for circular references and return corresponding clone.
+      // Check for circular references and return its corresponding clone.
       stackA || (stackA = []);
       stackB || (stackB = []);
 
@@ -9233,7 +10060,7 @@ module.exports = restParam;
         if (isObject(prototype)) {
           object.prototype = prototype;
           var result = new object;
-          object.prototype = null;
+          object.prototype = undefined;
         }
         return result || {};
       };
@@ -9275,7 +10102,7 @@ module.exports = restParam;
       var index = -1,
           indexOf = getIndexOf(),
           isCommon = indexOf == baseIndexOf,
-          cache = (isCommon && values.length >= 200) ? createCache(values) : null,
+          cache = (isCommon && values.length >= LARGE_ARRAY_SIZE) ? createCache(values) : null,
           valuesLength = values.length;
 
       if (cache) {
@@ -9451,13 +10278,14 @@ module.exports = restParam;
      * @param {Array} array The array to flatten.
      * @param {boolean} [isDeep] Specify a deep flatten.
      * @param {boolean} [isStrict] Restrict flattening to arrays-like objects.
+     * @param {Array} [result=[]] The initial result value.
      * @returns {Array} Returns the new flattened array.
      */
-    function baseFlatten(array, isDeep, isStrict) {
+    function baseFlatten(array, isDeep, isStrict, result) {
+      result || (result = []);
+
       var index = -1,
-          length = array.length,
-          resIndex = -1,
-          result = [];
+          length = array.length;
 
       while (++index < length) {
         var value = array[index];
@@ -9465,16 +10293,12 @@ module.exports = restParam;
             (isStrict || isArray(value) || isArguments(value))) {
           if (isDeep) {
             // Recursively flatten arrays (susceptible to call stack limits).
-            value = baseFlatten(value, isDeep, isStrict);
-          }
-          var valIndex = -1,
-              valLength = value.length;
-
-          while (++valIndex < valLength) {
-            result[++resIndex] = value[valIndex];
+            baseFlatten(value, isDeep, isStrict, result);
+          } else {
+            arrayPush(result, value);
           }
         } else if (!isStrict) {
-          result[++resIndex] = value;
+          result[result.length] = value;
         }
       }
       return result;
@@ -9829,7 +10653,7 @@ module.exports = restParam;
      * @private
      * @param {Object} object The destination object.
      * @param {Object} source The source object.
-     * @param {Function} [customizer] The function to customize merging properties.
+     * @param {Function} [customizer] The function to customize merged values.
      * @param {Array} [stackA=[]] Tracks traversed source objects.
      * @param {Array} [stackB=[]] Associates values with source counterparts.
      * @returns {Object} Returns `object`.
@@ -9839,7 +10663,7 @@ module.exports = restParam;
         return object;
       }
       var isSrcArr = isArrayLike(source) && (isArray(source) || isTypedArray(source)),
-          props = isSrcArr ? null : keys(source);
+          props = isSrcArr ? undefined : keys(source);
 
       arrayEach(props || source, function(srcValue, key) {
         if (props) {
@@ -9878,7 +10702,7 @@ module.exports = restParam;
      * @param {Object} source The source object.
      * @param {string} key The key of the value to merge.
      * @param {Function} mergeFunc The function to merge values.
-     * @param {Function} [customizer] The function to customize merging properties.
+     * @param {Function} [customizer] The function to customize merged values.
      * @param {Array} [stackA=[]] Tracks traversed source objects.
      * @param {Array} [stackB=[]] Associates values with source counterparts.
      * @returns {boolean} Returns `true` if the objects are equivalent, else `false`.
@@ -9985,7 +10809,7 @@ module.exports = restParam;
      * @returns {number} Returns the random number.
      */
     function baseRandom(min, max) {
-      return min + floor(nativeRandom() * (max - min + 1));
+      return min + nativeFloor(nativeRandom() * (max - min + 1));
     }
 
     /**
@@ -10151,7 +10975,7 @@ module.exports = restParam;
           indexOf = getIndexOf(),
           length = array.length,
           isCommon = indexOf == baseIndexOf,
-          isLarge = isCommon && length >= 200,
+          isLarge = isCommon && length >= LARGE_ARRAY_SIZE,
           seen = isLarge ? createCache() : null,
           result = [];
 
@@ -10250,11 +11074,8 @@ module.exports = restParam;
           length = actions.length;
 
       while (++index < length) {
-        var args = [result],
-            action = actions[index];
-
-        push.apply(args, action.args);
-        result = action.func.apply(action.thisArg, args);
+        var action = actions[index];
+        result = action.func.apply(action.thisArg, arrayPush([result], action.args));
       }
       return result;
     }
@@ -10313,7 +11134,7 @@ module.exports = restParam;
           valIsUndef = value === undefined;
 
       while (low < high) {
-        var mid = floor((low + high) / 2),
+        var mid = nativeFloor((low + high) / 2),
             computed = iteratee(array[mid]),
             isDef = computed !== undefined,
             isReflexive = computed === computed;
@@ -10382,26 +11203,11 @@ module.exports = restParam;
      * @returns {ArrayBuffer} Returns the cloned array buffer.
      */
     function bufferClone(buffer) {
-      return bufferSlice.call(buffer, 0);
-    }
-    if (!bufferSlice) {
-      // PhantomJS has `ArrayBuffer` and `Uint8Array` but not `Float64Array`.
-      bufferClone = !(ArrayBuffer && Uint8Array) ? constant(null) : function(buffer) {
-        var byteLength = buffer.byteLength,
-            floatLength = Float64Array ? floor(byteLength / FLOAT64_BYTES_PER_ELEMENT) : 0,
-            offset = floatLength * FLOAT64_BYTES_PER_ELEMENT,
-            result = new ArrayBuffer(byteLength);
+      var result = new ArrayBuffer(buffer.byteLength),
+          view = new Uint8Array(result);
 
-        if (floatLength) {
-          var view = new Float64Array(result, 0, floatLength);
-          view.set(new Float64Array(buffer, 0, floatLength));
-        }
-        if (byteLength != offset) {
-          view = new Uint8Array(result, offset);
-          view.set(new Uint8Array(buffer, offset));
-        }
-        return result;
-      };
+      view.set(new Uint8Array(buffer));
+      return result;
     }
 
     /**
@@ -10420,7 +11226,7 @@ module.exports = restParam;
           argsLength = nativeMax(args.length - holdersLength, 0),
           leftIndex = -1,
           leftLength = partials.length,
-          result = Array(argsLength + leftLength);
+          result = Array(leftLength + argsLength);
 
       while (++leftIndex < leftLength) {
         result[leftIndex] = partials[leftIndex];
@@ -10467,12 +11273,7 @@ module.exports = restParam;
     }
 
     /**
-     * Creates a function that aggregates a collection, creating an accumulator
-     * object composed from the results of running each element in the collection
-     * through an iteratee.
-     *
-     * **Note:** This function is used to create `_.countBy`, `_.groupBy`, `_.indexBy`,
-     * and `_.partition`.
+     * Creates a `_.countBy`, `_.groupBy`, `_.indexBy`, or `_.partition` function.
      *
      * @private
      * @param {Function} setter The function to set keys and values of the accumulator object.
@@ -10502,10 +11303,7 @@ module.exports = restParam;
     }
 
     /**
-     * Creates a function that assigns properties of source object(s) to a given
-     * destination object.
-     *
-     * **Note:** This function is used to create `_.assign`, `_.defaults`, and `_.merge`.
+     * Creates a `_.assign`, `_.defaults`, or `_.merge` function.
      *
      * @private
      * @param {Function} assigner The function to assign values.
@@ -10616,9 +11414,9 @@ module.exports = restParam;
      * @param {Array} [values] The values to cache.
      * @returns {null|Object} Returns the new cache object if `Set` is supported, else `null`.
      */
-    var createCache = !(nativeCreate && Set) ? constant(null) : function(values) {
-      return new SetCache(values);
-    };
+    function createCache(values) {
+      return (nativeCreate && Set) ? new SetCache(values) : null;
+    }
 
     /**
      * Creates a function that produces compound words out of the words in a
@@ -10653,7 +11451,7 @@ module.exports = restParam;
     function createCtorWrapper(Ctor) {
       return function() {
         // Use a `switch` statement to work with class constructors.
-        // See https://people.mozilla.org/~jorendorff/es6-draft.html#sec-ecmascript-function-objects-call-thisargument-argumentslist
+        // See http://ecma-international.org/ecma-262/6.0/#sec-ecmascript-function-objects-call-thisargument-argumentslist
         // for more details.
         var args = arguments;
         switch (args.length) {
@@ -10663,6 +11461,8 @@ module.exports = restParam;
           case 3: return new Ctor(args[0], args[1], args[2]);
           case 4: return new Ctor(args[0], args[1], args[2], args[3]);
           case 5: return new Ctor(args[0], args[1], args[2], args[3], args[4]);
+          case 6: return new Ctor(args[0], args[1], args[2], args[3], args[4], args[5]);
+          case 7: return new Ctor(args[0], args[1], args[2], args[3], args[4], args[5], args[6]);
         }
         var thisBinding = baseCreate(Ctor.prototype),
             result = Ctor.apply(thisBinding, args);
@@ -10683,13 +11483,32 @@ module.exports = restParam;
     function createCurry(flag) {
       function curryFunc(func, arity, guard) {
         if (guard && isIterateeCall(func, arity, guard)) {
-          arity = null;
+          arity = undefined;
         }
-        var result = createWrapper(func, flag, null, null, null, null, null, arity);
+        var result = createWrapper(func, flag, undefined, undefined, undefined, undefined, undefined, arity);
         result.placeholder = curryFunc.placeholder;
         return result;
       }
       return curryFunc;
+    }
+
+    /**
+     * Creates a `_.defaults` or `_.defaultsDeep` function.
+     *
+     * @private
+     * @param {Function} assigner The function to assign values.
+     * @param {Function} customizer The function to customize assigned values.
+     * @returns {Function} Returns the new defaults function.
+     */
+    function createDefaults(assigner, customizer) {
+      return restParam(function(args) {
+        var object = args[0];
+        if (object == null) {
+          return object;
+        }
+        args.push(customizer);
+        return assigner.apply(undefined, args);
+      });
     }
 
     /**
@@ -10703,11 +11522,11 @@ module.exports = restParam;
     function createExtremum(comparator, exValue) {
       return function(collection, iteratee, thisArg) {
         if (thisArg && isIterateeCall(collection, iteratee, thisArg)) {
-          iteratee = null;
+          iteratee = undefined;
         }
         iteratee = getCallback(iteratee, thisArg, 3);
         if (iteratee.length == 1) {
-          collection = toIterable(collection);
+          collection = isArray(collection) ? collection : toIterable(collection);
           var result = arrayExtremum(collection, iteratee, comparator, exValue);
           if (!(collection.length && result === exValue)) {
             return result;
@@ -10788,7 +11607,7 @@ module.exports = restParam;
             throw new TypeError(FUNC_ERROR_TEXT);
           }
           if (!wrapper && LodashWrapper.prototype.thru && getFuncName(func) == 'wrapper') {
-            wrapper = new LodashWrapper([]);
+            wrapper = new LodashWrapper([], true);
           }
         }
         index = wrapper ? -1 : length;
@@ -10796,7 +11615,7 @@ module.exports = restParam;
           func = funcs[index];
 
           var funcName = getFuncName(func),
-              data = funcName == 'wrapper' ? getData(func) : null;
+              data = funcName == 'wrapper' ? getData(func) : undefined;
 
           if (data && isLaziable(data[0]) && data[1] == (ARY_FLAG | CURRY_FLAG | PARTIAL_FLAG | REARG_FLAG) && !data[4].length && data[9] == 1) {
             wrapper = wrapper[getFuncName(data[0])].apply(wrapper, data[3]);
@@ -10805,12 +11624,14 @@ module.exports = restParam;
           }
         }
         return function() {
-          var args = arguments;
-          if (wrapper && args.length == 1 && isArray(args[0])) {
-            return wrapper.plant(args[0]).value();
+          var args = arguments,
+              value = args[0];
+
+          if (wrapper && args.length == 1 && isArray(value) && value.length >= LARGE_ARRAY_SIZE) {
+            return wrapper.plant(value).value();
           }
           var index = 0,
-              result = length ? funcs[index].apply(this, args) : args[0];
+              result = length ? funcs[index].apply(this, args) : value;
 
           while (++index < length) {
             result = funcs[index].call(this, result);
@@ -10914,7 +11735,7 @@ module.exports = restParam;
     function createPartial(flag) {
       var partialFunc = restParam(function(func, partials) {
         var holders = replaceHolders(partials, partialFunc.placeholder);
-        return createWrapper(func, flag, null, partials, holders);
+        return createWrapper(func, flag, undefined, partials, holders);
       });
       return partialFunc;
     }
@@ -10960,7 +11781,7 @@ module.exports = restParam;
           isCurry = bitmask & CURRY_FLAG,
           isCurryBound = bitmask & CURRY_BOUND_FLAG,
           isCurryRight = bitmask & CURRY_RIGHT_FLAG,
-          Ctor = isBindKey ? null : createCtorWrapper(func);
+          Ctor = isBindKey ? undefined : createCtorWrapper(func);
 
       function wrapper() {
         // Avoid `arguments` object use disqualifying optimizations by
@@ -10984,12 +11805,12 @@ module.exports = restParam;
 
           length -= argsHolders.length;
           if (length < arity) {
-            var newArgPos = argPos ? arrayCopy(argPos) : null,
+            var newArgPos = argPos ? arrayCopy(argPos) : undefined,
                 newArity = nativeMax(arity - length, 0),
-                newsHolders = isCurry ? argsHolders : null,
-                newHoldersRight = isCurry ? null : argsHolders,
-                newPartials = isCurry ? args : null,
-                newPartialsRight = isCurry ? null : args;
+                newsHolders = isCurry ? argsHolders : undefined,
+                newHoldersRight = isCurry ? undefined : argsHolders,
+                newPartials = isCurry ? args : undefined,
+                newPartialsRight = isCurry ? undefined : args;
 
             bitmask |= (isCurry ? PARTIAL_FLAG : PARTIAL_RIGHT_FLAG);
             bitmask &= ~(isCurry ? PARTIAL_RIGHT_FLAG : PARTIAL_FLAG);
@@ -11043,7 +11864,7 @@ module.exports = restParam;
       }
       var padLength = length - strLength;
       chars = chars == null ? ' ' : (chars + '');
-      return repeat(chars, ceil(padLength / chars.length)).slice(0, padLength);
+      return repeat(chars, nativeCeil(padLength / chars.length)).slice(0, padLength);
     }
 
     /**
@@ -11069,7 +11890,7 @@ module.exports = restParam;
             argsLength = arguments.length,
             leftIndex = -1,
             leftLength = partials.length,
-            args = Array(argsLength + leftLength);
+            args = Array(leftLength + argsLength);
 
         while (++leftIndex < leftLength) {
           args[leftIndex] = partials[leftIndex];
@@ -11081,6 +11902,25 @@ module.exports = restParam;
         return fn.apply(isBind ? thisArg : this, args);
       }
       return wrapper;
+    }
+
+    /**
+     * Creates a `_.ceil`, `_.floor`, or `_.round` function.
+     *
+     * @private
+     * @param {string} methodName The name of the `Math` method to use when rounding.
+     * @returns {Function} Returns the new round function.
+     */
+    function createRound(methodName) {
+      var func = Math[methodName];
+      return function(number, precision) {
+        precision = precision === undefined ? 0 : (+precision || 0);
+        if (precision) {
+          precision = pow(10, precision);
+          return func(number * precision) / precision;
+        }
+        return func(number);
+      };
     }
 
     /**
@@ -11132,16 +11972,16 @@ module.exports = restParam;
       var length = partials ? partials.length : 0;
       if (!length) {
         bitmask &= ~(PARTIAL_FLAG | PARTIAL_RIGHT_FLAG);
-        partials = holders = null;
+        partials = holders = undefined;
       }
       length -= (holders ? holders.length : 0);
       if (bitmask & PARTIAL_RIGHT_FLAG) {
         var partialsRight = partials,
             holdersRight = holders;
 
-        partials = holders = null;
+        partials = holders = undefined;
       }
-      var data = isBindKey ? null : getData(func),
+      var data = isBindKey ? undefined : getData(func),
           newData = [func, bitmask, thisArg, partials, holders, partialsRight, holdersRight, argPos, ary, arity];
 
       if (data) {
@@ -11220,7 +12060,7 @@ module.exports = restParam;
      * `Boolean`, `Date`, `Error`, `Number`, `RegExp`, or `String`.
      *
      * @private
-     * @param {Object} value The object to compare.
+     * @param {Object} object The object to compare.
      * @param {Object} other The other object to compare.
      * @param {string} tag The `toStringTag` of the objects to compare.
      * @returns {boolean} Returns `true` if the objects are equivalent, else `false`.
@@ -11420,13 +12260,13 @@ module.exports = restParam;
      * @private
      * @param {number} start The start of the view.
      * @param {number} end The end of the view.
-     * @param {Array} [transforms] The transformations to apply to the view.
+     * @param {Array} transforms The transformations to apply to the view.
      * @returns {Object} Returns an object containing the `start` and `end`
      *  positions of the view.
      */
     function getView(start, end, transforms) {
       var index = -1,
-          length = transforms ? transforms.length : 0;
+          length = transforms.length;
 
       while (++index < length) {
         var data = transforms[index],
@@ -11625,7 +12465,7 @@ module.exports = restParam;
     /**
      * Checks if `value` is a valid array-like length.
      *
-     * **Note:** This function is based on [`ToLength`](https://people.mozilla.org/~jorendorff/es6-draft.html#sec-tolength).
+     * **Note:** This function is based on [`ToLength`](http://ecma-international.org/ecma-262/6.0/#sec-tolength).
      *
      * @private
      * @param {*} value The value to check.
@@ -11715,6 +12555,18 @@ module.exports = restParam;
       data[1] = newBitmask;
 
       return data;
+    }
+
+    /**
+     * Used by `_.defaultsDeep` to customize its `_.merge` use.
+     *
+     * @private
+     * @param {*} objectValue The destination object property value.
+     * @param {*} sourceValue The source object property value.
+     * @returns {*} Returns the value to assign to the destination object.
+     */
+    function mergeDefaults(objectValue, sourceValue) {
+      return objectValue === undefined ? sourceValue : merge(objectValue, sourceValue, mergeDefaults);
     }
 
     /**
@@ -11815,38 +12667,6 @@ module.exports = restParam;
         return baseSetData(key, value);
       };
     }());
-
-    /**
-     * A fallback implementation of `_.isPlainObject` which checks if `value`
-     * is an object created by the `Object` constructor or has a `[[Prototype]]`
-     * of `null`.
-     *
-     * @private
-     * @param {*} value The value to check.
-     * @returns {boolean} Returns `true` if `value` is a plain object, else `false`.
-     */
-    function shimIsPlainObject(value) {
-      var Ctor,
-          support = lodash.support;
-
-      // Exit early for non `Object` objects.
-      if (!(isObjectLike(value) && objToString.call(value) == objectTag) ||
-          (!hasOwnProperty.call(value, 'constructor') &&
-            (Ctor = value.constructor, typeof Ctor == 'function' && !(Ctor instanceof Ctor)))) {
-        return false;
-      }
-      // IE < 9 iterates inherited properties before own properties. If the first
-      // iterated property is an object's own property then there are no inherited
-      // enumerable properties.
-      var result;
-      // In most environments an object's own properties are iterated before
-      // its inherited properties. If the last iterated property is an object's
-      // own property then there are no inherited enumerable properties.
-      baseForIn(value, function(subValue, key) {
-        result = key;
-      });
-      return result === undefined || hasOwnProperty.call(value, result);
-    }
 
     /**
      * A fallback implementation of `Object.keys` which creates an array of the
@@ -11961,12 +12781,12 @@ module.exports = restParam;
       if (guard ? isIterateeCall(array, size, guard) : size == null) {
         size = 1;
       } else {
-        size = nativeMax(+size || 1, 1);
+        size = nativeMax(nativeFloor(size) || 1, 1);
       }
       var index = 0,
           length = array ? array.length : 0,
           resIndex = -1,
-          result = Array(ceil(length / size));
+          result = Array(nativeCeil(length / size));
 
       while (index < length) {
         result[++resIndex] = baseSlice(array, index, (index += size));
@@ -12005,7 +12825,7 @@ module.exports = restParam;
 
     /**
      * Creates an array of unique `array` values not included in the other
-     * provided arrays using [`SameValueZero`](https://people.mozilla.org/~jorendorff/es6-draft.html#sec-samevaluezero)
+     * provided arrays using [`SameValueZero`](http://ecma-international.org/ecma-262/6.0/#sec-samevaluezero)
      * for equality comparisons.
      *
      * @static
@@ -12020,7 +12840,7 @@ module.exports = restParam;
      * // => [1, 3]
      */
     var difference = restParam(function(array, values) {
-      return isArrayLike(array)
+      return (isObjectLike(array) && isArrayLike(array))
         ? baseDifference(array, baseFlatten(values, false, true))
         : [];
     });
@@ -12415,7 +13235,7 @@ module.exports = restParam;
 
     /**
      * Gets the index at which the first occurrence of `value` is found in `array`
-     * using [`SameValueZero`](https://people.mozilla.org/~jorendorff/es6-draft.html#sec-samevaluezero)
+     * using [`SameValueZero`](http://ecma-international.org/ecma-262/6.0/#sec-samevaluezero)
      * for equality comparisons. If `fromIndex` is negative, it is used as the offset
      * from the end of `array`. If `array` is sorted providing `true` for `fromIndex`
      * performs a faster binary search.
@@ -12449,10 +13269,9 @@ module.exports = restParam;
       if (typeof fromIndex == 'number') {
         fromIndex = fromIndex < 0 ? nativeMax(length + fromIndex, 0) : fromIndex;
       } else if (fromIndex) {
-        var index = binaryIndex(array, value),
-            other = array[index];
-
-        if (value === value ? (value === other) : (other !== other)) {
+        var index = binaryIndex(array, value);
+        if (index < length &&
+            (value === value ? (value === array[index]) : (array[index] !== array[index]))) {
           return index;
         }
         return -1;
@@ -12479,7 +13298,7 @@ module.exports = restParam;
 
     /**
      * Creates an array of unique values that are included in all of the provided
-     * arrays using [`SameValueZero`](https://people.mozilla.org/~jorendorff/es6-draft.html#sec-samevaluezero)
+     * arrays using [`SameValueZero`](http://ecma-international.org/ecma-262/6.0/#sec-samevaluezero)
      * for equality comparisons.
      *
      * @static
@@ -12600,7 +13419,7 @@ module.exports = restParam;
 
     /**
      * Removes all provided values from `array` using
-     * [`SameValueZero`](https://people.mozilla.org/~jorendorff/es6-draft.html#sec-samevaluezero)
+     * [`SameValueZero`](http://ecma-international.org/ecma-262/6.0/#sec-samevaluezero)
      * for equality comparisons.
      *
      * **Note:** Unlike `_.without`, this method mutates `array`.
@@ -13033,7 +13852,7 @@ module.exports = restParam;
 
     /**
      * Creates an array of unique values, in order, from all of the provided arrays
-     * using [`SameValueZero`](https://people.mozilla.org/~jorendorff/es6-draft.html#sec-samevaluezero)
+     * using [`SameValueZero`](http://ecma-international.org/ecma-262/6.0/#sec-samevaluezero)
      * for equality comparisons.
      *
      * @static
@@ -13052,7 +13871,7 @@ module.exports = restParam;
 
     /**
      * Creates a duplicate-free version of an array, using
-     * [`SameValueZero`](https://people.mozilla.org/~jorendorff/es6-draft.html#sec-samevaluezero)
+     * [`SameValueZero`](http://ecma-international.org/ecma-262/6.0/#sec-samevaluezero)
      * for equality comparisons, in which only the first occurence of each element
      * is kept. Providing `true` for `isSorted` performs a faster search algorithm
      * for sorted arrays. If an iteratee function is provided it is invoked for
@@ -13106,7 +13925,7 @@ module.exports = restParam;
       }
       if (isSorted != null && typeof isSorted != 'boolean') {
         thisArg = iteratee;
-        iteratee = isIterateeCall(array, isSorted, thisArg) ? null : isSorted;
+        iteratee = isIterateeCall(array, isSorted, thisArg) ? undefined : isSorted;
         isSorted = false;
       }
       var callback = getCallback();
@@ -13193,7 +14012,7 @@ module.exports = restParam;
 
     /**
      * Creates an array excluding all provided values using
-     * [`SameValueZero`](https://people.mozilla.org/~jorendorff/es6-draft.html#sec-samevaluezero)
+     * [`SameValueZero`](http://ecma-international.org/ecma-262/6.0/#sec-samevaluezero)
      * for equality comparisons.
      *
      * @static
@@ -13235,7 +14054,7 @@ module.exports = restParam;
         var array = arguments[index];
         if (isArrayLike(array)) {
           var result = result
-            ? baseDifference(result, array).concat(baseDifference(array, result))
+            ? arrayPush(baseDifference(result, array), baseDifference(array, result))
             : array;
         }
       }
@@ -13457,16 +14276,16 @@ module.exports = restParam;
      * @example
      *
      * var array = [1, 2];
-     * var wrapper = _(array).push(3);
+     * var wrapped = _(array).push(3);
      *
      * console.log(array);
      * // => [1, 2]
      *
-     * wrapper = wrapper.commit();
+     * wrapped = wrapped.commit();
      * console.log(array);
      * // => [1, 2, 3]
      *
-     * wrapper.last();
+     * wrapped.last();
      * // => 3
      *
      * console.log(array);
@@ -13475,6 +14294,33 @@ module.exports = restParam;
     function wrapperCommit() {
       return new LodashWrapper(this.value(), this.__chain__);
     }
+
+    /**
+     * Creates a new array joining a wrapped array with any additional arrays
+     * and/or values.
+     *
+     * @name concat
+     * @memberOf _
+     * @category Chain
+     * @param {...*} [values] The values to concatenate.
+     * @returns {Array} Returns the new concatenated array.
+     * @example
+     *
+     * var array = [1];
+     * var wrapped = _(array).concat(2, [3], [[4]]);
+     *
+     * console.log(wrapped.value());
+     * // => [1, 2, 3, [4]]
+     *
+     * console.log(array);
+     * // => [1]
+     */
+    var wrapperConcat = restParam(function(values) {
+      values = baseFlatten(values);
+      return this.thru(function(array) {
+        return arrayConcat(isArray(array) ? array : [toObject(array)], values);
+      });
+    });
 
     /**
      * Creates a clone of the chained sequence planting `value` as the wrapped value.
@@ -13486,17 +14332,17 @@ module.exports = restParam;
      * @example
      *
      * var array = [1, 2];
-     * var wrapper = _(array).map(function(value) {
+     * var wrapped = _(array).map(function(value) {
      *   return Math.pow(value, 2);
      * });
      *
      * var other = [3, 4];
-     * var otherWrapper = wrapper.plant(other);
+     * var otherWrapped = wrapped.plant(other);
      *
-     * otherWrapper.value();
+     * otherWrapped.value();
      * // => [9, 16]
      *
-     * wrapper.value();
+     * wrapped.value();
      * // => [1, 4]
      */
     function wrapperPlant(value) {
@@ -13539,15 +14385,20 @@ module.exports = restParam;
      */
     function wrapperReverse() {
       var value = this.__wrapped__;
+
+      var interceptor = function(value) {
+        return (wrapped && wrapped.__dir__ < 0) ? value : value.reverse();
+      };
       if (value instanceof LazyWrapper) {
+        var wrapped = value;
         if (this.__actions__.length) {
-          value = new LazyWrapper(this);
+          wrapped = new LazyWrapper(this);
         }
-        return new LodashWrapper(value.reverse(), this.__chain__);
+        wrapped = wrapped.reverse();
+        wrapped.__actions__.push({ 'func': thru, 'args': [interceptor], 'thisArg': undefined });
+        return new LodashWrapper(wrapped, this.__chain__);
       }
-      return this.thru(function(value) {
-        return value.reverse();
-      });
+      return this.thru(interceptor);
     }
 
     /**
@@ -13705,7 +14556,7 @@ module.exports = restParam;
     function every(collection, predicate, thisArg) {
       var func = isArray(collection) ? arrayEvery : baseEvery;
       if (thisArg && isIterateeCall(collection, predicate, thisArg)) {
-        predicate = null;
+        predicate = undefined;
       }
       if (typeof predicate != 'function' || thisArg !== undefined) {
         predicate = getCallback(predicate, thisArg, 3);
@@ -13979,7 +14830,7 @@ module.exports = restParam;
 
     /**
      * Checks if `value` is in `collection` using
-     * [`SameValueZero`](https://people.mozilla.org/~jorendorff/es6-draft.html#sec-samevaluezero)
+     * [`SameValueZero`](http://ecma-international.org/ecma-262/6.0/#sec-samevaluezero)
      * for equality comparisons. If `fromIndex` is negative, it is used as the offset
      * from the end of `collection`.
      *
@@ -14012,17 +14863,14 @@ module.exports = restParam;
         collection = values(collection);
         length = collection.length;
       }
-      if (!length) {
-        return false;
-      }
       if (typeof fromIndex != 'number' || (guard && isIterateeCall(target, fromIndex, guard))) {
         fromIndex = 0;
       } else {
         fromIndex = fromIndex < 0 ? nativeMax(length + fromIndex, 0) : (fromIndex || 0);
       }
       return (typeof collection == 'string' || !isArray(collection) && isString(collection))
-        ? (fromIndex < length && collection.indexOf(target, fromIndex) > -1)
-        : (getIndexOf(collection, target, fromIndex) > -1);
+        ? (fromIndex <= length && collection.indexOf(target, fromIndex) > -1)
+        : (!!length && getIndexOf(collection, target, fromIndex) > -1);
     }
 
     /**
@@ -14104,7 +14952,7 @@ module.exports = restParam;
           result = isArrayLike(collection) ? Array(collection.length) : [];
 
       baseEach(collection, function(value) {
-        var func = isFunc ? path : ((isProp && value != null) ? value[path] : null);
+        var func = isFunc ? path : ((isProp && value != null) ? value[path] : undefined);
         result[++index] = func ? func.apply(value, args) : invokePath(value, path, args);
       });
       return result;
@@ -14274,7 +15122,8 @@ module.exports = restParam;
      * `_.reduce`, `_.reduceRight`, and `_.transform`.
      *
      * The guarded methods are:
-     * `assign`, `defaults`, `includes`, `merge`, `sortByAll`, and `sortByOrder`
+     * `assign`, `defaults`, `defaultsDeep`, `includes`, `merge`, `sortByAll`,
+     * and `sortByOrder`
      *
      * @static
      * @memberOf _
@@ -14504,7 +15353,7 @@ module.exports = restParam;
     function some(collection, predicate, thisArg) {
       var func = isArray(collection) ? arraySome : baseSome;
       if (thisArg && isIterateeCall(collection, predicate, thisArg)) {
-        predicate = null;
+        predicate = undefined;
       }
       if (typeof predicate != 'function' || thisArg !== undefined) {
         predicate = getCallback(predicate, thisArg, 3);
@@ -14565,7 +15414,7 @@ module.exports = restParam;
         return [];
       }
       if (thisArg && isIterateeCall(collection, iteratee, thisArg)) {
-        iteratee = null;
+        iteratee = undefined;
       }
       var index = -1;
       iteratee = getCallback(iteratee, thisArg, 3);
@@ -14624,9 +15473,9 @@ module.exports = restParam;
 
     /**
      * This method is like `_.sortByAll` except that it allows specifying the
-     * sort orders of the iteratees to sort by. A truthy value in `orders` will
-     * sort the corresponding property name in ascending order while a falsey
-     * value will sort it in descending order.
+     * sort orders of the iteratees to sort by. If `orders` is unspecified, all
+     * values are sorted in ascending order. Otherwise, a value is sorted in
+     * ascending order if its corresponding order is "asc", and descending if "desc".
      *
      * If a property name is provided for an iteratee the created `_.property`
      * style callback returns the property value of the given element.
@@ -14640,7 +15489,7 @@ module.exports = restParam;
      * @category Collection
      * @param {Array|Object|string} collection The collection to iterate over.
      * @param {Function[]|Object[]|string[]} iteratees The iteratees to sort by.
-     * @param {boolean[]} orders The sort orders of `iteratees`.
+     * @param {boolean[]} [orders] The sort orders of `iteratees`.
      * @param- {Object} [guard] Enables use as a callback for functions like `_.reduce`.
      * @returns {Array} Returns the new sorted array.
      * @example
@@ -14653,7 +15502,7 @@ module.exports = restParam;
      * ];
      *
      * // sort by `user` in ascending order and by `age` in descending order
-     * _.map(_.sortByOrder(users, ['user', 'age'], [true, false]), _.values);
+     * _.map(_.sortByOrder(users, ['user', 'age'], ['asc', 'desc']), _.values);
      * // => [['barney', 36], ['barney', 34], ['fred', 48], ['fred', 42]]
      */
     function sortByOrder(collection, iteratees, orders, guard) {
@@ -14661,7 +15510,7 @@ module.exports = restParam;
         return [];
       }
       if (guard && isIterateeCall(iteratees, orders, guard)) {
-        orders = null;
+        orders = undefined;
       }
       if (!isArray(iteratees)) {
         iteratees = iteratees == null ? [] : [iteratees];
@@ -14786,10 +15635,10 @@ module.exports = restParam;
      */
     function ary(func, n, guard) {
       if (guard && isIterateeCall(func, n, guard)) {
-        n = null;
+        n = undefined;
       }
       n = (func && n == null) ? func.length : nativeMax(+n || 0, 0);
-      return createWrapper(func, ARY_FLAG, null, null, null, null, n);
+      return createWrapper(func, ARY_FLAG, undefined, undefined, undefined, undefined, n);
     }
 
     /**
@@ -14824,7 +15673,7 @@ module.exports = restParam;
           result = func.apply(this, arguments);
         }
         if (n <= 1) {
-          func = null;
+          func = undefined;
         }
         return result;
       };
@@ -15132,9 +15981,9 @@ module.exports = restParam;
         var leading = true;
         trailing = false;
       } else if (isObject(options)) {
-        leading = options.leading;
+        leading = !!options.leading;
         maxWait = 'maxWait' in options && nativeMax(+options.maxWait || 0, wait);
-        trailing = 'trailing' in options ? options.trailing : trailing;
+        trailing = 'trailing' in options ? !!options.trailing : trailing;
       }
 
       function cancel() {
@@ -15144,41 +15993,35 @@ module.exports = restParam;
         if (maxTimeoutId) {
           clearTimeout(maxTimeoutId);
         }
+        lastCalled = 0;
         maxTimeoutId = timeoutId = trailingCall = undefined;
+      }
+
+      function complete(isCalled, id) {
+        if (id) {
+          clearTimeout(id);
+        }
+        maxTimeoutId = timeoutId = trailingCall = undefined;
+        if (isCalled) {
+          lastCalled = now();
+          result = func.apply(thisArg, args);
+          if (!timeoutId && !maxTimeoutId) {
+            args = thisArg = undefined;
+          }
+        }
       }
 
       function delayed() {
         var remaining = wait - (now() - stamp);
         if (remaining <= 0 || remaining > wait) {
-          if (maxTimeoutId) {
-            clearTimeout(maxTimeoutId);
-          }
-          var isCalled = trailingCall;
-          maxTimeoutId = timeoutId = trailingCall = undefined;
-          if (isCalled) {
-            lastCalled = now();
-            result = func.apply(thisArg, args);
-            if (!timeoutId && !maxTimeoutId) {
-              args = thisArg = null;
-            }
-          }
+          complete(trailingCall, maxTimeoutId);
         } else {
           timeoutId = setTimeout(delayed, remaining);
         }
       }
 
       function maxDelayed() {
-        if (timeoutId) {
-          clearTimeout(timeoutId);
-        }
-        maxTimeoutId = timeoutId = trailingCall = undefined;
-        if (trailing || (maxWait !== wait)) {
-          lastCalled = now();
-          result = func.apply(thisArg, args);
-          if (!timeoutId && !maxTimeoutId) {
-            args = thisArg = null;
-          }
-        }
+        complete(trailing, timeoutId);
       }
 
       function debounced() {
@@ -15218,7 +16061,7 @@ module.exports = restParam;
           result = func.apply(thisArg, args);
         }
         if (isCalled && !timeoutId && !maxTimeoutId) {
-          args = thisArg = null;
+          args = thisArg = undefined;
         }
         return result;
       }
@@ -15323,7 +16166,7 @@ module.exports = restParam;
      *
      * **Note:** The cache is exposed as the `cache` property on the memoized
      * function. Its creation may be customized by replacing the `_.memoize.Cache`
-     * constructor with one whose instances implement the [`Map`](https://people.mozilla.org/~jorendorff/es6-draft.html#sec-properties-of-the-map-prototype-object)
+     * constructor with one whose instances implement the [`Map`](http://ecma-international.org/ecma-262/6.0/#sec-properties-of-the-map-prototype-object)
      * method interface of `get`, `has`, and `set`.
      *
      * @static
@@ -15383,6 +16226,52 @@ module.exports = restParam;
       memoized.cache = new memoize.Cache;
       return memoized;
     }
+
+    /**
+     * Creates a function that runs each argument through a corresponding
+     * transform function.
+     *
+     * @static
+     * @memberOf _
+     * @category Function
+     * @param {Function} func The function to wrap.
+     * @param {...(Function|Function[])} [transforms] The functions to transform
+     * arguments, specified as individual functions or arrays of functions.
+     * @returns {Function} Returns the new function.
+     * @example
+     *
+     * function doubled(n) {
+     *   return n * 2;
+     * }
+     *
+     * function square(n) {
+     *   return n * n;
+     * }
+     *
+     * var modded = _.modArgs(function(x, y) {
+     *   return [x, y];
+     * }, square, doubled);
+     *
+     * modded(1, 2);
+     * // => [1, 4]
+     *
+     * modded(5, 10);
+     * // => [25, 20]
+     */
+    var modArgs = restParam(function(func, transforms) {
+      transforms = baseFlatten(transforms);
+      if (typeof func != 'function' || !arrayEvery(transforms, baseIsFunction)) {
+        throw new TypeError(FUNC_ERROR_TEXT);
+      }
+      var length = transforms.length;
+      return restParam(function(args) {
+        var index = nativeMin(args.length, length);
+        while (index--) {
+          args[index] = transforms[index](args[index]);
+        }
+        return func.apply(this, args);
+      });
+    });
 
     /**
      * Creates a function that negates the result of the predicate `func`. The
@@ -15529,7 +16418,7 @@ module.exports = restParam;
      * // => [3, 6, 9]
      */
     var rearg = restParam(function(func, indexes) {
-      return createWrapper(func, REARG_FLAG, null, null, null, baseFlatten(indexes));
+      return createWrapper(func, REARG_FLAG, undefined, undefined, undefined, baseFlatten(indexes));
     });
 
     /**
@@ -15675,10 +16564,7 @@ module.exports = restParam;
         leading = 'leading' in options ? !!options.leading : leading;
         trailing = 'trailing' in options ? !!options.trailing : trailing;
       }
-      debounceOptions.leading = leading;
-      debounceOptions.maxWait = +wait;
-      debounceOptions.trailing = trailing;
-      return debounce(func, wait, debounceOptions);
+      return debounce(func, wait, { 'leading': leading, 'maxWait': +wait, 'trailing': trailing });
     }
 
     /**
@@ -15704,7 +16590,7 @@ module.exports = restParam;
      */
     function wrap(value, wrapper) {
       wrapper = wrapper == null ? identity : wrapper;
-      return createWrapper(wrapper, PARTIAL_FLAG, null, [value], []);
+      return createWrapper(wrapper, PARTIAL_FLAG, undefined, [value], []);
     }
 
     /*------------------------------------------------------------------------*/
@@ -15890,7 +16776,8 @@ module.exports = restParam;
      * // => false
      */
     function isArguments(value) {
-      return isObjectLike(value) && isArrayLike(value) && objToString.call(value) == argsTag;
+      return isObjectLike(value) && isArrayLike(value) &&
+        hasOwnProperty.call(value, 'callee') && !propertyIsEnumerable.call(value, 'callee');
     }
 
     /**
@@ -15970,14 +16857,7 @@ module.exports = restParam;
      * // => false
      */
     function isElement(value) {
-      return !!value && value.nodeType === 1 && isObjectLike(value) &&
-        (objToString.call(value).indexOf('Element') > -1);
-    }
-    // Fallback for environments without DOM support.
-    if (!support.dom) {
-      isElement = function(value) {
-        return !!value && value.nodeType === 1 && isObjectLike(value) && !isPlainObject(value);
-      };
+      return !!value && value.nodeType === 1 && isObjectLike(value) && !isPlainObject(value);
     }
 
     /**
@@ -16092,7 +16972,7 @@ module.exports = restParam;
     /**
      * Checks if `value` is a finite primitive number.
      *
-     * **Note:** This method is based on [`Number.isFinite`](https://people.mozilla.org/~jorendorff/es6-draft.html#sec-number.isfinite).
+     * **Note:** This method is based on [`Number.isFinite`](http://ecma-international.org/ecma-262/6.0/#sec-number.isfinite).
      *
      * @static
      * @memberOf _
@@ -16116,9 +16996,9 @@ module.exports = restParam;
      * _.isFinite(Infinity);
      * // => false
      */
-    var isFinite = nativeNumIsFinite || function(value) {
+    function isFinite(value) {
       return typeof value == 'number' && nativeIsFinite(value);
-    };
+    }
 
     /**
      * Checks if `value` is classified as a `Function` object.
@@ -16136,12 +17016,12 @@ module.exports = restParam;
      * _.isFunction(/abc/);
      * // => false
      */
-    var isFunction = !(baseIsFunction(/x/) || (Uint8Array && !baseIsFunction(Uint8Array))) ? baseIsFunction : function(value) {
+    function isFunction(value) {
       // The use of `Object#toString` avoids issues with the `typeof` operator
       // in older versions of Chrome and Safari which return 'function' for regexes
       // and Safari 8 equivalents which return 'object' for typed array constructors.
-      return objToString.call(value) == funcTag;
-    };
+      return isObject(value) && objToString.call(value) == funcTag;
+    }
 
     /**
      * Checks if `value` is the [language type](https://es5.github.io/#x8) of `Object`.
@@ -16265,7 +17145,7 @@ module.exports = restParam;
       if (value == null) {
         return false;
       }
-      if (objToString.call(value) == funcTag) {
+      if (isFunction(value)) {
         return reIsNative.test(fnToString.call(value));
       }
       return isObjectLike(value) && reIsHostCtor.test(value);
@@ -16347,17 +17227,26 @@ module.exports = restParam;
      * _.isPlainObject(Object.create(null));
      * // => true
      */
-    var isPlainObject = !getPrototypeOf ? shimIsPlainObject : function(value) {
-      if (!(value && objToString.call(value) == objectTag)) {
+    function isPlainObject(value) {
+      var Ctor;
+
+      // Exit early for non `Object` objects.
+      if (!(isObjectLike(value) && objToString.call(value) == objectTag && !isArguments(value)) ||
+          (!hasOwnProperty.call(value, 'constructor') && (Ctor = value.constructor, typeof Ctor == 'function' && !(Ctor instanceof Ctor)))) {
         return false;
       }
-      var valueOf = getNative(value, 'valueOf'),
-          objProto = valueOf && (objProto = getPrototypeOf(valueOf)) && getPrototypeOf(objProto);
-
-      return objProto
-        ? (value == objProto || getPrototypeOf(value) == objProto)
-        : shimIsPlainObject(value);
-    };
+      // IE < 9 iterates inherited properties before own properties. If the first
+      // iterated property is an object's own property then there are no inherited
+      // enumerable properties.
+      var result;
+      // In most environments an object's own properties are iterated before
+      // its inherited properties. If the last iterated property is an object's
+      // own property then there are no inherited enumerable properties.
+      baseForIn(value, function(subValue, key) {
+        result = key;
+      });
+      return result === undefined || hasOwnProperty.call(value, result);
+    }
 
     /**
      * Checks if `value` is classified as a `RegExp` object.
@@ -16376,7 +17265,7 @@ module.exports = restParam;
      * // => false
      */
     function isRegExp(value) {
-      return isObjectLike(value) && objToString.call(value) == regexpTag;
+      return isObject(value) && objToString.call(value) == regexpTag;
     }
 
     /**
@@ -16543,6 +17432,56 @@ module.exports = restParam;
     /*------------------------------------------------------------------------*/
 
     /**
+     * Recursively merges own enumerable properties of the source object(s), that
+     * don't resolve to `undefined` into the destination object. Subsequent sources
+     * overwrite property assignments of previous sources. If `customizer` is
+     * provided it is invoked to produce the merged values of the destination and
+     * source properties. If `customizer` returns `undefined` merging is handled
+     * by the method instead. The `customizer` is bound to `thisArg` and invoked
+     * with five arguments: (objectValue, sourceValue, key, object, source).
+     *
+     * @static
+     * @memberOf _
+     * @category Object
+     * @param {Object} object The destination object.
+     * @param {...Object} [sources] The source objects.
+     * @param {Function} [customizer] The function to customize assigned values.
+     * @param {*} [thisArg] The `this` binding of `customizer`.
+     * @returns {Object} Returns `object`.
+     * @example
+     *
+     * var users = {
+     *   'data': [{ 'user': 'barney' }, { 'user': 'fred' }]
+     * };
+     *
+     * var ages = {
+     *   'data': [{ 'age': 36 }, { 'age': 40 }]
+     * };
+     *
+     * _.merge(users, ages);
+     * // => { 'data': [{ 'user': 'barney', 'age': 36 }, { 'user': 'fred', 'age': 40 }] }
+     *
+     * // using a customizer callback
+     * var object = {
+     *   'fruits': ['apple'],
+     *   'vegetables': ['beet']
+     * };
+     *
+     * var other = {
+     *   'fruits': ['banana'],
+     *   'vegetables': ['carrot']
+     * };
+     *
+     * _.merge(object, other, function(a, b) {
+     *   if (_.isArray(a)) {
+     *     return a.concat(b);
+     *   }
+     * });
+     * // => { 'fruits': ['apple', 'banana'], 'vegetables': ['beet', 'carrot'] }
+     */
+    var merge = createAssigner(baseMerge);
+
+    /**
      * Assigns own enumerable properties of source object(s) to the destination
      * object. Subsequent sources overwrite property assignments of previous sources.
      * If `customizer` is provided it is invoked to produce the assigned values.
@@ -16550,7 +17489,7 @@ module.exports = restParam;
      * (objectValue, sourceValue, key, object, source).
      *
      * **Note:** This method mutates `object` and is based on
-     * [`Object.assign`](https://people.mozilla.org/~jorendorff/es6-draft.html#sec-object.assign).
+     * [`Object.assign`](http://ecma-international.org/ecma-262/6.0/#sec-object.assign).
      *
      * @static
      * @memberOf _
@@ -16617,7 +17556,7 @@ module.exports = restParam;
     function create(prototype, properties, guard) {
       var result = baseCreate(prototype);
       if (guard && isIterateeCall(prototype, properties, guard)) {
-        properties = null;
+        properties = undefined;
       }
       return properties ? baseAssign(result, properties) : result;
     }
@@ -16640,14 +17579,27 @@ module.exports = restParam;
      * _.defaults({ 'user': 'barney' }, { 'age': 36 }, { 'user': 'fred' });
      * // => { 'user': 'barney', 'age': 36 }
      */
-    var defaults = restParam(function(args) {
-      var object = args[0];
-      if (object == null) {
-        return object;
-      }
-      args.push(assignDefaults);
-      return assign.apply(undefined, args);
-    });
+    var defaults = createDefaults(assign, assignDefaults);
+
+    /**
+     * This method is like `_.defaults` except that it recursively assigns
+     * default properties.
+     *
+     * **Note:** This method mutates `object`.
+     *
+     * @static
+     * @memberOf _
+     * @category Object
+     * @param {Object} object The destination object.
+     * @param {...Object} [sources] The source objects.
+     * @returns {Object} Returns `object`.
+     * @example
+     *
+     * _.defaultsDeep({ 'user': { 'name': 'barney' } }, { 'user': { 'name': 'fred', 'age': 36 } });
+     * // => { 'user': { 'name': 'barney', 'age': 36 } }
+     *
+     */
+    var defaultsDeep = createDefaults(merge, mergeDefaults);
 
     /**
      * This method is like `_.find` except that it returns the key of the first
@@ -16974,7 +17926,7 @@ module.exports = restParam;
      */
     function invert(object, multiValue, guard) {
       if (guard && isIterateeCall(object, multiValue, guard)) {
-        multiValue = null;
+        multiValue = undefined;
       }
       var index = -1,
           props = keys(object),
@@ -17003,7 +17955,7 @@ module.exports = restParam;
      * Creates an array of the own enumerable property names of `object`.
      *
      * **Note:** Non-object values are coerced to objects. See the
-     * [ES spec](https://people.mozilla.org/~jorendorff/es6-draft.html#sec-object.keys)
+     * [ES spec](http://ecma-international.org/ecma-262/6.0/#sec-object.keys)
      * for more details.
      *
      * @static
@@ -17027,7 +17979,7 @@ module.exports = restParam;
      * // => ['0', '1']
      */
     var keys = !nativeKeys ? shimKeys : function(object) {
-      var Ctor = object == null ? null : object.constructor;
+      var Ctor = object == null ? undefined : object.constructor;
       if ((typeof Ctor == 'function' && Ctor.prototype === object) ||
           (typeof object != 'function' && isArrayLike(object))) {
         return shimKeys(object);
@@ -17150,56 +18102,6 @@ module.exports = restParam;
      * // => { 'fred': 40, 'pebbles': 1 } (iteration order is not guaranteed)
      */
     var mapValues = createObjectMapper();
-
-    /**
-     * Recursively merges own enumerable properties of the source object(s), that
-     * don't resolve to `undefined` into the destination object. Subsequent sources
-     * overwrite property assignments of previous sources. If `customizer` is
-     * provided it is invoked to produce the merged values of the destination and
-     * source properties. If `customizer` returns `undefined` merging is handled
-     * by the method instead. The `customizer` is bound to `thisArg` and invoked
-     * with five arguments: (objectValue, sourceValue, key, object, source).
-     *
-     * @static
-     * @memberOf _
-     * @category Object
-     * @param {Object} object The destination object.
-     * @param {...Object} [sources] The source objects.
-     * @param {Function} [customizer] The function to customize assigned values.
-     * @param {*} [thisArg] The `this` binding of `customizer`.
-     * @returns {Object} Returns `object`.
-     * @example
-     *
-     * var users = {
-     *   'data': [{ 'user': 'barney' }, { 'user': 'fred' }]
-     * };
-     *
-     * var ages = {
-     *   'data': [{ 'age': 36 }, { 'age': 40 }]
-     * };
-     *
-     * _.merge(users, ages);
-     * // => { 'data': [{ 'user': 'barney', 'age': 36 }, { 'user': 'fred', 'age': 40 }] }
-     *
-     * // using a customizer callback
-     * var object = {
-     *   'fruits': ['apple'],
-     *   'vegetables': ['beet']
-     * };
-     *
-     * var other = {
-     *   'fruits': ['banana'],
-     *   'vegetables': ['carrot']
-     * };
-     *
-     * _.merge(object, other, function(a, b) {
-     *   if (_.isArray(a)) {
-     *     return a.concat(b);
-     *   }
-     * });
-     * // => { 'fruits': ['apple', 'banana'], 'vegetables': ['beet', 'carrot'] }
-     */
-    var merge = createAssigner(baseMerge);
 
     /**
      * The opposite of `_.pick`; this method creates an object composed of the
@@ -17431,7 +18333,7 @@ module.exports = restParam;
           if (isArr) {
             accumulator = isArray(object) ? new Ctor : [];
           } else {
-            accumulator = baseCreate(isFunction(Ctor) ? Ctor.prototype : null);
+            accumulator = baseCreate(isFunction(Ctor) ? Ctor.prototype : undefined);
           }
         } else {
           accumulator = {};
@@ -17534,7 +18436,7 @@ module.exports = restParam;
      */
     function inRange(value, start, end) {
       start = +start || 0;
-      if (typeof end === 'undefined') {
+      if (end === undefined) {
         end = start;
         start = 0;
       } else {
@@ -17572,7 +18474,7 @@ module.exports = restParam;
      */
     function random(min, max, floating) {
       if (floating && isIterateeCall(min, max, floating)) {
-        max = floating = null;
+        max = floating = undefined;
       }
       var noMin = min == null,
           noMax = max == null;
@@ -17759,8 +18661,8 @@ module.exports = restParam;
     function escapeRegExp(string) {
       string = baseToString(string);
       return (string && reHasRegExpChars.test(string))
-        ? string.replace(reRegExpChars, '\\$&')
-        : string;
+        ? string.replace(reRegExpChars, escapeRegExpChar)
+        : (string || '(?:)');
     }
 
     /**
@@ -17817,8 +18719,8 @@ module.exports = restParam;
         return string;
       }
       var mid = (length - strLength) / 2,
-          leftLength = floor(mid),
-          rightLength = ceil(mid);
+          leftLength = nativeFloor(mid),
+          rightLength = nativeCeil(mid);
 
       chars = createPadding('', rightLength, chars);
       return chars.slice(0, leftLength) + string + chars;
@@ -17896,25 +18798,16 @@ module.exports = restParam;
      * // => [6, 8, 10]
      */
     function parseInt(string, radix, guard) {
-      if (guard && isIterateeCall(string, radix, guard)) {
+      // Firefox < 21 and Opera < 15 follow ES3 for `parseInt`.
+      // Chrome fails to trim leading <BOM> whitespace characters.
+      // See https://code.google.com/p/v8/issues/detail?id=3109 for more details.
+      if (guard ? isIterateeCall(string, radix, guard) : radix == null) {
         radix = 0;
+      } else if (radix) {
+        radix = +radix;
       }
-      return nativeParseInt(string, radix);
-    }
-    // Fallback for environments with pre-ES5 implementations.
-    if (nativeParseInt(whitespace + '08') != 8) {
-      parseInt = function(string, radix, guard) {
-        // Firefox < 21 and Opera < 15 follow ES3 for `parseInt`.
-        // Chrome fails to trim leading <BOM> whitespace characters.
-        // See https://code.google.com/p/v8/issues/detail?id=3109 for more details.
-        if (guard ? isIterateeCall(string, radix, guard) : radix == null) {
-          radix = 0;
-        } else if (radix) {
-          radix = +radix;
-        }
-        string = trim(string);
-        return nativeParseInt(string, radix || (reHasHexPrefix.test(string) ? 16 : 10));
-      };
+      string = trim(string);
+      return nativeParseInt(string, radix || (reHasHexPrefix.test(string) ? 16 : 10));
     }
 
     /**
@@ -17950,7 +18843,7 @@ module.exports = restParam;
         if (n % 2) {
           result += string;
         }
-        n = floor(n / 2);
+        n = nativeFloor(n / 2);
         string += string;
       } while (n);
 
@@ -18135,7 +19028,7 @@ module.exports = restParam;
       var settings = lodash.templateSettings;
 
       if (otherOptions && isIterateeCall(string, options, otherOptions)) {
-        options = otherOptions = null;
+        options = otherOptions = undefined;
       }
       string = baseToString(string);
       options = assignWith(baseAssign({}, otherOptions || options), settings, assignOwnDefaults);
@@ -18371,7 +19264,7 @@ module.exports = restParam;
      */
     function trunc(string, options, guard) {
       if (guard && isIterateeCall(string, options, guard)) {
-        options = null;
+        options = undefined;
       }
       var length = DEFAULT_TRUNC_LENGTH,
           omission = DEFAULT_TRUNC_OMISSION;
@@ -18466,7 +19359,7 @@ module.exports = restParam;
      */
     function words(string, pattern, guard) {
       if (guard && isIterateeCall(string, pattern, guard)) {
-        pattern = null;
+        pattern = undefined;
       }
       string = baseToString(string);
       return string.match(pattern || reWords) || [];
@@ -18542,7 +19435,7 @@ module.exports = restParam;
      */
     function callback(func, thisArg, guard) {
       if (guard && isIterateeCall(func, thisArg, guard)) {
-        thisArg = null;
+        thisArg = undefined;
       }
       return isObjectLike(func)
         ? matches(func)
@@ -18743,8 +19636,8 @@ module.exports = restParam;
     function mixin(object, source, options) {
       if (options == null) {
         var isObj = isObject(source),
-            props = isObj ? keys(source) : null,
-            methodNames = (props && props.length) ? baseFunctions(source, props) : null;
+            props = isObj ? keys(source) : undefined,
+            methodNames = (props && props.length) ? baseFunctions(source, props) : undefined;
 
         if (!(methodNames ? methodNames.length : isObj)) {
           methodNames = false;
@@ -18783,9 +19676,7 @@ module.exports = restParam;
                 result.__chain__ = chainAll;
                 return result;
               }
-              var args = [this.value()];
-              push.apply(args, arguments);
-              return func.apply(object, args);
+              return func.apply(object, arrayPush([this.value()], arguments));
             };
           }(func));
         }
@@ -18806,7 +19697,7 @@ module.exports = restParam;
      * var lodash = _.noConflict();
      */
     function noConflict() {
-      context._ = oldDash;
+      root._ = oldDash;
       return this;
     }
 
@@ -18915,7 +19806,7 @@ module.exports = restParam;
      */
     function range(start, end, step) {
       if (step && isIterateeCall(start, end, step)) {
-        end = step = null;
+        end = step = undefined;
       }
       start = +start || 0;
       step = step == null ? 1 : (+step || 0);
@@ -18929,7 +19820,7 @@ module.exports = restParam;
       // Use `Array(length)` so engines like Chakra and V8 avoid slower modes.
       // See https://youtu.be/XAqIpGU8ZZk#t=17m25s for more details.
       var index = -1,
-          length = nativeMax(ceil((end - start) / (step || 1)), 0),
+          length = nativeMax(nativeCeil((end - start) / (step || 1)), 0),
           result = Array(length);
 
       while (++index < length) {
@@ -18967,7 +19858,7 @@ module.exports = restParam;
      * // => also invokes `mage.castSpell(n)` three times
      */
     function times(n, iteratee, thisArg) {
-      n = floor(n);
+      n = nativeFloor(n);
 
       // Exit early to avoid a JSC JIT bug in Safari 8
       // where `Array(0)` is treated as `Array(1)`.
@@ -19028,6 +19919,50 @@ module.exports = restParam;
     function add(augend, addend) {
       return (+augend || 0) + (+addend || 0);
     }
+
+    /**
+     * Calculates `n` rounded up to `precision`.
+     *
+     * @static
+     * @memberOf _
+     * @category Math
+     * @param {number} n The number to round up.
+     * @param {number} [precision=0] The precision to round up to.
+     * @returns {number} Returns the rounded up number.
+     * @example
+     *
+     * _.ceil(4.006);
+     * // => 5
+     *
+     * _.ceil(6.004, 2);
+     * // => 6.01
+     *
+     * _.ceil(6040, -2);
+     * // => 6100
+     */
+    var ceil = createRound('ceil');
+
+    /**
+     * Calculates `n` rounded down to `precision`.
+     *
+     * @static
+     * @memberOf _
+     * @category Math
+     * @param {number} n The number to round down.
+     * @param {number} [precision=0] The precision to round down to.
+     * @returns {number} Returns the rounded down number.
+     * @example
+     *
+     * _.floor(4.006);
+     * // => 4
+     *
+     * _.floor(0.046, 2);
+     * // => 0.04
+     *
+     * _.floor(4060, -2);
+     * // => 4000
+     */
+    var floor = createRound('floor');
 
     /**
      * Gets the maximum value of `collection`. If `collection` is empty or falsey
@@ -19128,6 +20063,28 @@ module.exports = restParam;
     var min = createExtremum(lt, POSITIVE_INFINITY);
 
     /**
+     * Calculates `n` rounded to `precision`.
+     *
+     * @static
+     * @memberOf _
+     * @category Math
+     * @param {number} n The number to round.
+     * @param {number} [precision=0] The precision to round to.
+     * @returns {number} Returns the rounded number.
+     * @example
+     *
+     * _.round(4.006);
+     * // => 4
+     *
+     * _.round(4.006, 2);
+     * // => 4.01
+     *
+     * _.round(4060, -2);
+     * // => 4100
+     */
+    var round = createRound('round');
+
+    /**
      * Gets the sum of the values in `collection`.
      *
      * @static
@@ -19161,17 +20118,11 @@ module.exports = restParam;
      */
     function sum(collection, iteratee, thisArg) {
       if (thisArg && isIterateeCall(collection, iteratee, thisArg)) {
-        iteratee = null;
+        iteratee = undefined;
       }
-      var callback = getCallback(),
-          noIteratee = iteratee == null;
-
-      if (!(noIteratee && callback === baseCallback)) {
-        noIteratee = false;
-        iteratee = callback(iteratee, thisArg, 3);
-      }
-      return noIteratee
-        ? arraySum(isArray(collection) ? collection : toIterable(collection))
+      iteratee = getCallback(iteratee, thisArg, 3);
+      return iteratee.length == 1
+        ? arraySum(isArray(collection) ? collection : toIterable(collection), iteratee)
         : baseSum(collection, iteratee);
     }
 
@@ -19218,6 +20169,7 @@ module.exports = restParam;
     lodash.curryRight = curryRight;
     lodash.debounce = debounce;
     lodash.defaults = defaults;
+    lodash.defaultsDeep = defaultsDeep;
     lodash.defer = defer;
     lodash.delay = delay;
     lodash.difference = difference;
@@ -19256,6 +20208,7 @@ module.exports = restParam;
     lodash.method = method;
     lodash.methodOf = methodOf;
     lodash.mixin = mixin;
+    lodash.modArgs = modArgs;
     lodash.negate = negate;
     lodash.omit = omit;
     lodash.once = once;
@@ -19331,6 +20284,7 @@ module.exports = restParam;
     lodash.attempt = attempt;
     lodash.camelCase = camelCase;
     lodash.capitalize = capitalize;
+    lodash.ceil = ceil;
     lodash.clone = clone;
     lodash.cloneDeep = cloneDeep;
     lodash.deburr = deburr;
@@ -19346,6 +20300,7 @@ module.exports = restParam;
     lodash.findLastKey = findLastKey;
     lodash.findWhere = findWhere;
     lodash.first = first;
+    lodash.floor = floor;
     lodash.get = get;
     lodash.gt = gt;
     lodash.gte = gte;
@@ -19394,6 +20349,7 @@ module.exports = restParam;
     lodash.reduceRight = reduceRight;
     lodash.repeat = repeat;
     lodash.result = result;
+    lodash.round = round;
     lodash.runInContext = runInContext;
     lodash.size = size;
     lodash.snakeCase = snakeCase;
@@ -19464,48 +20420,20 @@ module.exports = restParam;
       lodash[methodName].placeholder = lodash;
     });
 
-    // Add `LazyWrapper` methods that accept an `iteratee` value.
-    arrayEach(['dropWhile', 'filter', 'map', 'takeWhile'], function(methodName, type) {
-      var isFilter = type != LAZY_MAP_FLAG,
-          isDropWhile = type == LAZY_DROP_WHILE_FLAG;
-
-      LazyWrapper.prototype[methodName] = function(iteratee, thisArg) {
-        var filtered = this.__filtered__,
-            result = (filtered && isDropWhile) ? new LazyWrapper(this) : this.clone(),
-            iteratees = result.__iteratees__ || (result.__iteratees__ = []);
-
-        iteratees.push({
-          'done': false,
-          'count': 0,
-          'index': 0,
-          'iteratee': getCallback(iteratee, thisArg, 1),
-          'limit': -1,
-          'type': type
-        });
-
-        result.__filtered__ = filtered || isFilter;
-        return result;
-      };
-    });
-
     // Add `LazyWrapper` methods for `_.drop` and `_.take` variants.
     arrayEach(['drop', 'take'], function(methodName, index) {
-      var whileName = methodName + 'While';
-
       LazyWrapper.prototype[methodName] = function(n) {
-        var filtered = this.__filtered__,
-            result = (filtered && !index) ? this.dropWhile() : this.clone();
+        var filtered = this.__filtered__;
+        if (filtered && !index) {
+          return new LazyWrapper(this);
+        }
+        n = n == null ? 1 : nativeMax(nativeFloor(n) || 0, 0);
 
-        n = n == null ? 1 : nativeMax(floor(n) || 0, 0);
+        var result = this.clone();
         if (filtered) {
-          if (index) {
-            result.__takeCount__ = nativeMin(result.__takeCount__, n);
-          } else {
-            last(result.__iteratees__).limit = n;
-          }
+          result.__takeCount__ = nativeMin(result.__takeCount__, n);
         } else {
-          var views = result.__views__ || (result.__views__ = []);
-          views.push({ 'size': n, 'type': methodName + (result.__dir__ < 0 ? 'Right' : '') });
+          result.__views__.push({ 'size': n, 'type': methodName + (result.__dir__ < 0 ? 'Right' : '') });
         }
         return result;
       };
@@ -19513,9 +20441,18 @@ module.exports = restParam;
       LazyWrapper.prototype[methodName + 'Right'] = function(n) {
         return this.reverse()[methodName](n).reverse();
       };
+    });
 
-      LazyWrapper.prototype[methodName + 'RightWhile'] = function(predicate, thisArg) {
-        return this.reverse()[whileName](predicate, thisArg).reverse();
+    // Add `LazyWrapper` methods that accept an `iteratee` value.
+    arrayEach(['filter', 'map', 'takeWhile'], function(methodName, index) {
+      var type = index + 1,
+          isFilter = type != LAZY_MAP_FLAG;
+
+      LazyWrapper.prototype[methodName] = function(iteratee, thisArg) {
+        var result = this.clone();
+        result.__iteratees__.push({ 'iteratee': getCallback(iteratee, thisArg, 1), 'type': type });
+        result.__filtered__ = result.__filtered__ || isFilter;
+        return result;
       };
     });
 
@@ -19533,7 +20470,7 @@ module.exports = restParam;
       var dropName = 'drop' + (index ? '' : 'Right');
 
       LazyWrapper.prototype[methodName] = function() {
-        return this[dropName](1);
+        return this.__filtered__ ? new LazyWrapper(this) : this[dropName](1);
       };
     });
 
@@ -19562,10 +20499,13 @@ module.exports = restParam;
       start = start == null ? 0 : (+start || 0);
 
       var result = this;
+      if (result.__filtered__ && (start > 0 || end < 0)) {
+        return new LazyWrapper(result);
+      }
       if (start < 0) {
-        result = this.takeRight(-start);
+        result = result.takeRight(-start);
       } else if (start) {
-        result = this.drop(start);
+        result = result.drop(start);
       }
       if (end !== undefined) {
         end = (+end || 0);
@@ -19574,21 +20514,25 @@ module.exports = restParam;
       return result;
     };
 
+    LazyWrapper.prototype.takeRightWhile = function(predicate, thisArg) {
+      return this.reverse().takeWhile(predicate, thisArg).reverse();
+    };
+
     LazyWrapper.prototype.toArray = function() {
-      return this.drop(0);
+      return this.take(POSITIVE_INFINITY);
     };
 
     // Add `LazyWrapper` methods to `lodash.prototype`.
     baseForOwn(LazyWrapper.prototype, function(func, methodName) {
-      var lodashFunc = lodash[methodName];
+      var checkIteratee = /^(?:filter|map|reject)|While$/.test(methodName),
+          retUnwrapped = /^(?:first|last)$/.test(methodName),
+          lodashFunc = lodash[retUnwrapped ? ('take' + (methodName == 'last' ? 'Right' : '')) : methodName];
+
       if (!lodashFunc) {
         return;
       }
-      var checkIteratee = /^(?:filter|map|reject)|While$/.test(methodName),
-          retUnwrapped = /^(?:first|last)$/.test(methodName);
-
       lodash.prototype[methodName] = function() {
-        var args = arguments,
+        var args = retUnwrapped ? [1] : arguments,
             chainAll = this.__chain__,
             value = this.__wrapped__,
             isHybrid = !!this.__actions__.length,
@@ -19597,28 +20541,30 @@ module.exports = restParam;
             useLazy = isLazy || isArray(value);
 
         if (useLazy && checkIteratee && typeof iteratee == 'function' && iteratee.length != 1) {
-          // avoid lazy use if the iteratee has a "length" value other than `1`
+          // Avoid lazy use if the iteratee has a "length" value other than `1`.
           isLazy = useLazy = false;
         }
-        var onlyLazy = isLazy && !isHybrid;
-        if (retUnwrapped && !chainAll) {
-          return onlyLazy
-            ? func.call(value)
-            : lodashFunc.call(lodash, this.value());
-        }
         var interceptor = function(value) {
-          var otherArgs = [value];
-          push.apply(otherArgs, args);
-          return lodashFunc.apply(lodash, otherArgs);
+          return (retUnwrapped && chainAll)
+            ? lodashFunc(value, 1)[0]
+            : lodashFunc.apply(undefined, arrayPush([value], args));
         };
-        if (useLazy) {
-          var wrapper = onlyLazy ? value : new LazyWrapper(this),
-              result = func.apply(wrapper, args);
 
-          if (!retUnwrapped && (isHybrid || result.__actions__)) {
-            var actions = result.__actions__ || (result.__actions__ = []);
-            actions.push({ 'func': thru, 'args': [interceptor], 'thisArg': lodash });
+        var action = { 'func': thru, 'args': [interceptor], 'thisArg': undefined },
+            onlyLazy = isLazy && !isHybrid;
+
+        if (retUnwrapped && !chainAll) {
+          if (onlyLazy) {
+            value = value.clone();
+            value.__actions__.push(action);
+            return func.call(value);
           }
+          return lodashFunc.call(undefined, this.value())[0];
+        }
+        if (!retUnwrapped && useLazy) {
+          value = onlyLazy ? value : new LazyWrapper(this);
+          var result = func.apply(value, args);
+          result.__actions__.push(action);
           return new LodashWrapper(result, chainAll);
         }
         return this.thru(interceptor);
@@ -19626,7 +20572,7 @@ module.exports = restParam;
     });
 
     // Add `Array` and `String` methods to `lodash.prototype`.
-    arrayEach(['concat', 'join', 'pop', 'push', 'replace', 'shift', 'sort', 'splice', 'split', 'unshift'], function(methodName) {
+    arrayEach(['join', 'pop', 'push', 'replace', 'shift', 'sort', 'splice', 'split', 'unshift'], function(methodName) {
       var func = (/^(?:replace|split)$/.test(methodName) ? stringProto : arrayProto)[methodName],
           chainName = /^(?:push|sort|unshift)$/.test(methodName) ? 'tap' : 'thru',
           retUnwrapped = /^(?:join|pop|replace|shift)$/.test(methodName);
@@ -19653,7 +20599,7 @@ module.exports = restParam;
       }
     });
 
-    realNames[createHybridWrapper(null, BIND_KEY_FLAG).name] = [{ 'name': 'wrapper', 'func': null }];
+    realNames[createHybridWrapper(undefined, BIND_KEY_FLAG).name] = [{ 'name': 'wrapper', 'func': undefined }];
 
     // Add functions to the lazy wrapper.
     LazyWrapper.prototype.clone = lazyClone;
@@ -19663,6 +20609,7 @@ module.exports = restParam;
     // Add chaining functions to the `lodash` wrapper.
     lodash.prototype.chain = wrapperChain;
     lodash.prototype.commit = wrapperCommit;
+    lodash.prototype.concat = wrapperConcat;
     lodash.prototype.plant = wrapperPlant;
     lodash.prototype.reverse = wrapperReverse;
     lodash.prototype.toString = wrapperToString;
@@ -19714,7 +20661,7 @@ module.exports = restParam;
 }.call(this));
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{}],130:[function(require,module,exports){
+},{}],137:[function(require,module,exports){
 (function (global){
 var cachePush = require('./cachePush'),
     getNative = require('./getNative');
@@ -19747,7 +20694,7 @@ SetCache.prototype.push = cachePush;
 module.exports = SetCache;
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"./cachePush":186,"./getNative":204}],131:[function(require,module,exports){
+},{"./cachePush":195,"./getNative":221}],138:[function(require,module,exports){
 /**
  * Copies the values of `source` to `array`.
  *
@@ -19769,7 +20716,7 @@ function arrayCopy(source, array) {
 
 module.exports = arrayCopy;
 
-},{}],132:[function(require,module,exports){
+},{}],139:[function(require,module,exports){
 /**
  * A specialized version of `_.forEach` for arrays without support for callback
  * shorthands and `this` binding.
@@ -19793,7 +20740,7 @@ function arrayEach(array, iteratee) {
 
 module.exports = arrayEach;
 
-},{}],133:[function(require,module,exports){
+},{}],140:[function(require,module,exports){
 /**
  * A specialized version of `_.forEachRight` for arrays without support for
  * callback shorthands and `this` binding.
@@ -19816,7 +20763,7 @@ function arrayEachRight(array, iteratee) {
 
 module.exports = arrayEachRight;
 
-},{}],134:[function(require,module,exports){
+},{}],141:[function(require,module,exports){
 /**
  * A specialized version of `_.every` for arrays without support for callback
  * shorthands and `this` binding.
@@ -19841,7 +20788,7 @@ function arrayEvery(array, predicate) {
 
 module.exports = arrayEvery;
 
-},{}],135:[function(require,module,exports){
+},{}],142:[function(require,module,exports){
 /**
  * A specialized version of `baseExtremum` for arrays which invokes `iteratee`
  * with one argument: (value).
@@ -19873,7 +20820,7 @@ function arrayExtremum(array, iteratee, comparator, exValue) {
 
 module.exports = arrayExtremum;
 
-},{}],136:[function(require,module,exports){
+},{}],143:[function(require,module,exports){
 /**
  * A specialized version of `_.filter` for arrays without support for callback
  * shorthands and `this` binding.
@@ -19900,7 +20847,7 @@ function arrayFilter(array, predicate) {
 
 module.exports = arrayFilter;
 
-},{}],137:[function(require,module,exports){
+},{}],144:[function(require,module,exports){
 /**
  * A specialized version of `_.map` for arrays without support for callback
  * shorthands and `this` binding.
@@ -19923,7 +20870,29 @@ function arrayMap(array, iteratee) {
 
 module.exports = arrayMap;
 
-},{}],138:[function(require,module,exports){
+},{}],145:[function(require,module,exports){
+/**
+ * Appends the elements of `values` to `array`.
+ *
+ * @private
+ * @param {Array} array The array to modify.
+ * @param {Array} values The values to append.
+ * @returns {Array} Returns `array`.
+ */
+function arrayPush(array, values) {
+  var index = -1,
+      length = values.length,
+      offset = array.length;
+
+  while (++index < length) {
+    array[offset + index] = values[index];
+  }
+  return array;
+}
+
+module.exports = arrayPush;
+
+},{}],146:[function(require,module,exports){
 /**
  * A specialized version of `_.reduce` for arrays without support for callback
  * shorthands and `this` binding.
@@ -19951,7 +20920,7 @@ function arrayReduce(array, iteratee, accumulator, initFromArray) {
 
 module.exports = arrayReduce;
 
-},{}],139:[function(require,module,exports){
+},{}],147:[function(require,module,exports){
 /**
  * A specialized version of `_.reduceRight` for arrays without support for
  * callback shorthands and `this` binding.
@@ -19977,7 +20946,7 @@ function arrayReduceRight(array, iteratee, accumulator, initFromArray) {
 
 module.exports = arrayReduceRight;
 
-},{}],140:[function(require,module,exports){
+},{}],148:[function(require,module,exports){
 /**
  * A specialized version of `_.some` for arrays without support for callback
  * shorthands and `this` binding.
@@ -20002,27 +20971,91 @@ function arraySome(array, predicate) {
 
 module.exports = arraySome;
 
-},{}],141:[function(require,module,exports){
+},{}],149:[function(require,module,exports){
 /**
- * A specialized version of `_.sum` for arrays without support for iteratees.
+ * A specialized version of `_.sum` for arrays without support for callback
+ * shorthands and `this` binding..
  *
  * @private
  * @param {Array} array The array to iterate over.
+ * @param {Function} iteratee The function invoked per iteration.
  * @returns {number} Returns the sum.
  */
-function arraySum(array) {
+function arraySum(array, iteratee) {
   var length = array.length,
       result = 0;
 
   while (length--) {
-    result += +array[length] || 0;
+    result += +iteratee(array[length]) || 0;
   }
   return result;
 }
 
 module.exports = arraySum;
 
-},{}],142:[function(require,module,exports){
+},{}],150:[function(require,module,exports){
+/** Used for native method references. */
+var objectProto = Object.prototype;
+
+/** Used to check objects for own properties. */
+var hasOwnProperty = objectProto.hasOwnProperty;
+
+/**
+ * Used by `_.template` to customize its `_.assign` use.
+ *
+ * **Note:** This function is like `assignDefaults` except that it ignores
+ * inherited property values when checking if a property is `undefined`.
+ *
+ * @private
+ * @param {*} objectValue The destination object property value.
+ * @param {*} sourceValue The source object property value.
+ * @param {string} key The key associated with the object and source values.
+ * @param {Object} object The destination object.
+ * @returns {*} Returns the value to assign to the destination object.
+ */
+function assignOwnDefaults(objectValue, sourceValue, key, object) {
+  return (objectValue === undefined || !hasOwnProperty.call(object, key))
+    ? sourceValue
+    : objectValue;
+}
+
+module.exports = assignOwnDefaults;
+
+},{}],151:[function(require,module,exports){
+var keys = require('../object/keys');
+
+/**
+ * A specialized version of `_.assign` for customizing assigned values without
+ * support for argument juggling, multiple sources, and `this` binding `customizer`
+ * functions.
+ *
+ * @private
+ * @param {Object} object The destination object.
+ * @param {Object} source The source object.
+ * @param {Function} customizer The function to customize assigned values.
+ * @returns {Object} Returns `object`.
+ */
+function assignWith(object, source, customizer) {
+  var index = -1,
+      props = keys(source),
+      length = props.length;
+
+  while (++index < length) {
+    var key = props[index],
+        value = object[key],
+        result = customizer(value, source[key], key, object, source);
+
+    if ((result === result ? (result !== value) : (value === value)) ||
+        (value === undefined && !(key in object))) {
+      object[key] = result;
+    }
+  }
+  return object;
+}
+
+module.exports = assignWith;
+
+},{"../object/keys":282}],152:[function(require,module,exports){
 var baseCopy = require('./baseCopy'),
     keys = require('../object/keys');
 
@@ -20043,7 +21076,7 @@ function baseAssign(object, source) {
 
 module.exports = baseAssign;
 
-},{"../object/keys":261,"./baseCopy":147}],143:[function(require,module,exports){
+},{"../object/keys":282,"./baseCopy":157}],153:[function(require,module,exports){
 var isArrayLike = require('./isArrayLike'),
     isIndex = require('./isIndex');
 
@@ -20077,7 +21110,7 @@ function baseAt(collection, props) {
 
 module.exports = baseAt;
 
-},{"./isArrayLike":210,"./isIndex":211}],144:[function(require,module,exports){
+},{"./isArrayLike":227,"./isIndex":228}],154:[function(require,module,exports){
 var baseMatches = require('./baseMatches'),
     baseMatchesProperty = require('./baseMatchesProperty'),
     bindCallback = require('./bindCallback'),
@@ -20114,7 +21147,7 @@ function baseCallback(func, thisArg, argCount) {
 
 module.exports = baseCallback;
 
-},{"../utility/identity":272,"../utility/property":273,"./baseMatches":169,"./baseMatchesProperty":170,"./bindCallback":183}],145:[function(require,module,exports){
+},{"../utility/identity":313,"../utility/property":314,"./baseMatches":178,"./baseMatchesProperty":179,"./bindCallback":192}],155:[function(require,module,exports){
 var arrayCopy = require('./arrayCopy'),
     arrayEach = require('./arrayEach'),
     baseAssign = require('./baseAssign'),
@@ -20170,7 +21203,7 @@ cloneableTags[weakMapTag] = false;
 var objectProto = Object.prototype;
 
 /**
- * Used to resolve the [`toStringTag`](https://people.mozilla.org/~jorendorff/es6-draft.html#sec-object.prototype.tostring)
+ * Used to resolve the [`toStringTag`](http://ecma-international.org/ecma-262/6.0/#sec-object.prototype.tostring)
  * of values.
  */
 var objToString = objectProto.toString;
@@ -20221,7 +21254,7 @@ function baseClone(value, isDeep, customizer, key, object, stackA, stackB) {
         : (object ? value : {});
     }
   }
-  // Check for circular references and return corresponding clone.
+  // Check for circular references and return its corresponding clone.
   stackA || (stackA = []);
   stackB || (stackB = []);
 
@@ -20244,7 +21277,7 @@ function baseClone(value, isDeep, customizer, key, object, stackA, stackB) {
 
 module.exports = baseClone;
 
-},{"../lang/isArray":234,"../lang/isObject":248,"./arrayCopy":131,"./arrayEach":132,"./baseAssign":142,"./baseForOwn":159,"./initCloneArray":206,"./initCloneByTag":207,"./initCloneObject":208}],146:[function(require,module,exports){
+},{"../lang/isArray":254,"../lang/isObject":268,"./arrayCopy":138,"./arrayEach":139,"./baseAssign":152,"./baseForOwn":169,"./initCloneArray":223,"./initCloneByTag":224,"./initCloneObject":225}],156:[function(require,module,exports){
 /**
  * The base implementation of `compareAscending` which compares values and
  * sorts them in ascending order without guaranteeing a stable sort.
@@ -20280,7 +21313,7 @@ function baseCompareAscending(value, other) {
 
 module.exports = baseCompareAscending;
 
-},{}],147:[function(require,module,exports){
+},{}],157:[function(require,module,exports){
 /**
  * Copies properties of `source` to `object`.
  *
@@ -20305,10 +21338,13 @@ function baseCopy(source, props, object) {
 
 module.exports = baseCopy;
 
-},{}],148:[function(require,module,exports){
+},{}],158:[function(require,module,exports){
 var baseIndexOf = require('./baseIndexOf'),
     cacheIndexOf = require('./cacheIndexOf'),
     createCache = require('./createCache');
+
+/** Used as the size to enable large array optimizations. */
+var LARGE_ARRAY_SIZE = 200;
 
 /**
  * The base implementation of `_.difference` which accepts a single array
@@ -20329,7 +21365,7 @@ function baseDifference(array, values) {
   var index = -1,
       indexOf = baseIndexOf,
       isCommon = true,
-      cache = (isCommon && values.length >= 200) ? createCache(values) : null,
+      cache = (isCommon && values.length >= LARGE_ARRAY_SIZE) ? createCache(values) : null,
       valuesLength = values.length;
 
   if (cache) {
@@ -20359,7 +21395,7 @@ function baseDifference(array, values) {
 
 module.exports = baseDifference;
 
-},{"./baseIndexOf":163,"./cacheIndexOf":185,"./createCache":194}],149:[function(require,module,exports){
+},{"./baseIndexOf":173,"./cacheIndexOf":194,"./createCache":204}],159:[function(require,module,exports){
 var baseForOwn = require('./baseForOwn'),
     createBaseEach = require('./createBaseEach');
 
@@ -20376,7 +21412,7 @@ var baseEach = createBaseEach(baseForOwn);
 
 module.exports = baseEach;
 
-},{"./baseForOwn":159,"./createBaseEach":192}],150:[function(require,module,exports){
+},{"./baseForOwn":169,"./createBaseEach":202}],160:[function(require,module,exports){
 var baseForOwnRight = require('./baseForOwnRight'),
     createBaseEach = require('./createBaseEach');
 
@@ -20393,7 +21429,7 @@ var baseEachRight = createBaseEach(baseForOwnRight, true);
 
 module.exports = baseEachRight;
 
-},{"./baseForOwnRight":160,"./createBaseEach":192}],151:[function(require,module,exports){
+},{"./baseForOwnRight":170,"./createBaseEach":202}],161:[function(require,module,exports){
 var baseEach = require('./baseEach');
 
 /**
@@ -20417,7 +21453,7 @@ function baseEvery(collection, predicate) {
 
 module.exports = baseEvery;
 
-},{"./baseEach":149}],152:[function(require,module,exports){
+},{"./baseEach":159}],162:[function(require,module,exports){
 var baseEach = require('./baseEach');
 
 /**
@@ -20448,7 +21484,7 @@ function baseExtremum(collection, iteratee, comparator, exValue) {
 
 module.exports = baseExtremum;
 
-},{"./baseEach":149}],153:[function(require,module,exports){
+},{"./baseEach":159}],163:[function(require,module,exports){
 var baseEach = require('./baseEach');
 
 /**
@@ -20472,7 +21508,7 @@ function baseFilter(collection, predicate) {
 
 module.exports = baseFilter;
 
-},{"./baseEach":149}],154:[function(require,module,exports){
+},{"./baseEach":159}],164:[function(require,module,exports){
 /**
  * The base implementation of `_.find`, `_.findLast`, `_.findKey`, and `_.findLastKey`,
  * without support for callback shorthands and `this` binding, which iterates
@@ -20499,7 +21535,7 @@ function baseFind(collection, predicate, eachFunc, retKey) {
 
 module.exports = baseFind;
 
-},{}],155:[function(require,module,exports){
+},{}],165:[function(require,module,exports){
 /**
  * The base implementation of `_.findIndex` and `_.findLastIndex` without
  * support for callback shorthands and `this` binding.
@@ -20524,8 +21560,9 @@ function baseFindIndex(array, predicate, fromRight) {
 
 module.exports = baseFindIndex;
 
-},{}],156:[function(require,module,exports){
-var isArguments = require('../lang/isArguments'),
+},{}],166:[function(require,module,exports){
+var arrayPush = require('./arrayPush'),
+    isArguments = require('../lang/isArguments'),
     isArray = require('../lang/isArray'),
     isArrayLike = require('./isArrayLike'),
     isObjectLike = require('./isObjectLike');
@@ -20538,13 +21575,14 @@ var isArguments = require('../lang/isArguments'),
  * @param {Array} array The array to flatten.
  * @param {boolean} [isDeep] Specify a deep flatten.
  * @param {boolean} [isStrict] Restrict flattening to arrays-like objects.
+ * @param {Array} [result=[]] The initial result value.
  * @returns {Array} Returns the new flattened array.
  */
-function baseFlatten(array, isDeep, isStrict) {
+function baseFlatten(array, isDeep, isStrict, result) {
+  result || (result = []);
+
   var index = -1,
-      length = array.length,
-      resIndex = -1,
-      result = [];
+      length = array.length;
 
   while (++index < length) {
     var value = array[index];
@@ -20552,16 +21590,12 @@ function baseFlatten(array, isDeep, isStrict) {
         (isStrict || isArray(value) || isArguments(value))) {
       if (isDeep) {
         // Recursively flatten arrays (susceptible to call stack limits).
-        value = baseFlatten(value, isDeep, isStrict);
-      }
-      var valIndex = -1,
-          valLength = value.length;
-
-      while (++valIndex < valLength) {
-        result[++resIndex] = value[valIndex];
+        baseFlatten(value, isDeep, isStrict, result);
+      } else {
+        arrayPush(result, value);
       }
     } else if (!isStrict) {
-      result[++resIndex] = value;
+      result[result.length] = value;
     }
   }
   return result;
@@ -20569,7 +21603,7 @@ function baseFlatten(array, isDeep, isStrict) {
 
 module.exports = baseFlatten;
 
-},{"../lang/isArguments":233,"../lang/isArray":234,"./isArrayLike":210,"./isObjectLike":215}],157:[function(require,module,exports){
+},{"../lang/isArguments":253,"../lang/isArray":254,"./arrayPush":145,"./isArrayLike":227,"./isObjectLike":232}],167:[function(require,module,exports){
 var createBaseFor = require('./createBaseFor');
 
 /**
@@ -20588,7 +21622,7 @@ var baseFor = createBaseFor();
 
 module.exports = baseFor;
 
-},{"./createBaseFor":193}],158:[function(require,module,exports){
+},{"./createBaseFor":203}],168:[function(require,module,exports){
 var baseFor = require('./baseFor'),
     keysIn = require('../object/keysIn');
 
@@ -20607,7 +21641,7 @@ function baseForIn(object, iteratee) {
 
 module.exports = baseForIn;
 
-},{"../object/keysIn":262,"./baseFor":157}],159:[function(require,module,exports){
+},{"../object/keysIn":283,"./baseFor":167}],169:[function(require,module,exports){
 var baseFor = require('./baseFor'),
     keys = require('../object/keys');
 
@@ -20626,7 +21660,7 @@ function baseForOwn(object, iteratee) {
 
 module.exports = baseForOwn;
 
-},{"../object/keys":261,"./baseFor":157}],160:[function(require,module,exports){
+},{"../object/keys":282,"./baseFor":167}],170:[function(require,module,exports){
 var baseForRight = require('./baseForRight'),
     keys = require('../object/keys');
 
@@ -20645,7 +21679,7 @@ function baseForOwnRight(object, iteratee) {
 
 module.exports = baseForOwnRight;
 
-},{"../object/keys":261,"./baseForRight":161}],161:[function(require,module,exports){
+},{"../object/keys":282,"./baseForRight":171}],171:[function(require,module,exports){
 var createBaseFor = require('./createBaseFor');
 
 /**
@@ -20662,7 +21696,7 @@ var baseForRight = createBaseFor(true);
 
 module.exports = baseForRight;
 
-},{"./createBaseFor":193}],162:[function(require,module,exports){
+},{"./createBaseFor":203}],172:[function(require,module,exports){
 var toObject = require('./toObject');
 
 /**
@@ -20693,7 +21727,7 @@ function baseGet(object, path, pathKey) {
 
 module.exports = baseGet;
 
-},{"./toObject":223}],163:[function(require,module,exports){
+},{"./toObject":242}],173:[function(require,module,exports){
 var indexOfNaN = require('./indexOfNaN');
 
 /**
@@ -20722,7 +21756,7 @@ function baseIndexOf(array, value, fromIndex) {
 
 module.exports = baseIndexOf;
 
-},{"./indexOfNaN":205}],164:[function(require,module,exports){
+},{"./indexOfNaN":222}],174:[function(require,module,exports){
 var baseIsEqualDeep = require('./baseIsEqualDeep'),
     isObject = require('../lang/isObject'),
     isObjectLike = require('./isObjectLike');
@@ -20752,7 +21786,7 @@ function baseIsEqual(value, other, customizer, isLoose, stackA, stackB) {
 
 module.exports = baseIsEqual;
 
-},{"../lang/isObject":248,"./baseIsEqualDeep":165,"./isObjectLike":215}],165:[function(require,module,exports){
+},{"../lang/isObject":268,"./baseIsEqualDeep":175,"./isObjectLike":232}],175:[function(require,module,exports){
 var equalArrays = require('./equalArrays'),
     equalByTag = require('./equalByTag'),
     equalObjects = require('./equalObjects'),
@@ -20771,7 +21805,7 @@ var objectProto = Object.prototype;
 var hasOwnProperty = objectProto.hasOwnProperty;
 
 /**
- * Used to resolve the [`toStringTag`](https://people.mozilla.org/~jorendorff/es6-draft.html#sec-object.prototype.tostring)
+ * Used to resolve the [`toStringTag`](http://ecma-international.org/ecma-262/6.0/#sec-object.prototype.tostring)
  * of values.
  */
 var objToString = objectProto.toString;
@@ -20856,24 +21890,7 @@ function baseIsEqualDeep(object, other, equalFunc, customizer, isLoose, stackA, 
 
 module.exports = baseIsEqualDeep;
 
-},{"../lang/isArray":234,"../lang/isTypedArray":252,"./equalArrays":199,"./equalByTag":200,"./equalObjects":201}],166:[function(require,module,exports){
-/**
- * The base implementation of `_.isFunction` without support for environments
- * with incorrect `typeof` results.
- *
- * @private
- * @param {*} value The value to check.
- * @returns {boolean} Returns `true` if `value` is correctly classified, else `false`.
- */
-function baseIsFunction(value) {
-  // Avoid a Chakra JIT bug in compatibility modes of IE 11.
-  // See https://github.com/jashkenas/underscore/issues/1621 for more details.
-  return typeof value == 'function' || false;
-}
-
-module.exports = baseIsFunction;
-
-},{}],167:[function(require,module,exports){
+},{"../lang/isArray":254,"../lang/isTypedArray":272,"./equalArrays":213,"./equalByTag":214,"./equalObjects":215}],176:[function(require,module,exports){
 var baseIsEqual = require('./baseIsEqual'),
     toObject = require('./toObject');
 
@@ -20927,7 +21944,7 @@ function baseIsMatch(object, matchData, customizer) {
 
 module.exports = baseIsMatch;
 
-},{"./baseIsEqual":164,"./toObject":223}],168:[function(require,module,exports){
+},{"./baseIsEqual":174,"./toObject":242}],177:[function(require,module,exports){
 var baseEach = require('./baseEach'),
     isArrayLike = require('./isArrayLike');
 
@@ -20952,7 +21969,7 @@ function baseMap(collection, iteratee) {
 
 module.exports = baseMap;
 
-},{"./baseEach":149,"./isArrayLike":210}],169:[function(require,module,exports){
+},{"./baseEach":159,"./isArrayLike":227}],178:[function(require,module,exports){
 var baseIsMatch = require('./baseIsMatch'),
     getMatchData = require('./getMatchData'),
     toObject = require('./toObject');
@@ -20984,7 +22001,7 @@ function baseMatches(source) {
 
 module.exports = baseMatches;
 
-},{"./baseIsMatch":167,"./getMatchData":203,"./toObject":223}],170:[function(require,module,exports){
+},{"./baseIsMatch":176,"./getMatchData":220,"./toObject":242}],179:[function(require,module,exports){
 var baseGet = require('./baseGet'),
     baseIsEqual = require('./baseIsEqual'),
     baseSlice = require('./baseSlice'),
@@ -21031,7 +22048,7 @@ function baseMatchesProperty(path, srcValue) {
 
 module.exports = baseMatchesProperty;
 
-},{"../array/last":86,"../lang/isArray":234,"./baseGet":162,"./baseIsEqual":164,"./baseSlice":175,"./isKey":213,"./isStrictComparable":217,"./toObject":223,"./toPath":224}],171:[function(require,module,exports){
+},{"../array/last":93,"../lang/isArray":254,"./baseGet":172,"./baseIsEqual":174,"./baseSlice":184,"./isKey":230,"./isStrictComparable":234,"./toObject":242,"./toPath":243}],180:[function(require,module,exports){
 /**
  * The base implementation of `_.property` without support for deep paths.
  *
@@ -21047,7 +22064,7 @@ function baseProperty(key) {
 
 module.exports = baseProperty;
 
-},{}],172:[function(require,module,exports){
+},{}],181:[function(require,module,exports){
 var baseGet = require('./baseGet'),
     toPath = require('./toPath');
 
@@ -21068,12 +22085,10 @@ function basePropertyDeep(path) {
 
 module.exports = basePropertyDeep;
 
-},{"./baseGet":162,"./toPath":224}],173:[function(require,module,exports){
-/** Native method references. */
-var floor = Math.floor;
-
+},{"./baseGet":172,"./toPath":243}],182:[function(require,module,exports){
 /* Native method references for those with the same name as other `lodash` methods. */
-var nativeRandom = Math.random;
+var nativeFloor = Math.floor,
+    nativeRandom = Math.random;
 
 /**
  * The base implementation of `_.random` without support for argument juggling
@@ -21085,12 +22100,12 @@ var nativeRandom = Math.random;
  * @returns {number} Returns the random number.
  */
 function baseRandom(min, max) {
-  return min + floor(nativeRandom() * (max - min + 1));
+  return min + nativeFloor(nativeRandom() * (max - min + 1));
 }
 
 module.exports = baseRandom;
 
-},{}],174:[function(require,module,exports){
+},{}],183:[function(require,module,exports){
 /**
  * The base implementation of `_.reduce` and `_.reduceRight` without support
  * for callback shorthands and `this` binding, which iterates over `collection`
@@ -21116,7 +22131,7 @@ function baseReduce(collection, iteratee, accumulator, initFromCollection, eachF
 
 module.exports = baseReduce;
 
-},{}],175:[function(require,module,exports){
+},{}],184:[function(require,module,exports){
 /**
  * The base implementation of `_.slice` without an iteratee call guard.
  *
@@ -21150,7 +22165,7 @@ function baseSlice(array, start, end) {
 
 module.exports = baseSlice;
 
-},{}],176:[function(require,module,exports){
+},{}],185:[function(require,module,exports){
 var baseEach = require('./baseEach');
 
 /**
@@ -21175,7 +22190,7 @@ function baseSome(collection, predicate) {
 
 module.exports = baseSome;
 
-},{"./baseEach":149}],177:[function(require,module,exports){
+},{"./baseEach":159}],186:[function(require,module,exports){
 /**
  * The base implementation of `_.sortBy` which uses `comparer` to define
  * the sort order of `array` and replaces criteria objects with their
@@ -21198,7 +22213,7 @@ function baseSortBy(array, comparer) {
 
 module.exports = baseSortBy;
 
-},{}],178:[function(require,module,exports){
+},{}],187:[function(require,module,exports){
 var arrayMap = require('./arrayMap'),
     baseCallback = require('./baseCallback'),
     baseMap = require('./baseMap'),
@@ -21231,7 +22246,7 @@ function baseSortByOrder(collection, iteratees, orders) {
 
 module.exports = baseSortByOrder;
 
-},{"./arrayMap":137,"./baseCallback":144,"./baseMap":168,"./baseSortBy":177,"./compareMultiple":190}],179:[function(require,module,exports){
+},{"./arrayMap":144,"./baseCallback":154,"./baseMap":177,"./baseSortBy":186,"./compareMultiple":199}],188:[function(require,module,exports){
 var baseEach = require('./baseEach');
 
 /**
@@ -21253,7 +22268,7 @@ function baseSum(collection, iteratee) {
 
 module.exports = baseSum;
 
-},{"./baseEach":149}],180:[function(require,module,exports){
+},{"./baseEach":159}],189:[function(require,module,exports){
 /**
  * Converts `value` to a string if it's not one. An empty string is returned
  * for `null` or `undefined` values.
@@ -21263,18 +22278,18 @@ module.exports = baseSum;
  * @returns {string} Returns the string.
  */
 function baseToString(value) {
-  if (typeof value == 'string') {
-    return value;
-  }
   return value == null ? '' : (value + '');
 }
 
 module.exports = baseToString;
 
-},{}],181:[function(require,module,exports){
+},{}],190:[function(require,module,exports){
 var baseIndexOf = require('./baseIndexOf'),
     cacheIndexOf = require('./cacheIndexOf'),
     createCache = require('./createCache');
+
+/** Used as the size to enable large array optimizations. */
+var LARGE_ARRAY_SIZE = 200;
 
 /**
  * The base implementation of `_.uniq` without support for callback shorthands
@@ -21290,7 +22305,7 @@ function baseUniq(array, iteratee) {
       indexOf = baseIndexOf,
       length = array.length,
       isCommon = true,
-      isLarge = isCommon && length >= 200,
+      isLarge = isCommon && length >= LARGE_ARRAY_SIZE,
       seen = isLarge ? createCache() : null,
       result = [];
 
@@ -21330,7 +22345,7 @@ function baseUniq(array, iteratee) {
 
 module.exports = baseUniq;
 
-},{"./baseIndexOf":163,"./cacheIndexOf":185,"./createCache":194}],182:[function(require,module,exports){
+},{"./baseIndexOf":173,"./cacheIndexOf":194,"./createCache":204}],191:[function(require,module,exports){
 /**
  * The base implementation of `_.values` and `_.valuesIn` which creates an
  * array of `object` property values corresponding to the property names
@@ -21354,7 +22369,7 @@ function baseValues(object, props) {
 
 module.exports = baseValues;
 
-},{}],183:[function(require,module,exports){
+},{}],192:[function(require,module,exports){
 var identity = require('../utility/identity');
 
 /**
@@ -21395,31 +22410,11 @@ function bindCallback(func, thisArg, argCount) {
 
 module.exports = bindCallback;
 
-},{"../utility/identity":272}],184:[function(require,module,exports){
+},{"../utility/identity":313}],193:[function(require,module,exports){
 (function (global){
-var constant = require('../utility/constant'),
-    getNative = require('./getNative');
-
 /** Native method references. */
-var ArrayBuffer = getNative(global, 'ArrayBuffer'),
-    bufferSlice = getNative(ArrayBuffer && new ArrayBuffer(0), 'slice'),
-    floor = Math.floor,
-    Uint8Array = getNative(global, 'Uint8Array');
-
-/** Used to clone array buffers. */
-var Float64Array = (function() {
-  // Safari 5 errors when using an array buffer to initialize a typed array
-  // where the array buffer's `byteLength` is not a multiple of the typed
-  // array's `BYTES_PER_ELEMENT`.
-  try {
-    var func = getNative(global, 'Float64Array'),
-        result = new func(new ArrayBuffer(10), 0, 1) && func;
-  } catch(e) {}
-  return result || null;
-}());
-
-/** Used as the size, in bytes, of each `Float64Array` element. */
-var FLOAT64_BYTES_PER_ELEMENT = Float64Array ? Float64Array.BYTES_PER_ELEMENT : 0;
+var ArrayBuffer = global.ArrayBuffer,
+    Uint8Array = global.Uint8Array;
 
 /**
  * Creates a clone of the given array buffer.
@@ -21429,32 +22424,17 @@ var FLOAT64_BYTES_PER_ELEMENT = Float64Array ? Float64Array.BYTES_PER_ELEMENT : 
  * @returns {ArrayBuffer} Returns the cloned array buffer.
  */
 function bufferClone(buffer) {
-  return bufferSlice.call(buffer, 0);
-}
-if (!bufferSlice) {
-  // PhantomJS has `ArrayBuffer` and `Uint8Array` but not `Float64Array`.
-  bufferClone = !(ArrayBuffer && Uint8Array) ? constant(null) : function(buffer) {
-    var byteLength = buffer.byteLength,
-        floatLength = Float64Array ? floor(byteLength / FLOAT64_BYTES_PER_ELEMENT) : 0,
-        offset = floatLength * FLOAT64_BYTES_PER_ELEMENT,
-        result = new ArrayBuffer(byteLength);
+  var result = new ArrayBuffer(buffer.byteLength),
+      view = new Uint8Array(result);
 
-    if (floatLength) {
-      var view = new Float64Array(result, 0, floatLength);
-      view.set(new Float64Array(buffer, 0, floatLength));
-    }
-    if (byteLength != offset) {
-      view = new Uint8Array(result, offset);
-      view.set(new Uint8Array(buffer, offset));
-    }
-    return result;
-  };
+  view.set(new Uint8Array(buffer));
+  return result;
 }
 
 module.exports = bufferClone;
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"../utility/constant":271,"./getNative":204}],185:[function(require,module,exports){
+},{}],194:[function(require,module,exports){
 var isObject = require('../lang/isObject');
 
 /**
@@ -21475,7 +22455,7 @@ function cacheIndexOf(cache, value) {
 
 module.exports = cacheIndexOf;
 
-},{"../lang/isObject":248}],186:[function(require,module,exports){
+},{"../lang/isObject":268}],195:[function(require,module,exports){
 var isObject = require('../lang/isObject');
 
 /**
@@ -21497,7 +22477,7 @@ function cachePush(value) {
 
 module.exports = cachePush;
 
-},{"../lang/isObject":248}],187:[function(require,module,exports){
+},{"../lang/isObject":268}],196:[function(require,module,exports){
 /**
  * Used by `_.trim` and `_.trimLeft` to get the index of the first character
  * of `string` that is not found in `chars`.
@@ -21517,7 +22497,7 @@ function charsLeftIndex(string, chars) {
 
 module.exports = charsLeftIndex;
 
-},{}],188:[function(require,module,exports){
+},{}],197:[function(require,module,exports){
 /**
  * Used by `_.trim` and `_.trimRight` to get the index of the last character
  * of `string` that is not found in `chars`.
@@ -21536,7 +22516,7 @@ function charsRightIndex(string, chars) {
 
 module.exports = charsRightIndex;
 
-},{}],189:[function(require,module,exports){
+},{}],198:[function(require,module,exports){
 var baseCompareAscending = require('./baseCompareAscending');
 
 /**
@@ -21544,8 +22524,8 @@ var baseCompareAscending = require('./baseCompareAscending');
  * sort them in ascending order.
  *
  * @private
- * @param {Object} object The object to compare to `other`.
- * @param {Object} other The object to compare to `object`.
+ * @param {Object} object The object to compare.
+ * @param {Object} other The other object to compare.
  * @returns {number} Returns the sort order indicator for `object`.
  */
 function compareAscending(object, other) {
@@ -21554,20 +22534,20 @@ function compareAscending(object, other) {
 
 module.exports = compareAscending;
 
-},{"./baseCompareAscending":146}],190:[function(require,module,exports){
+},{"./baseCompareAscending":156}],199:[function(require,module,exports){
 var baseCompareAscending = require('./baseCompareAscending');
 
 /**
- * Used by `_.sortByOrder` to compare multiple properties of each element
- * in a collection and stable sort them in the following order:
+ * Used by `_.sortByOrder` to compare multiple properties of a value to another
+ * and stable sort them.
  *
- * If `orders` is unspecified, sort in ascending order for all properties.
- * Otherwise, for each property, sort in ascending order if its corresponding value in
- * orders is true, and descending order if false.
+ * If `orders` is unspecified, all valuess are sorted in ascending order. Otherwise,
+ * a value is sorted in ascending order if its corresponding order is "asc", and
+ * descending if "desc".
  *
  * @private
- * @param {Object} object The object to compare to `other`.
- * @param {Object} other The object to compare to `object`.
+ * @param {Object} object The object to compare.
+ * @param {Object} other The other object to compare.
  * @param {boolean[]} orders The order to sort by for each property.
  * @returns {number} Returns the sort order indicator for `object`.
  */
@@ -21584,7 +22564,8 @@ function compareMultiple(object, other, orders) {
       if (index >= ordersLength) {
         return result;
       }
-      return result * (orders[index] ? 1 : -1);
+      var order = orders[index];
+      return result * ((order === 'asc' || order === true) ? 1 : -1);
     }
   }
   // Fixes an `Array#sort` bug in the JS engine embedded in Adobe applications
@@ -21599,18 +22580,13 @@ function compareMultiple(object, other, orders) {
 
 module.exports = compareMultiple;
 
-},{"./baseCompareAscending":146}],191:[function(require,module,exports){
+},{"./baseCompareAscending":156}],200:[function(require,module,exports){
 var baseCallback = require('./baseCallback'),
     baseEach = require('./baseEach'),
     isArray = require('../lang/isArray');
 
 /**
- * Creates a function that aggregates a collection, creating an accumulator
- * object composed from the results of running each element in the collection
- * through an iteratee.
- *
- * **Note:** This function is used to create `_.countBy`, `_.groupBy`, `_.indexBy`,
- * and `_.partition`.
+ * Creates a `_.countBy`, `_.groupBy`, `_.indexBy`, or `_.partition` function.
  *
  * @private
  * @param {Function} setter The function to set keys and values of the accumulator object.
@@ -21641,7 +22617,50 @@ function createAggregator(setter, initializer) {
 
 module.exports = createAggregator;
 
-},{"../lang/isArray":234,"./baseCallback":144,"./baseEach":149}],192:[function(require,module,exports){
+},{"../lang/isArray":254,"./baseCallback":154,"./baseEach":159}],201:[function(require,module,exports){
+var bindCallback = require('./bindCallback'),
+    isIterateeCall = require('./isIterateeCall'),
+    restParam = require('../function/restParam');
+
+/**
+ * Creates a `_.assign`, `_.defaults`, or `_.merge` function.
+ *
+ * @private
+ * @param {Function} assigner The function to assign values.
+ * @returns {Function} Returns the new assigner function.
+ */
+function createAssigner(assigner) {
+  return restParam(function(object, sources) {
+    var index = -1,
+        length = object == null ? 0 : sources.length,
+        customizer = length > 2 ? sources[length - 2] : undefined,
+        guard = length > 2 ? sources[2] : undefined,
+        thisArg = length > 1 ? sources[length - 1] : undefined;
+
+    if (typeof customizer == 'function') {
+      customizer = bindCallback(customizer, thisArg, 5);
+      length -= 2;
+    } else {
+      customizer = typeof thisArg == 'function' ? thisArg : undefined;
+      length -= (customizer ? 1 : 0);
+    }
+    if (guard && isIterateeCall(sources[0], sources[1], guard)) {
+      customizer = length < 3 ? undefined : customizer;
+      length = 1;
+    }
+    while (++index < length) {
+      var source = sources[index];
+      if (source) {
+        assigner(object, source, customizer);
+      }
+    }
+    return object;
+  });
+}
+
+module.exports = createAssigner;
+
+},{"../function/restParam":135,"./bindCallback":192,"./isIterateeCall":229}],202:[function(require,module,exports){
 var getLength = require('./getLength'),
     isLength = require('./isLength'),
     toObject = require('./toObject');
@@ -21674,7 +22693,7 @@ function createBaseEach(eachFunc, fromRight) {
 
 module.exports = createBaseEach;
 
-},{"./getLength":202,"./isLength":214,"./toObject":223}],193:[function(require,module,exports){
+},{"./getLength":219,"./isLength":231,"./toObject":242}],203:[function(require,module,exports){
 var toObject = require('./toObject');
 
 /**
@@ -21703,10 +22722,9 @@ function createBaseFor(fromRight) {
 
 module.exports = createBaseFor;
 
-},{"./toObject":223}],194:[function(require,module,exports){
+},{"./toObject":242}],204:[function(require,module,exports){
 (function (global){
 var SetCache = require('./SetCache'),
-    constant = require('../utility/constant'),
     getNative = require('./getNative');
 
 /** Native method references. */
@@ -21722,17 +22740,46 @@ var nativeCreate = getNative(Object, 'create');
  * @param {Array} [values] The values to cache.
  * @returns {null|Object} Returns the new cache object if `Set` is supported, else `null`.
  */
-var createCache = !(nativeCreate && Set) ? constant(null) : function(values) {
-  return new SetCache(values);
-};
+function createCache(values) {
+  return (nativeCreate && Set) ? new SetCache(values) : null;
+}
 
 module.exports = createCache;
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"../utility/constant":271,"./SetCache":130,"./getNative":204}],195:[function(require,module,exports){
+},{"./SetCache":137,"./getNative":221}],205:[function(require,module,exports){
+var deburr = require('../string/deburr'),
+    words = require('../string/words');
+
+/**
+ * Creates a function that produces compound words out of the words in a
+ * given string.
+ *
+ * @private
+ * @param {Function} callback The function to combine each word.
+ * @returns {Function} Returns the new compounder function.
+ */
+function createCompounder(callback) {
+  return function(string) {
+    var index = -1,
+        array = words(deburr(string)),
+        length = array.length,
+        result = '';
+
+    while (++index < length) {
+      result = callback(result, array[index], index);
+    }
+    return result;
+  };
+}
+
+module.exports = createCompounder;
+
+},{"../string/deburr":291,"../string/words":311}],206:[function(require,module,exports){
 var arrayExtremum = require('./arrayExtremum'),
     baseCallback = require('./baseCallback'),
     baseExtremum = require('./baseExtremum'),
+    isArray = require('../lang/isArray'),
     isIterateeCall = require('./isIterateeCall'),
     toIterable = require('./toIterable');
 
@@ -21747,11 +22794,11 @@ var arrayExtremum = require('./arrayExtremum'),
 function createExtremum(comparator, exValue) {
   return function(collection, iteratee, thisArg) {
     if (thisArg && isIterateeCall(collection, iteratee, thisArg)) {
-      iteratee = null;
+      iteratee = undefined;
     }
     iteratee = baseCallback(iteratee, thisArg, 3);
     if (iteratee.length == 1) {
-      collection = toIterable(collection);
+      collection = isArray(collection) ? collection : toIterable(collection);
       var result = arrayExtremum(collection, iteratee, comparator, exValue);
       if (!(collection.length && result === exValue)) {
         return result;
@@ -21763,7 +22810,7 @@ function createExtremum(comparator, exValue) {
 
 module.exports = createExtremum;
 
-},{"./arrayExtremum":135,"./baseCallback":144,"./baseExtremum":152,"./isIterateeCall":212,"./toIterable":222}],196:[function(require,module,exports){
+},{"../lang/isArray":254,"./arrayExtremum":142,"./baseCallback":154,"./baseExtremum":162,"./isIterateeCall":229,"./toIterable":241}],207:[function(require,module,exports){
 var baseCallback = require('./baseCallback'),
     baseFind = require('./baseFind'),
     baseFindIndex = require('./baseFindIndex'),
@@ -21790,7 +22837,7 @@ function createFind(eachFunc, fromRight) {
 
 module.exports = createFind;
 
-},{"../lang/isArray":234,"./baseCallback":144,"./baseFind":154,"./baseFindIndex":155}],197:[function(require,module,exports){
+},{"../lang/isArray":254,"./baseCallback":154,"./baseFind":164,"./baseFindIndex":165}],208:[function(require,module,exports){
 var bindCallback = require('./bindCallback'),
     isArray = require('../lang/isArray');
 
@@ -21812,7 +22859,60 @@ function createForEach(arrayFunc, eachFunc) {
 
 module.exports = createForEach;
 
-},{"../lang/isArray":234,"./bindCallback":183}],198:[function(require,module,exports){
+},{"../lang/isArray":254,"./bindCallback":192}],209:[function(require,module,exports){
+var baseToString = require('./baseToString'),
+    createPadding = require('./createPadding');
+
+/**
+ * Creates a function for `_.padLeft` or `_.padRight`.
+ *
+ * @private
+ * @param {boolean} [fromRight] Specify padding from the right.
+ * @returns {Function} Returns the new pad function.
+ */
+function createPadDir(fromRight) {
+  return function(string, length, chars) {
+    string = baseToString(string);
+    return (fromRight ? string : '') + createPadding(string, length, chars) + (fromRight ? '' : string);
+  };
+}
+
+module.exports = createPadDir;
+
+},{"./baseToString":189,"./createPadding":210}],210:[function(require,module,exports){
+(function (global){
+var repeat = require('../string/repeat');
+
+/* Native method references for those with the same name as other `lodash` methods. */
+var nativeCeil = Math.ceil,
+    nativeIsFinite = global.isFinite;
+
+/**
+ * Creates the padding required for `string` based on the given `length`.
+ * The `chars` string is truncated if the number of characters exceeds `length`.
+ *
+ * @private
+ * @param {string} string The string to create padding for.
+ * @param {number} [length=0] The padding length.
+ * @param {string} [chars=' '] The string used as padding.
+ * @returns {string} Returns the pad for `string`.
+ */
+function createPadding(string, length, chars) {
+  var strLength = string.length;
+  length = +length;
+
+  if (strLength >= length || !nativeIsFinite(length)) {
+    return '';
+  }
+  var padLength = length - strLength;
+  chars = chars == null ? ' ' : (chars + '');
+  return repeat(chars, nativeCeil(padLength / chars.length)).slice(0, padLength);
+}
+
+module.exports = createPadding;
+
+}).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
+},{"../string/repeat":300}],211:[function(require,module,exports){
 var baseCallback = require('./baseCallback'),
     baseReduce = require('./baseReduce'),
     isArray = require('../lang/isArray');
@@ -21836,7 +22936,42 @@ function createReduce(arrayFunc, eachFunc) {
 
 module.exports = createReduce;
 
-},{"../lang/isArray":234,"./baseCallback":144,"./baseReduce":174}],199:[function(require,module,exports){
+},{"../lang/isArray":254,"./baseCallback":154,"./baseReduce":183}],212:[function(require,module,exports){
+/** Used to map latin-1 supplementary letters to basic latin letters. */
+var deburredLetters = {
+  '\xc0': 'A',  '\xc1': 'A', '\xc2': 'A', '\xc3': 'A', '\xc4': 'A', '\xc5': 'A',
+  '\xe0': 'a',  '\xe1': 'a', '\xe2': 'a', '\xe3': 'a', '\xe4': 'a', '\xe5': 'a',
+  '\xc7': 'C',  '\xe7': 'c',
+  '\xd0': 'D',  '\xf0': 'd',
+  '\xc8': 'E',  '\xc9': 'E', '\xca': 'E', '\xcb': 'E',
+  '\xe8': 'e',  '\xe9': 'e', '\xea': 'e', '\xeb': 'e',
+  '\xcC': 'I',  '\xcd': 'I', '\xce': 'I', '\xcf': 'I',
+  '\xeC': 'i',  '\xed': 'i', '\xee': 'i', '\xef': 'i',
+  '\xd1': 'N',  '\xf1': 'n',
+  '\xd2': 'O',  '\xd3': 'O', '\xd4': 'O', '\xd5': 'O', '\xd6': 'O', '\xd8': 'O',
+  '\xf2': 'o',  '\xf3': 'o', '\xf4': 'o', '\xf5': 'o', '\xf6': 'o', '\xf8': 'o',
+  '\xd9': 'U',  '\xda': 'U', '\xdb': 'U', '\xdc': 'U',
+  '\xf9': 'u',  '\xfa': 'u', '\xfb': 'u', '\xfc': 'u',
+  '\xdd': 'Y',  '\xfd': 'y', '\xff': 'y',
+  '\xc6': 'Ae', '\xe6': 'ae',
+  '\xde': 'Th', '\xfe': 'th',
+  '\xdf': 'ss'
+};
+
+/**
+ * Used by `_.deburr` to convert latin-1 supplementary letters to basic latin letters.
+ *
+ * @private
+ * @param {string} letter The matched letter to deburr.
+ * @returns {string} Returns the deburred letter.
+ */
+function deburrLetter(letter) {
+  return deburredLetters[letter];
+}
+
+module.exports = deburrLetter;
+
+},{}],213:[function(require,module,exports){
 var arraySome = require('./arraySome');
 
 /**
@@ -21889,7 +23024,7 @@ function equalArrays(array, other, equalFunc, customizer, isLoose, stackA, stack
 
 module.exports = equalArrays;
 
-},{"./arraySome":140}],200:[function(require,module,exports){
+},{"./arraySome":148}],214:[function(require,module,exports){
 /** `Object#toString` result references. */
 var boolTag = '[object Boolean]',
     dateTag = '[object Date]',
@@ -21906,7 +23041,7 @@ var boolTag = '[object Boolean]',
  * `Boolean`, `Date`, `Error`, `Number`, `RegExp`, or `String`.
  *
  * @private
- * @param {Object} value The object to compare.
+ * @param {Object} object The object to compare.
  * @param {Object} other The other object to compare.
  * @param {string} tag The `toStringTag` of the objects to compare.
  * @returns {boolean} Returns `true` if the objects are equivalent, else `false`.
@@ -21939,7 +23074,7 @@ function equalByTag(object, other, tag) {
 
 module.exports = equalByTag;
 
-},{}],201:[function(require,module,exports){
+},{}],215:[function(require,module,exports){
 var keys = require('../object/keys');
 
 /** Used for native method references. */
@@ -22008,7 +23143,95 @@ function equalObjects(object, other, equalFunc, customizer, isLoose, stackA, sta
 
 module.exports = equalObjects;
 
-},{"../object/keys":261}],202:[function(require,module,exports){
+},{"../object/keys":282}],216:[function(require,module,exports){
+/** Used to map characters to HTML entities. */
+var htmlEscapes = {
+  '&': '&amp;',
+  '<': '&lt;',
+  '>': '&gt;',
+  '"': '&quot;',
+  "'": '&#39;',
+  '`': '&#96;'
+};
+
+/**
+ * Used by `_.escape` to convert characters to HTML entities.
+ *
+ * @private
+ * @param {string} chr The matched character to escape.
+ * @returns {string} Returns the escaped character.
+ */
+function escapeHtmlChar(chr) {
+  return htmlEscapes[chr];
+}
+
+module.exports = escapeHtmlChar;
+
+},{}],217:[function(require,module,exports){
+/** Used to escape characters for inclusion in compiled regexes. */
+var regexpEscapes = {
+  '0': 'x30', '1': 'x31', '2': 'x32', '3': 'x33', '4': 'x34',
+  '5': 'x35', '6': 'x36', '7': 'x37', '8': 'x38', '9': 'x39',
+  'A': 'x41', 'B': 'x42', 'C': 'x43', 'D': 'x44', 'E': 'x45', 'F': 'x46',
+  'a': 'x61', 'b': 'x62', 'c': 'x63', 'd': 'x64', 'e': 'x65', 'f': 'x66',
+  'n': 'x6e', 'r': 'x72', 't': 'x74', 'u': 'x75', 'v': 'x76', 'x': 'x78'
+};
+
+/** Used to escape characters for inclusion in compiled string literals. */
+var stringEscapes = {
+  '\\': '\\',
+  "'": "'",
+  '\n': 'n',
+  '\r': 'r',
+  '\u2028': 'u2028',
+  '\u2029': 'u2029'
+};
+
+/**
+ * Used by `_.escapeRegExp` to escape characters for inclusion in compiled regexes.
+ *
+ * @private
+ * @param {string} chr The matched character to escape.
+ * @param {string} leadingChar The capture group for a leading character.
+ * @param {string} whitespaceChar The capture group for a whitespace character.
+ * @returns {string} Returns the escaped character.
+ */
+function escapeRegExpChar(chr, leadingChar, whitespaceChar) {
+  if (leadingChar) {
+    chr = regexpEscapes[chr];
+  } else if (whitespaceChar) {
+    chr = stringEscapes[chr];
+  }
+  return '\\' + chr;
+}
+
+module.exports = escapeRegExpChar;
+
+},{}],218:[function(require,module,exports){
+/** Used to escape characters for inclusion in compiled string literals. */
+var stringEscapes = {
+  '\\': '\\',
+  "'": "'",
+  '\n': 'n',
+  '\r': 'r',
+  '\u2028': 'u2028',
+  '\u2029': 'u2029'
+};
+
+/**
+ * Used by `_.template` to escape characters for inclusion in compiled string literals.
+ *
+ * @private
+ * @param {string} chr The matched character to escape.
+ * @returns {string} Returns the escaped character.
+ */
+function escapeStringChar(chr) {
+  return '\\' + stringEscapes[chr];
+}
+
+module.exports = escapeStringChar;
+
+},{}],219:[function(require,module,exports){
 var baseProperty = require('./baseProperty');
 
 /**
@@ -22025,7 +23248,7 @@ var getLength = baseProperty('length');
 
 module.exports = getLength;
 
-},{"./baseProperty":171}],203:[function(require,module,exports){
+},{"./baseProperty":180}],220:[function(require,module,exports){
 var isStrictComparable = require('./isStrictComparable'),
     pairs = require('../object/pairs');
 
@@ -22048,7 +23271,7 @@ function getMatchData(object) {
 
 module.exports = getMatchData;
 
-},{"../object/pairs":264,"./isStrictComparable":217}],204:[function(require,module,exports){
+},{"../object/pairs":285,"./isStrictComparable":234}],221:[function(require,module,exports){
 var isNative = require('../lang/isNative');
 
 /**
@@ -22066,7 +23289,7 @@ function getNative(object, key) {
 
 module.exports = getNative;
 
-},{"../lang/isNative":245}],205:[function(require,module,exports){
+},{"../lang/isNative":265}],222:[function(require,module,exports){
 /**
  * Gets the index at which the first occurrence of `NaN` is found in `array`.
  *
@@ -22091,7 +23314,7 @@ function indexOfNaN(array, fromIndex, fromRight) {
 
 module.exports = indexOfNaN;
 
-},{}],206:[function(require,module,exports){
+},{}],223:[function(require,module,exports){
 /** Used for native method references. */
 var objectProto = Object.prototype;
 
@@ -22119,7 +23342,7 @@ function initCloneArray(array) {
 
 module.exports = initCloneArray;
 
-},{}],207:[function(require,module,exports){
+},{}],224:[function(require,module,exports){
 var bufferClone = require('./bufferClone');
 
 /** `Object#toString` result references. */
@@ -22184,7 +23407,7 @@ function initCloneByTag(object, tag, isDeep) {
 
 module.exports = initCloneByTag;
 
-},{"./bufferClone":184}],208:[function(require,module,exports){
+},{"./bufferClone":193}],225:[function(require,module,exports){
 /**
  * Initializes an object clone.
  *
@@ -22202,7 +23425,7 @@ function initCloneObject(object) {
 
 module.exports = initCloneObject;
 
-},{}],209:[function(require,module,exports){
+},{}],226:[function(require,module,exports){
 var baseGet = require('./baseGet'),
     baseSlice = require('./baseSlice'),
     isKey = require('./isKey'),
@@ -22230,7 +23453,7 @@ function invokePath(object, path, args) {
 
 module.exports = invokePath;
 
-},{"../array/last":86,"./baseGet":162,"./baseSlice":175,"./isKey":213,"./toPath":224}],210:[function(require,module,exports){
+},{"../array/last":93,"./baseGet":172,"./baseSlice":184,"./isKey":230,"./toPath":243}],227:[function(require,module,exports){
 var getLength = require('./getLength'),
     isLength = require('./isLength');
 
@@ -22247,12 +23470,12 @@ function isArrayLike(value) {
 
 module.exports = isArrayLike;
 
-},{"./getLength":202,"./isLength":214}],211:[function(require,module,exports){
+},{"./getLength":219,"./isLength":231}],228:[function(require,module,exports){
 /** Used to detect unsigned integer values. */
 var reIsUint = /^\d+$/;
 
 /**
- * Used as the [maximum length](https://people.mozilla.org/~jorendorff/es6-draft.html#sec-number.max_safe_integer)
+ * Used as the [maximum length](http://ecma-international.org/ecma-262/6.0/#sec-number.max_safe_integer)
  * of an array-like value.
  */
 var MAX_SAFE_INTEGER = 9007199254740991;
@@ -22273,7 +23496,7 @@ function isIndex(value, length) {
 
 module.exports = isIndex;
 
-},{}],212:[function(require,module,exports){
+},{}],229:[function(require,module,exports){
 var isArrayLike = require('./isArrayLike'),
     isIndex = require('./isIndex'),
     isObject = require('../lang/isObject');
@@ -22303,7 +23526,7 @@ function isIterateeCall(value, index, object) {
 
 module.exports = isIterateeCall;
 
-},{"../lang/isObject":248,"./isArrayLike":210,"./isIndex":211}],213:[function(require,module,exports){
+},{"../lang/isObject":268,"./isArrayLike":227,"./isIndex":228}],230:[function(require,module,exports){
 var isArray = require('../lang/isArray'),
     toObject = require('./toObject');
 
@@ -22333,9 +23556,9 @@ function isKey(value, object) {
 
 module.exports = isKey;
 
-},{"../lang/isArray":234,"./toObject":223}],214:[function(require,module,exports){
+},{"../lang/isArray":254,"./toObject":242}],231:[function(require,module,exports){
 /**
- * Used as the [maximum length](https://people.mozilla.org/~jorendorff/es6-draft.html#sec-number.max_safe_integer)
+ * Used as the [maximum length](http://ecma-international.org/ecma-262/6.0/#sec-number.max_safe_integer)
  * of an array-like value.
  */
 var MAX_SAFE_INTEGER = 9007199254740991;
@@ -22343,7 +23566,7 @@ var MAX_SAFE_INTEGER = 9007199254740991;
 /**
  * Checks if `value` is a valid array-like length.
  *
- * **Note:** This function is based on [`ToLength`](https://people.mozilla.org/~jorendorff/es6-draft.html#sec-tolength).
+ * **Note:** This function is based on [`ToLength`](http://ecma-international.org/ecma-262/6.0/#sec-tolength).
  *
  * @private
  * @param {*} value The value to check.
@@ -22355,7 +23578,7 @@ function isLength(value) {
 
 module.exports = isLength;
 
-},{}],215:[function(require,module,exports){
+},{}],232:[function(require,module,exports){
 /**
  * Checks if `value` is object-like.
  *
@@ -22369,7 +23592,7 @@ function isObjectLike(value) {
 
 module.exports = isObjectLike;
 
-},{}],216:[function(require,module,exports){
+},{}],233:[function(require,module,exports){
 /**
  * Used by `trimmedLeftIndex` and `trimmedRightIndex` to determine if a
  * character code is whitespace.
@@ -22385,7 +23608,7 @@ function isSpace(charCode) {
 
 module.exports = isSpace;
 
-},{}],217:[function(require,module,exports){
+},{}],234:[function(require,module,exports){
 var isObject = require('../lang/isObject');
 
 /**
@@ -22402,7 +23625,7 @@ function isStrictComparable(value) {
 
 module.exports = isStrictComparable;
 
-},{"../lang/isObject":248}],218:[function(require,module,exports){
+},{"../lang/isObject":268}],235:[function(require,module,exports){
 var toObject = require('./toObject');
 
 /**
@@ -22432,7 +23655,7 @@ function pickByArray(object, props) {
 
 module.exports = pickByArray;
 
-},{"./toObject":223}],219:[function(require,module,exports){
+},{"./toObject":242}],236:[function(require,module,exports){
 var baseForIn = require('./baseForIn');
 
 /**
@@ -22456,59 +23679,25 @@ function pickByCallback(object, predicate) {
 
 module.exports = pickByCallback;
 
-},{"./baseForIn":158}],220:[function(require,module,exports){
-var baseForIn = require('./baseForIn'),
-    isObjectLike = require('./isObjectLike');
+},{"./baseForIn":168}],237:[function(require,module,exports){
+/** Used to match template delimiters. */
+var reEscape = /<%-([\s\S]+?)%>/g;
 
-/** `Object#toString` result references. */
-var objectTag = '[object Object]';
+module.exports = reEscape;
 
-/** Used for native method references. */
-var objectProto = Object.prototype;
+},{}],238:[function(require,module,exports){
+/** Used to match template delimiters. */
+var reEvaluate = /<%([\s\S]+?)%>/g;
 
-/** Used to check objects for own properties. */
-var hasOwnProperty = objectProto.hasOwnProperty;
+module.exports = reEvaluate;
 
-/**
- * Used to resolve the [`toStringTag`](https://people.mozilla.org/~jorendorff/es6-draft.html#sec-object.prototype.tostring)
- * of values.
- */
-var objToString = objectProto.toString;
+},{}],239:[function(require,module,exports){
+/** Used to match template delimiters. */
+var reInterpolate = /<%=([\s\S]+?)%>/g;
 
-/**
- * A fallback implementation of `_.isPlainObject` which checks if `value`
- * is an object created by the `Object` constructor or has a `[[Prototype]]`
- * of `null`.
- *
- * @private
- * @param {*} value The value to check.
- * @returns {boolean} Returns `true` if `value` is a plain object, else `false`.
- */
-function shimIsPlainObject(value) {
-  var Ctor;
+module.exports = reInterpolate;
 
-  // Exit early for non `Object` objects.
-  if (!(isObjectLike(value) && objToString.call(value) == objectTag) ||
-      (!hasOwnProperty.call(value, 'constructor') &&
-        (Ctor = value.constructor, typeof Ctor == 'function' && !(Ctor instanceof Ctor)))) {
-    return false;
-  }
-  // IE < 9 iterates inherited properties before own properties. If the first
-  // iterated property is an object's own property then there are no inherited
-  // enumerable properties.
-  var result;
-  // In most environments an object's own properties are iterated before
-  // its inherited properties. If the last iterated property is an object's
-  // own property then there are no inherited enumerable properties.
-  baseForIn(value, function(subValue, key) {
-    result = key;
-  });
-  return result === undefined || hasOwnProperty.call(value, result);
-}
-
-module.exports = shimIsPlainObject;
-
-},{"./baseForIn":158,"./isObjectLike":215}],221:[function(require,module,exports){
+},{}],240:[function(require,module,exports){
 var isArguments = require('../lang/isArguments'),
     isArray = require('../lang/isArray'),
     isIndex = require('./isIndex'),
@@ -22551,7 +23740,7 @@ function shimKeys(object) {
 
 module.exports = shimKeys;
 
-},{"../lang/isArguments":233,"../lang/isArray":234,"../object/keysIn":262,"./isIndex":211,"./isLength":214}],222:[function(require,module,exports){
+},{"../lang/isArguments":253,"../lang/isArray":254,"../object/keysIn":283,"./isIndex":228,"./isLength":231}],241:[function(require,module,exports){
 var isArrayLike = require('./isArrayLike'),
     isObject = require('../lang/isObject'),
     values = require('../object/values');
@@ -22575,7 +23764,7 @@ function toIterable(value) {
 
 module.exports = toIterable;
 
-},{"../lang/isObject":248,"../object/values":265,"./isArrayLike":210}],223:[function(require,module,exports){
+},{"../lang/isObject":268,"../object/values":287,"./isArrayLike":227}],242:[function(require,module,exports){
 var isObject = require('../lang/isObject');
 
 /**
@@ -22591,7 +23780,7 @@ function toObject(value) {
 
 module.exports = toObject;
 
-},{"../lang/isObject":248}],224:[function(require,module,exports){
+},{"../lang/isObject":268}],243:[function(require,module,exports){
 var baseToString = require('./baseToString'),
     isArray = require('../lang/isArray');
 
@@ -22621,7 +23810,7 @@ function toPath(value) {
 
 module.exports = toPath;
 
-},{"../lang/isArray":234,"./baseToString":180}],225:[function(require,module,exports){
+},{"../lang/isArray":254,"./baseToString":189}],244:[function(require,module,exports){
 var isSpace = require('./isSpace');
 
 /**
@@ -22642,7 +23831,7 @@ function trimmedLeftIndex(string) {
 
 module.exports = trimmedLeftIndex;
 
-},{"./isSpace":216}],226:[function(require,module,exports){
+},{"./isSpace":233}],245:[function(require,module,exports){
 var isSpace = require('./isSpace');
 
 /**
@@ -22662,7 +23851,31 @@ function trimmedRightIndex(string) {
 
 module.exports = trimmedRightIndex;
 
-},{"./isSpace":216}],227:[function(require,module,exports){
+},{"./isSpace":233}],246:[function(require,module,exports){
+/** Used to map HTML entities to characters. */
+var htmlUnescapes = {
+  '&amp;': '&',
+  '&lt;': '<',
+  '&gt;': '>',
+  '&quot;': '"',
+  '&#39;': "'",
+  '&#96;': '`'
+};
+
+/**
+ * Used by `_.unescape` to convert HTML entities to characters.
+ *
+ * @private
+ * @param {string} chr The matched character to unescape.
+ * @returns {string} Returns the unescaped character.
+ */
+function unescapeHtmlChar(chr) {
+  return htmlUnescapes[chr];
+}
+
+module.exports = unescapeHtmlChar;
+
+},{}],247:[function(require,module,exports){
 module.exports = {
   'clone': require('./lang/clone'),
   'cloneDeep': require('./lang/cloneDeep'),
@@ -22696,7 +23909,7 @@ module.exports = {
   'toPlainObject': require('./lang/toPlainObject')
 };
 
-},{"./lang/clone":228,"./lang/cloneDeep":229,"./lang/eq":230,"./lang/gt":231,"./lang/gte":232,"./lang/isArguments":233,"./lang/isArray":234,"./lang/isBoolean":235,"./lang/isDate":236,"./lang/isElement":237,"./lang/isEmpty":238,"./lang/isEqual":239,"./lang/isError":240,"./lang/isFinite":241,"./lang/isFunction":242,"./lang/isMatch":243,"./lang/isNaN":244,"./lang/isNative":245,"./lang/isNull":246,"./lang/isNumber":247,"./lang/isObject":248,"./lang/isPlainObject":249,"./lang/isRegExp":250,"./lang/isString":251,"./lang/isTypedArray":252,"./lang/isUndefined":253,"./lang/lt":254,"./lang/lte":255,"./lang/toArray":256,"./lang/toPlainObject":257}],228:[function(require,module,exports){
+},{"./lang/clone":248,"./lang/cloneDeep":249,"./lang/eq":250,"./lang/gt":251,"./lang/gte":252,"./lang/isArguments":253,"./lang/isArray":254,"./lang/isBoolean":255,"./lang/isDate":256,"./lang/isElement":257,"./lang/isEmpty":258,"./lang/isEqual":259,"./lang/isError":260,"./lang/isFinite":261,"./lang/isFunction":262,"./lang/isMatch":263,"./lang/isNaN":264,"./lang/isNative":265,"./lang/isNull":266,"./lang/isNumber":267,"./lang/isObject":268,"./lang/isPlainObject":269,"./lang/isRegExp":270,"./lang/isString":271,"./lang/isTypedArray":272,"./lang/isUndefined":273,"./lang/lt":274,"./lang/lte":275,"./lang/toArray":276,"./lang/toPlainObject":277}],248:[function(require,module,exports){
 var baseClone = require('../internal/baseClone'),
     bindCallback = require('../internal/bindCallback'),
     isIterateeCall = require('../internal/isIterateeCall');
@@ -22768,7 +23981,7 @@ function clone(value, isDeep, customizer, thisArg) {
 
 module.exports = clone;
 
-},{"../internal/baseClone":145,"../internal/bindCallback":183,"../internal/isIterateeCall":212}],229:[function(require,module,exports){
+},{"../internal/baseClone":155,"../internal/bindCallback":192,"../internal/isIterateeCall":229}],249:[function(require,module,exports){
 var baseClone = require('../internal/baseClone'),
     bindCallback = require('../internal/bindCallback');
 
@@ -22825,10 +24038,10 @@ function cloneDeep(value, customizer, thisArg) {
 
 module.exports = cloneDeep;
 
-},{"../internal/baseClone":145,"../internal/bindCallback":183}],230:[function(require,module,exports){
+},{"../internal/baseClone":155,"../internal/bindCallback":192}],250:[function(require,module,exports){
 module.exports = require('./isEqual');
 
-},{"./isEqual":239}],231:[function(require,module,exports){
+},{"./isEqual":259}],251:[function(require,module,exports){
 /**
  * Checks if `value` is greater than `other`.
  *
@@ -22855,7 +24068,7 @@ function gt(value, other) {
 
 module.exports = gt;
 
-},{}],232:[function(require,module,exports){
+},{}],252:[function(require,module,exports){
 /**
  * Checks if `value` is greater than or equal to `other`.
  *
@@ -22882,21 +24095,18 @@ function gte(value, other) {
 
 module.exports = gte;
 
-},{}],233:[function(require,module,exports){
+},{}],253:[function(require,module,exports){
 var isArrayLike = require('../internal/isArrayLike'),
     isObjectLike = require('../internal/isObjectLike');
-
-/** `Object#toString` result references. */
-var argsTag = '[object Arguments]';
 
 /** Used for native method references. */
 var objectProto = Object.prototype;
 
-/**
- * Used to resolve the [`toStringTag`](https://people.mozilla.org/~jorendorff/es6-draft.html#sec-object.prototype.tostring)
- * of values.
- */
-var objToString = objectProto.toString;
+/** Used to check objects for own properties. */
+var hasOwnProperty = objectProto.hasOwnProperty;
+
+/** Native method references. */
+var propertyIsEnumerable = objectProto.propertyIsEnumerable;
 
 /**
  * Checks if `value` is classified as an `arguments` object.
@@ -22915,12 +24125,13 @@ var objToString = objectProto.toString;
  * // => false
  */
 function isArguments(value) {
-  return isObjectLike(value) && isArrayLike(value) && objToString.call(value) == argsTag;
+  return isObjectLike(value) && isArrayLike(value) &&
+    hasOwnProperty.call(value, 'callee') && !propertyIsEnumerable.call(value, 'callee');
 }
 
 module.exports = isArguments;
 
-},{"../internal/isArrayLike":210,"../internal/isObjectLike":215}],234:[function(require,module,exports){
+},{"../internal/isArrayLike":227,"../internal/isObjectLike":232}],254:[function(require,module,exports){
 var getNative = require('../internal/getNative'),
     isLength = require('../internal/isLength'),
     isObjectLike = require('../internal/isObjectLike');
@@ -22932,7 +24143,7 @@ var arrayTag = '[object Array]';
 var objectProto = Object.prototype;
 
 /**
- * Used to resolve the [`toStringTag`](https://people.mozilla.org/~jorendorff/es6-draft.html#sec-object.prototype.tostring)
+ * Used to resolve the [`toStringTag`](http://ecma-international.org/ecma-262/6.0/#sec-object.prototype.tostring)
  * of values.
  */
 var objToString = objectProto.toString;
@@ -22962,7 +24173,7 @@ var isArray = nativeIsArray || function(value) {
 
 module.exports = isArray;
 
-},{"../internal/getNative":204,"../internal/isLength":214,"../internal/isObjectLike":215}],235:[function(require,module,exports){
+},{"../internal/getNative":221,"../internal/isLength":231,"../internal/isObjectLike":232}],255:[function(require,module,exports){
 var isObjectLike = require('../internal/isObjectLike');
 
 /** `Object#toString` result references. */
@@ -22972,7 +24183,7 @@ var boolTag = '[object Boolean]';
 var objectProto = Object.prototype;
 
 /**
- * Used to resolve the [`toStringTag`](https://people.mozilla.org/~jorendorff/es6-draft.html#sec-object.prototype.tostring)
+ * Used to resolve the [`toStringTag`](http://ecma-international.org/ecma-262/6.0/#sec-object.prototype.tostring)
  * of values.
  */
 var objToString = objectProto.toString;
@@ -22999,7 +24210,7 @@ function isBoolean(value) {
 
 module.exports = isBoolean;
 
-},{"../internal/isObjectLike":215}],236:[function(require,module,exports){
+},{"../internal/isObjectLike":232}],256:[function(require,module,exports){
 var isObjectLike = require('../internal/isObjectLike');
 
 /** `Object#toString` result references. */
@@ -23009,7 +24220,7 @@ var dateTag = '[object Date]';
 var objectProto = Object.prototype;
 
 /**
- * Used to resolve the [`toStringTag`](https://people.mozilla.org/~jorendorff/es6-draft.html#sec-object.prototype.tostring)
+ * Used to resolve the [`toStringTag`](http://ecma-international.org/ecma-262/6.0/#sec-object.prototype.tostring)
  * of values.
  */
 var objToString = objectProto.toString;
@@ -23036,19 +24247,9 @@ function isDate(value) {
 
 module.exports = isDate;
 
-},{"../internal/isObjectLike":215}],237:[function(require,module,exports){
+},{"../internal/isObjectLike":232}],257:[function(require,module,exports){
 var isObjectLike = require('../internal/isObjectLike'),
-    isPlainObject = require('./isPlainObject'),
-    support = require('../support');
-
-/** Used for native method references. */
-var objectProto = Object.prototype;
-
-/**
- * Used to resolve the [`toStringTag`](https://people.mozilla.org/~jorendorff/es6-draft.html#sec-object.prototype.tostring)
- * of values.
- */
-var objToString = objectProto.toString;
+    isPlainObject = require('./isPlainObject');
 
 /**
  * Checks if `value` is a DOM element.
@@ -23067,19 +24268,12 @@ var objToString = objectProto.toString;
  * // => false
  */
 function isElement(value) {
-  return !!value && value.nodeType === 1 && isObjectLike(value) &&
-    (objToString.call(value).indexOf('Element') > -1);
-}
-// Fallback for environments without DOM support.
-if (!support.dom) {
-  isElement = function(value) {
-    return !!value && value.nodeType === 1 && isObjectLike(value) && !isPlainObject(value);
-  };
+  return !!value && value.nodeType === 1 && isObjectLike(value) && !isPlainObject(value);
 }
 
 module.exports = isElement;
 
-},{"../internal/isObjectLike":215,"../support":270,"./isPlainObject":249}],238:[function(require,module,exports){
+},{"../internal/isObjectLike":232,"./isPlainObject":269}],258:[function(require,module,exports){
 var isArguments = require('./isArguments'),
     isArray = require('./isArray'),
     isArrayLike = require('../internal/isArrayLike'),
@@ -23128,7 +24322,7 @@ function isEmpty(value) {
 
 module.exports = isEmpty;
 
-},{"../internal/isArrayLike":210,"../internal/isObjectLike":215,"../object/keys":261,"./isArguments":233,"./isArray":234,"./isFunction":242,"./isString":251}],239:[function(require,module,exports){
+},{"../internal/isArrayLike":227,"../internal/isObjectLike":232,"../object/keys":282,"./isArguments":253,"./isArray":254,"./isFunction":262,"./isString":271}],259:[function(require,module,exports){
 var baseIsEqual = require('../internal/baseIsEqual'),
     bindCallback = require('../internal/bindCallback');
 
@@ -23184,7 +24378,7 @@ function isEqual(value, other, customizer, thisArg) {
 
 module.exports = isEqual;
 
-},{"../internal/baseIsEqual":164,"../internal/bindCallback":183}],240:[function(require,module,exports){
+},{"../internal/baseIsEqual":174,"../internal/bindCallback":192}],260:[function(require,module,exports){
 var isObjectLike = require('../internal/isObjectLike');
 
 /** `Object#toString` result references. */
@@ -23194,7 +24388,7 @@ var errorTag = '[object Error]';
 var objectProto = Object.prototype;
 
 /**
- * Used to resolve the [`toStringTag`](https://people.mozilla.org/~jorendorff/es6-draft.html#sec-object.prototype.tostring)
+ * Used to resolve the [`toStringTag`](http://ecma-international.org/ecma-262/6.0/#sec-object.prototype.tostring)
  * of values.
  */
 var objToString = objectProto.toString;
@@ -23222,18 +24416,15 @@ function isError(value) {
 
 module.exports = isError;
 
-},{"../internal/isObjectLike":215}],241:[function(require,module,exports){
+},{"../internal/isObjectLike":232}],261:[function(require,module,exports){
 (function (global){
-var getNative = require('../internal/getNative');
-
 /* Native method references for those with the same name as other `lodash` methods. */
-var nativeIsFinite = global.isFinite,
-    nativeNumIsFinite = getNative(Number, 'isFinite');
+var nativeIsFinite = global.isFinite;
 
 /**
  * Checks if `value` is a finite primitive number.
  *
- * **Note:** This method is based on [`Number.isFinite`](https://people.mozilla.org/~jorendorff/es6-draft.html#sec-number.isfinite).
+ * **Note:** This method is based on [`Number.isFinite`](http://ecma-international.org/ecma-262/6.0/#sec-number.isfinite).
  *
  * @static
  * @memberOf _
@@ -23257,17 +24448,15 @@ var nativeIsFinite = global.isFinite,
  * _.isFinite(Infinity);
  * // => false
  */
-var isFinite = nativeNumIsFinite || function(value) {
+function isFinite(value) {
   return typeof value == 'number' && nativeIsFinite(value);
-};
+}
 
 module.exports = isFinite;
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"../internal/getNative":204}],242:[function(require,module,exports){
-(function (global){
-var baseIsFunction = require('../internal/baseIsFunction'),
-    getNative = require('../internal/getNative');
+},{}],262:[function(require,module,exports){
+var isObject = require('./isObject');
 
 /** `Object#toString` result references. */
 var funcTag = '[object Function]';
@@ -23276,13 +24465,10 @@ var funcTag = '[object Function]';
 var objectProto = Object.prototype;
 
 /**
- * Used to resolve the [`toStringTag`](https://people.mozilla.org/~jorendorff/es6-draft.html#sec-object.prototype.tostring)
+ * Used to resolve the [`toStringTag`](http://ecma-international.org/ecma-262/6.0/#sec-object.prototype.tostring)
  * of values.
  */
 var objToString = objectProto.toString;
-
-/** Native method references. */
-var Uint8Array = getNative(global, 'Uint8Array');
 
 /**
  * Checks if `value` is classified as a `Function` object.
@@ -23300,17 +24486,16 @@ var Uint8Array = getNative(global, 'Uint8Array');
  * _.isFunction(/abc/);
  * // => false
  */
-var isFunction = !(baseIsFunction(/x/) || (Uint8Array && !baseIsFunction(Uint8Array))) ? baseIsFunction : function(value) {
+function isFunction(value) {
   // The use of `Object#toString` avoids issues with the `typeof` operator
   // in older versions of Chrome and Safari which return 'function' for regexes
   // and Safari 8 equivalents which return 'object' for typed array constructors.
-  return objToString.call(value) == funcTag;
-};
+  return isObject(value) && objToString.call(value) == funcTag;
+}
 
 module.exports = isFunction;
 
-}).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"../internal/baseIsFunction":166,"../internal/getNative":204}],243:[function(require,module,exports){
+},{"./isObject":268}],263:[function(require,module,exports){
 var baseIsMatch = require('../internal/baseIsMatch'),
     bindCallback = require('../internal/bindCallback'),
     getMatchData = require('../internal/getMatchData');
@@ -23361,7 +24546,7 @@ function isMatch(object, source, customizer, thisArg) {
 
 module.exports = isMatch;
 
-},{"../internal/baseIsMatch":167,"../internal/bindCallback":183,"../internal/getMatchData":203}],244:[function(require,module,exports){
+},{"../internal/baseIsMatch":176,"../internal/bindCallback":192,"../internal/getMatchData":220}],264:[function(require,module,exports){
 var isNumber = require('./isNumber');
 
 /**
@@ -23397,12 +24582,9 @@ function isNaN(value) {
 
 module.exports = isNaN;
 
-},{"./isNumber":247}],245:[function(require,module,exports){
-var escapeRegExp = require('../string/escapeRegExp'),
+},{"./isNumber":267}],265:[function(require,module,exports){
+var isFunction = require('./isFunction'),
     isObjectLike = require('../internal/isObjectLike');
-
-/** `Object#toString` result references. */
-var funcTag = '[object Function]';
 
 /** Used to detect host constructors (Safari > 5). */
 var reIsHostCtor = /^\[object .+?Constructor\]$/;
@@ -23416,15 +24598,9 @@ var fnToString = Function.prototype.toString;
 /** Used to check objects for own properties. */
 var hasOwnProperty = objectProto.hasOwnProperty;
 
-/**
- * Used to resolve the [`toStringTag`](https://people.mozilla.org/~jorendorff/es6-draft.html#sec-object.prototype.tostring)
- * of values.
- */
-var objToString = objectProto.toString;
-
 /** Used to detect if a method is native. */
 var reIsNative = RegExp('^' +
-  escapeRegExp(fnToString.call(hasOwnProperty))
+  fnToString.call(hasOwnProperty).replace(/[\\^$.*+?()[\]{}|]/g, '\\$&')
   .replace(/hasOwnProperty|(function).*?(?=\\\()| for .+?(?=\\\])/g, '$1.*?') + '$'
 );
 
@@ -23448,7 +24624,7 @@ function isNative(value) {
   if (value == null) {
     return false;
   }
-  if (objToString.call(value) == funcTag) {
+  if (isFunction(value)) {
     return reIsNative.test(fnToString.call(value));
   }
   return isObjectLike(value) && reIsHostCtor.test(value);
@@ -23456,7 +24632,7 @@ function isNative(value) {
 
 module.exports = isNative;
 
-},{"../internal/isObjectLike":215,"../string/escapeRegExp":267}],246:[function(require,module,exports){
+},{"../internal/isObjectLike":232,"./isFunction":262}],266:[function(require,module,exports){
 /**
  * Checks if `value` is `null`.
  *
@@ -23479,7 +24655,7 @@ function isNull(value) {
 
 module.exports = isNull;
 
-},{}],247:[function(require,module,exports){
+},{}],267:[function(require,module,exports){
 var isObjectLike = require('../internal/isObjectLike');
 
 /** `Object#toString` result references. */
@@ -23489,7 +24665,7 @@ var numberTag = '[object Number]';
 var objectProto = Object.prototype;
 
 /**
- * Used to resolve the [`toStringTag`](https://people.mozilla.org/~jorendorff/es6-draft.html#sec-object.prototype.tostring)
+ * Used to resolve the [`toStringTag`](http://ecma-international.org/ecma-262/6.0/#sec-object.prototype.tostring)
  * of values.
  */
 var objToString = objectProto.toString;
@@ -23522,7 +24698,7 @@ function isNumber(value) {
 
 module.exports = isNumber;
 
-},{"../internal/isObjectLike":215}],248:[function(require,module,exports){
+},{"../internal/isObjectLike":232}],268:[function(require,module,exports){
 /**
  * Checks if `value` is the [language type](https://es5.github.io/#x8) of `Object`.
  * (e.g. arrays, functions, objects, regexes, `new Number(0)`, and `new String('')`)
@@ -23552,9 +24728,10 @@ function isObject(value) {
 
 module.exports = isObject;
 
-},{}],249:[function(require,module,exports){
-var getNative = require('../internal/getNative'),
-    shimIsPlainObject = require('../internal/shimIsPlainObject');
+},{}],269:[function(require,module,exports){
+var baseForIn = require('../internal/baseForIn'),
+    isArguments = require('./isArguments'),
+    isObjectLike = require('../internal/isObjectLike');
 
 /** `Object#toString` result references. */
 var objectTag = '[object Object]';
@@ -23562,14 +24739,14 @@ var objectTag = '[object Object]';
 /** Used for native method references. */
 var objectProto = Object.prototype;
 
+/** Used to check objects for own properties. */
+var hasOwnProperty = objectProto.hasOwnProperty;
+
 /**
- * Used to resolve the [`toStringTag`](https://people.mozilla.org/~jorendorff/es6-draft.html#sec-object.prototype.tostring)
+ * Used to resolve the [`toStringTag`](http://ecma-international.org/ecma-262/6.0/#sec-object.prototype.tostring)
  * of values.
  */
 var objToString = objectProto.toString;
-
-/** Native method references. */
-var getPrototypeOf = getNative(Object, 'getPrototypeOf');
 
 /**
  * Checks if `value` is a plain object, that is, an object created by the
@@ -23601,22 +24778,31 @@ var getPrototypeOf = getNative(Object, 'getPrototypeOf');
  * _.isPlainObject(Object.create(null));
  * // => true
  */
-var isPlainObject = !getPrototypeOf ? shimIsPlainObject : function(value) {
-  if (!(value && objToString.call(value) == objectTag)) {
+function isPlainObject(value) {
+  var Ctor;
+
+  // Exit early for non `Object` objects.
+  if (!(isObjectLike(value) && objToString.call(value) == objectTag && !isArguments(value)) ||
+      (!hasOwnProperty.call(value, 'constructor') && (Ctor = value.constructor, typeof Ctor == 'function' && !(Ctor instanceof Ctor)))) {
     return false;
   }
-  var valueOf = getNative(value, 'valueOf'),
-      objProto = valueOf && (objProto = getPrototypeOf(valueOf)) && getPrototypeOf(objProto);
-
-  return objProto
-    ? (value == objProto || getPrototypeOf(value) == objProto)
-    : shimIsPlainObject(value);
-};
+  // IE < 9 iterates inherited properties before own properties. If the first
+  // iterated property is an object's own property then there are no inherited
+  // enumerable properties.
+  var result;
+  // In most environments an object's own properties are iterated before
+  // its inherited properties. If the last iterated property is an object's
+  // own property then there are no inherited enumerable properties.
+  baseForIn(value, function(subValue, key) {
+    result = key;
+  });
+  return result === undefined || hasOwnProperty.call(value, result);
+}
 
 module.exports = isPlainObject;
 
-},{"../internal/getNative":204,"../internal/shimIsPlainObject":220}],250:[function(require,module,exports){
-var isObjectLike = require('../internal/isObjectLike');
+},{"../internal/baseForIn":168,"../internal/isObjectLike":232,"./isArguments":253}],270:[function(require,module,exports){
+var isObject = require('./isObject');
 
 /** `Object#toString` result references. */
 var regexpTag = '[object RegExp]';
@@ -23625,7 +24811,7 @@ var regexpTag = '[object RegExp]';
 var objectProto = Object.prototype;
 
 /**
- * Used to resolve the [`toStringTag`](https://people.mozilla.org/~jorendorff/es6-draft.html#sec-object.prototype.tostring)
+ * Used to resolve the [`toStringTag`](http://ecma-international.org/ecma-262/6.0/#sec-object.prototype.tostring)
  * of values.
  */
 var objToString = objectProto.toString;
@@ -23647,12 +24833,12 @@ var objToString = objectProto.toString;
  * // => false
  */
 function isRegExp(value) {
-  return isObjectLike(value) && objToString.call(value) == regexpTag;
+  return isObject(value) && objToString.call(value) == regexpTag;
 }
 
 module.exports = isRegExp;
 
-},{"../internal/isObjectLike":215}],251:[function(require,module,exports){
+},{"./isObject":268}],271:[function(require,module,exports){
 var isObjectLike = require('../internal/isObjectLike');
 
 /** `Object#toString` result references. */
@@ -23662,7 +24848,7 @@ var stringTag = '[object String]';
 var objectProto = Object.prototype;
 
 /**
- * Used to resolve the [`toStringTag`](https://people.mozilla.org/~jorendorff/es6-draft.html#sec-object.prototype.tostring)
+ * Used to resolve the [`toStringTag`](http://ecma-international.org/ecma-262/6.0/#sec-object.prototype.tostring)
  * of values.
  */
 var objToString = objectProto.toString;
@@ -23689,7 +24875,7 @@ function isString(value) {
 
 module.exports = isString;
 
-},{"../internal/isObjectLike":215}],252:[function(require,module,exports){
+},{"../internal/isObjectLike":232}],272:[function(require,module,exports){
 var isLength = require('../internal/isLength'),
     isObjectLike = require('../internal/isObjectLike');
 
@@ -23738,7 +24924,7 @@ typedArrayTags[stringTag] = typedArrayTags[weakMapTag] = false;
 var objectProto = Object.prototype;
 
 /**
- * Used to resolve the [`toStringTag`](https://people.mozilla.org/~jorendorff/es6-draft.html#sec-object.prototype.tostring)
+ * Used to resolve the [`toStringTag`](http://ecma-international.org/ecma-262/6.0/#sec-object.prototype.tostring)
  * of values.
  */
 var objToString = objectProto.toString;
@@ -23765,7 +24951,7 @@ function isTypedArray(value) {
 
 module.exports = isTypedArray;
 
-},{"../internal/isLength":214,"../internal/isObjectLike":215}],253:[function(require,module,exports){
+},{"../internal/isLength":231,"../internal/isObjectLike":232}],273:[function(require,module,exports){
 /**
  * Checks if `value` is `undefined`.
  *
@@ -23788,7 +24974,7 @@ function isUndefined(value) {
 
 module.exports = isUndefined;
 
-},{}],254:[function(require,module,exports){
+},{}],274:[function(require,module,exports){
 /**
  * Checks if `value` is less than `other`.
  *
@@ -23815,7 +25001,7 @@ function lt(value, other) {
 
 module.exports = lt;
 
-},{}],255:[function(require,module,exports){
+},{}],275:[function(require,module,exports){
 /**
  * Checks if `value` is less than or equal to `other`.
  *
@@ -23842,7 +25028,7 @@ function lte(value, other) {
 
 module.exports = lte;
 
-},{}],256:[function(require,module,exports){
+},{}],276:[function(require,module,exports){
 var arrayCopy = require('../internal/arrayCopy'),
     getLength = require('../internal/getLength'),
     isLength = require('../internal/isLength'),
@@ -23876,7 +25062,7 @@ function toArray(value) {
 
 module.exports = toArray;
 
-},{"../internal/arrayCopy":131,"../internal/getLength":202,"../internal/isLength":214,"../object/values":265}],257:[function(require,module,exports){
+},{"../internal/arrayCopy":138,"../internal/getLength":219,"../internal/isLength":231,"../object/values":287}],277:[function(require,module,exports){
 var baseCopy = require('../internal/baseCopy'),
     keysIn = require('../object/keysIn');
 
@@ -23909,7 +25095,7 @@ function toPlainObject(value) {
 
 module.exports = toPlainObject;
 
-},{"../internal/baseCopy":147,"../object/keysIn":262}],258:[function(require,module,exports){
+},{"../internal/baseCopy":157,"../object/keysIn":283}],278:[function(require,module,exports){
 var createExtremum = require('../internal/createExtremum'),
     gt = require('../lang/gt');
 
@@ -23967,7 +25153,7 @@ var max = createExtremum(gt, NEGATIVE_INFINITY);
 
 module.exports = max;
 
-},{"../internal/createExtremum":195,"../lang/gt":231}],259:[function(require,module,exports){
+},{"../internal/createExtremum":206,"../lang/gt":251}],279:[function(require,module,exports){
 var createExtremum = require('../internal/createExtremum'),
     lt = require('../lang/lt');
 
@@ -24025,7 +25211,7 @@ var min = createExtremum(lt, POSITIVE_INFINITY);
 
 module.exports = min;
 
-},{"../internal/createExtremum":195,"../lang/lt":254}],260:[function(require,module,exports){
+},{"../internal/createExtremum":206,"../lang/lt":274}],280:[function(require,module,exports){
 var arraySum = require('../internal/arraySum'),
     baseCallback = require('../internal/baseCallback'),
     baseSum = require('../internal/baseSum'),
@@ -24067,19 +25253,62 @@ var arraySum = require('../internal/arraySum'),
  */
 function sum(collection, iteratee, thisArg) {
   if (thisArg && isIterateeCall(collection, iteratee, thisArg)) {
-    iteratee = null;
+    iteratee = undefined;
   }
-  var noIteratee = iteratee == null;
-
-  iteratee = noIteratee ? iteratee : baseCallback(iteratee, thisArg, 3);
-  return noIteratee
-    ? arraySum(isArray(collection) ? collection : toIterable(collection))
+  iteratee = baseCallback(iteratee, thisArg, 3);
+  return iteratee.length == 1
+    ? arraySum(isArray(collection) ? collection : toIterable(collection), iteratee)
     : baseSum(collection, iteratee);
 }
 
 module.exports = sum;
 
-},{"../internal/arraySum":141,"../internal/baseCallback":144,"../internal/baseSum":179,"../internal/isIterateeCall":212,"../internal/toIterable":222,"../lang/isArray":234}],261:[function(require,module,exports){
+},{"../internal/arraySum":149,"../internal/baseCallback":154,"../internal/baseSum":188,"../internal/isIterateeCall":229,"../internal/toIterable":241,"../lang/isArray":254}],281:[function(require,module,exports){
+var assignWith = require('../internal/assignWith'),
+    baseAssign = require('../internal/baseAssign'),
+    createAssigner = require('../internal/createAssigner');
+
+/**
+ * Assigns own enumerable properties of source object(s) to the destination
+ * object. Subsequent sources overwrite property assignments of previous sources.
+ * If `customizer` is provided it is invoked to produce the assigned values.
+ * The `customizer` is bound to `thisArg` and invoked with five arguments:
+ * (objectValue, sourceValue, key, object, source).
+ *
+ * **Note:** This method mutates `object` and is based on
+ * [`Object.assign`](http://ecma-international.org/ecma-262/6.0/#sec-object.assign).
+ *
+ * @static
+ * @memberOf _
+ * @alias extend
+ * @category Object
+ * @param {Object} object The destination object.
+ * @param {...Object} [sources] The source objects.
+ * @param {Function} [customizer] The function to customize assigned values.
+ * @param {*} [thisArg] The `this` binding of `customizer`.
+ * @returns {Object} Returns `object`.
+ * @example
+ *
+ * _.assign({ 'user': 'barney' }, { 'age': 40 }, { 'user': 'fred' });
+ * // => { 'user': 'fred', 'age': 40 }
+ *
+ * // using a customizer callback
+ * var defaults = _.partialRight(_.assign, function(value, other) {
+ *   return _.isUndefined(value) ? other : value;
+ * });
+ *
+ * defaults({ 'user': 'barney' }, { 'age': 36 }, { 'user': 'fred' });
+ * // => { 'user': 'barney', 'age': 36 }
+ */
+var assign = createAssigner(function(object, source, customizer) {
+  return customizer
+    ? assignWith(object, source, customizer)
+    : baseAssign(object, source);
+});
+
+module.exports = assign;
+
+},{"../internal/assignWith":151,"../internal/baseAssign":152,"../internal/createAssigner":201}],282:[function(require,module,exports){
 var getNative = require('../internal/getNative'),
     isArrayLike = require('../internal/isArrayLike'),
     isObject = require('../lang/isObject'),
@@ -24092,7 +25321,7 @@ var nativeKeys = getNative(Object, 'keys');
  * Creates an array of the own enumerable property names of `object`.
  *
  * **Note:** Non-object values are coerced to objects. See the
- * [ES spec](https://people.mozilla.org/~jorendorff/es6-draft.html#sec-object.keys)
+ * [ES spec](http://ecma-international.org/ecma-262/6.0/#sec-object.keys)
  * for more details.
  *
  * @static
@@ -24116,7 +25345,7 @@ var nativeKeys = getNative(Object, 'keys');
  * // => ['0', '1']
  */
 var keys = !nativeKeys ? shimKeys : function(object) {
-  var Ctor = object == null ? null : object.constructor;
+  var Ctor = object == null ? undefined : object.constructor;
   if ((typeof Ctor == 'function' && Ctor.prototype === object) ||
       (typeof object != 'function' && isArrayLike(object))) {
     return shimKeys(object);
@@ -24126,7 +25355,7 @@ var keys = !nativeKeys ? shimKeys : function(object) {
 
 module.exports = keys;
 
-},{"../internal/getNative":204,"../internal/isArrayLike":210,"../internal/shimKeys":221,"../lang/isObject":248}],262:[function(require,module,exports){
+},{"../internal/getNative":221,"../internal/isArrayLike":227,"../internal/shimKeys":240,"../lang/isObject":268}],283:[function(require,module,exports){
 var isArguments = require('../lang/isArguments'),
     isArray = require('../lang/isArray'),
     isIndex = require('../internal/isIndex'),
@@ -24192,7 +25421,7 @@ function keysIn(object) {
 
 module.exports = keysIn;
 
-},{"../internal/isIndex":211,"../internal/isLength":214,"../lang/isArguments":233,"../lang/isArray":234,"../lang/isObject":248}],263:[function(require,module,exports){
+},{"../internal/isIndex":228,"../internal/isLength":231,"../lang/isArguments":253,"../lang/isArray":254,"../lang/isObject":268}],284:[function(require,module,exports){
 var arrayMap = require('../internal/arrayMap'),
     baseDifference = require('../internal/baseDifference'),
     baseFlatten = require('../internal/baseFlatten'),
@@ -24241,7 +25470,7 @@ var omit = restParam(function(object, props) {
 
 module.exports = omit;
 
-},{"../function/restParam":128,"../internal/arrayMap":137,"../internal/baseDifference":148,"../internal/baseFlatten":156,"../internal/bindCallback":183,"../internal/pickByArray":218,"../internal/pickByCallback":219,"./keysIn":262}],264:[function(require,module,exports){
+},{"../function/restParam":135,"../internal/arrayMap":144,"../internal/baseDifference":158,"../internal/baseFlatten":166,"../internal/bindCallback":192,"../internal/pickByArray":235,"../internal/pickByCallback":236,"./keysIn":283}],285:[function(require,module,exports){
 var keys = require('./keys'),
     toObject = require('../internal/toObject');
 
@@ -24276,7 +25505,58 @@ function pairs(object) {
 
 module.exports = pairs;
 
-},{"../internal/toObject":223,"./keys":261}],265:[function(require,module,exports){
+},{"../internal/toObject":242,"./keys":282}],286:[function(require,module,exports){
+var baseGet = require('../internal/baseGet'),
+    baseSlice = require('../internal/baseSlice'),
+    isFunction = require('../lang/isFunction'),
+    isKey = require('../internal/isKey'),
+    last = require('../array/last'),
+    toPath = require('../internal/toPath');
+
+/**
+ * This method is like `_.get` except that if the resolved value is a function
+ * it is invoked with the `this` binding of its parent object and its result
+ * is returned.
+ *
+ * @static
+ * @memberOf _
+ * @category Object
+ * @param {Object} object The object to query.
+ * @param {Array|string} path The path of the property to resolve.
+ * @param {*} [defaultValue] The value returned if the resolved value is `undefined`.
+ * @returns {*} Returns the resolved value.
+ * @example
+ *
+ * var object = { 'a': [{ 'b': { 'c1': 3, 'c2': _.constant(4) } }] };
+ *
+ * _.result(object, 'a[0].b.c1');
+ * // => 3
+ *
+ * _.result(object, 'a[0].b.c2');
+ * // => 4
+ *
+ * _.result(object, 'a.b.c', 'default');
+ * // => 'default'
+ *
+ * _.result(object, 'a.b.c', _.constant('default'));
+ * // => 'default'
+ */
+function result(object, path, defaultValue) {
+  var result = object == null ? undefined : object[path];
+  if (result === undefined) {
+    if (object != null && !isKey(path, object)) {
+      path = toPath(path);
+      object = path.length == 1 ? object : baseGet(object, baseSlice(path, 0, -1));
+      result = object == null ? undefined : object[last(path)];
+    }
+    result = result === undefined ? defaultValue : result;
+  }
+  return isFunction(result) ? result.call(object) : result;
+}
+
+module.exports = result;
+
+},{"../array/last":93,"../internal/baseGet":172,"../internal/baseSlice":184,"../internal/isKey":230,"../internal/toPath":243,"../lang/isFunction":262}],287:[function(require,module,exports){
 var baseValues = require('../internal/baseValues'),
     keys = require('./keys');
 
@@ -24311,7 +25591,63 @@ function values(object) {
 
 module.exports = values;
 
-},{"../internal/baseValues":182,"./keys":261}],266:[function(require,module,exports){
+},{"../internal/baseValues":191,"./keys":282}],288:[function(require,module,exports){
+module.exports = {
+  'camelCase': require('./string/camelCase'),
+  'capitalize': require('./string/capitalize'),
+  'deburr': require('./string/deburr'),
+  'endsWith': require('./string/endsWith'),
+  'escape': require('./string/escape'),
+  'escapeRegExp': require('./string/escapeRegExp'),
+  'kebabCase': require('./string/kebabCase'),
+  'pad': require('./string/pad'),
+  'padLeft': require('./string/padLeft'),
+  'padRight': require('./string/padRight'),
+  'parseInt': require('./string/parseInt'),
+  'repeat': require('./string/repeat'),
+  'snakeCase': require('./string/snakeCase'),
+  'startCase': require('./string/startCase'),
+  'startsWith': require('./string/startsWith'),
+  'template': require('./string/template'),
+  'templateSettings': require('./string/templateSettings'),
+  'trim': require('./string/trim'),
+  'trimLeft': require('./string/trimLeft'),
+  'trimRight': require('./string/trimRight'),
+  'trunc': require('./string/trunc'),
+  'unescape': require('./string/unescape'),
+  'words': require('./string/words')
+};
+
+},{"./string/camelCase":289,"./string/capitalize":290,"./string/deburr":291,"./string/endsWith":292,"./string/escape":293,"./string/escapeRegExp":294,"./string/kebabCase":295,"./string/pad":296,"./string/padLeft":297,"./string/padRight":298,"./string/parseInt":299,"./string/repeat":300,"./string/snakeCase":301,"./string/startCase":302,"./string/startsWith":303,"./string/template":304,"./string/templateSettings":305,"./string/trim":306,"./string/trimLeft":307,"./string/trimRight":308,"./string/trunc":309,"./string/unescape":310,"./string/words":311}],289:[function(require,module,exports){
+var createCompounder = require('../internal/createCompounder');
+
+/**
+ * Converts `string` to [camel case](https://en.wikipedia.org/wiki/CamelCase).
+ *
+ * @static
+ * @memberOf _
+ * @category String
+ * @param {string} [string=''] The string to convert.
+ * @returns {string} Returns the camel cased string.
+ * @example
+ *
+ * _.camelCase('Foo Bar');
+ * // => 'fooBar'
+ *
+ * _.camelCase('--foo-bar');
+ * // => 'fooBar'
+ *
+ * _.camelCase('__foo_bar__');
+ * // => 'fooBar'
+ */
+var camelCase = createCompounder(function(result, word, index) {
+  word = word.toLowerCase();
+  return result + (index ? (word.charAt(0).toUpperCase() + word.slice(1)) : word);
+});
+
+module.exports = camelCase;
+
+},{"../internal/createCompounder":205}],290:[function(require,module,exports){
 var baseToString = require('../internal/baseToString');
 
 /**
@@ -24334,15 +25670,138 @@ function capitalize(string) {
 
 module.exports = capitalize;
 
-},{"../internal/baseToString":180}],267:[function(require,module,exports){
-var baseToString = require('../internal/baseToString');
+},{"../internal/baseToString":189}],291:[function(require,module,exports){
+var baseToString = require('../internal/baseToString'),
+    deburrLetter = require('../internal/deburrLetter');
+
+/** Used to match [combining diacritical marks](https://en.wikipedia.org/wiki/Combining_Diacritical_Marks). */
+var reComboMark = /[\u0300-\u036f\ufe20-\ufe23]/g;
+
+/** Used to match latin-1 supplementary letters (excluding mathematical operators). */
+var reLatin1 = /[\xc0-\xd6\xd8-\xde\xdf-\xf6\xf8-\xff]/g;
 
 /**
- * Used to match `RegExp` [special characters](http://www.regular-expressions.info/characters.html#special).
- * In addition to special characters the forward slash is escaped to allow for
- * easier `eval` use and `Function` compilation.
+ * Deburrs `string` by converting [latin-1 supplementary letters](https://en.wikipedia.org/wiki/Latin-1_Supplement_(Unicode_block)#Character_table)
+ * to basic latin letters and removing [combining diacritical marks](https://en.wikipedia.org/wiki/Combining_Diacritical_Marks).
+ *
+ * @static
+ * @memberOf _
+ * @category String
+ * @param {string} [string=''] The string to deburr.
+ * @returns {string} Returns the deburred string.
+ * @example
+ *
+ * _.deburr('déjà vu');
+ * // => 'deja vu'
  */
-var reRegExpChars = /[.*+?^${}()|[\]\/\\]/g,
+function deburr(string) {
+  string = baseToString(string);
+  return string && string.replace(reLatin1, deburrLetter).replace(reComboMark, '');
+}
+
+module.exports = deburr;
+
+},{"../internal/baseToString":189,"../internal/deburrLetter":212}],292:[function(require,module,exports){
+var baseToString = require('../internal/baseToString');
+
+/* Native method references for those with the same name as other `lodash` methods. */
+var nativeMin = Math.min;
+
+/**
+ * Checks if `string` ends with the given target string.
+ *
+ * @static
+ * @memberOf _
+ * @category String
+ * @param {string} [string=''] The string to search.
+ * @param {string} [target] The string to search for.
+ * @param {number} [position=string.length] The position to search from.
+ * @returns {boolean} Returns `true` if `string` ends with `target`, else `false`.
+ * @example
+ *
+ * _.endsWith('abc', 'c');
+ * // => true
+ *
+ * _.endsWith('abc', 'b');
+ * // => false
+ *
+ * _.endsWith('abc', 'b', 2);
+ * // => true
+ */
+function endsWith(string, target, position) {
+  string = baseToString(string);
+  target = (target + '');
+
+  var length = string.length;
+  position = position === undefined
+    ? length
+    : nativeMin(position < 0 ? 0 : (+position || 0), length);
+
+  position -= target.length;
+  return position >= 0 && string.indexOf(target, position) == position;
+}
+
+module.exports = endsWith;
+
+},{"../internal/baseToString":189}],293:[function(require,module,exports){
+var baseToString = require('../internal/baseToString'),
+    escapeHtmlChar = require('../internal/escapeHtmlChar');
+
+/** Used to match HTML entities and HTML characters. */
+var reUnescapedHtml = /[&<>"'`]/g,
+    reHasUnescapedHtml = RegExp(reUnescapedHtml.source);
+
+/**
+ * Converts the characters "&", "<", ">", '"', "'", and "\`", in `string` to
+ * their corresponding HTML entities.
+ *
+ * **Note:** No other characters are escaped. To escape additional characters
+ * use a third-party library like [_he_](https://mths.be/he).
+ *
+ * Though the ">" character is escaped for symmetry, characters like
+ * ">" and "/" don't need escaping in HTML and have no special meaning
+ * unless they're part of a tag or unquoted attribute value.
+ * See [Mathias Bynens's article](https://mathiasbynens.be/notes/ambiguous-ampersands)
+ * (under "semi-related fun fact") for more details.
+ *
+ * Backticks are escaped because in Internet Explorer < 9, they can break out
+ * of attribute values or HTML comments. See [#59](https://html5sec.org/#59),
+ * [#102](https://html5sec.org/#102), [#108](https://html5sec.org/#108), and
+ * [#133](https://html5sec.org/#133) of the [HTML5 Security Cheatsheet](https://html5sec.org/)
+ * for more details.
+ *
+ * When working with HTML you should always [quote attribute values](http://wonko.com/post/html-escaping)
+ * to reduce XSS vectors.
+ *
+ * @static
+ * @memberOf _
+ * @category String
+ * @param {string} [string=''] The string to escape.
+ * @returns {string} Returns the escaped string.
+ * @example
+ *
+ * _.escape('fred, barney, & pebbles');
+ * // => 'fred, barney, &amp; pebbles'
+ */
+function escape(string) {
+  // Reset `lastIndex` because in IE < 9 `String#replace` does not.
+  string = baseToString(string);
+  return (string && reHasUnescapedHtml.test(string))
+    ? string.replace(reUnescapedHtml, escapeHtmlChar)
+    : string;
+}
+
+module.exports = escape;
+
+},{"../internal/baseToString":189,"../internal/escapeHtmlChar":216}],294:[function(require,module,exports){
+var baseToString = require('../internal/baseToString'),
+    escapeRegExpChar = require('../internal/escapeRegExpChar');
+
+/**
+ * Used to match `RegExp` [syntax characters](http://ecma-international.org/ecma-262/6.0/#sec-patterns)
+ * and those outlined by [`EscapeRegExpPattern`](http://ecma-international.org/ecma-262/6.0/#sec-escaperegexppattern).
+ */
+var reRegExpChars = /^[:!,]|[\\^$.*+?()[\]{}|\/]|(^[0-9a-fA-Fnrtuvx])|([\n\r\u2028\u2029])/g,
     reHasRegExpChars = RegExp(reRegExpChars.source);
 
 /**
@@ -24362,13 +25821,642 @@ var reRegExpChars = /[.*+?^${}()|[\]\/\\]/g,
 function escapeRegExp(string) {
   string = baseToString(string);
   return (string && reHasRegExpChars.test(string))
-    ? string.replace(reRegExpChars, '\\$&')
-    : string;
+    ? string.replace(reRegExpChars, escapeRegExpChar)
+    : (string || '(?:)');
 }
 
 module.exports = escapeRegExp;
 
-},{"../internal/baseToString":180}],268:[function(require,module,exports){
+},{"../internal/baseToString":189,"../internal/escapeRegExpChar":217}],295:[function(require,module,exports){
+var createCompounder = require('../internal/createCompounder');
+
+/**
+ * Converts `string` to [kebab case](https://en.wikipedia.org/wiki/Letter_case#Special_case_styles).
+ *
+ * @static
+ * @memberOf _
+ * @category String
+ * @param {string} [string=''] The string to convert.
+ * @returns {string} Returns the kebab cased string.
+ * @example
+ *
+ * _.kebabCase('Foo Bar');
+ * // => 'foo-bar'
+ *
+ * _.kebabCase('fooBar');
+ * // => 'foo-bar'
+ *
+ * _.kebabCase('__foo_bar__');
+ * // => 'foo-bar'
+ */
+var kebabCase = createCompounder(function(result, word, index) {
+  return result + (index ? '-' : '') + word.toLowerCase();
+});
+
+module.exports = kebabCase;
+
+},{"../internal/createCompounder":205}],296:[function(require,module,exports){
+(function (global){
+var baseToString = require('../internal/baseToString'),
+    createPadding = require('../internal/createPadding');
+
+/* Native method references for those with the same name as other `lodash` methods. */
+var nativeCeil = Math.ceil,
+    nativeFloor = Math.floor,
+    nativeIsFinite = global.isFinite;
+
+/**
+ * Pads `string` on the left and right sides if it's shorter than `length`.
+ * Padding characters are truncated if they can't be evenly divided by `length`.
+ *
+ * @static
+ * @memberOf _
+ * @category String
+ * @param {string} [string=''] The string to pad.
+ * @param {number} [length=0] The padding length.
+ * @param {string} [chars=' '] The string used as padding.
+ * @returns {string} Returns the padded string.
+ * @example
+ *
+ * _.pad('abc', 8);
+ * // => '  abc   '
+ *
+ * _.pad('abc', 8, '_-');
+ * // => '_-abc_-_'
+ *
+ * _.pad('abc', 3);
+ * // => 'abc'
+ */
+function pad(string, length, chars) {
+  string = baseToString(string);
+  length = +length;
+
+  var strLength = string.length;
+  if (strLength >= length || !nativeIsFinite(length)) {
+    return string;
+  }
+  var mid = (length - strLength) / 2,
+      leftLength = nativeFloor(mid),
+      rightLength = nativeCeil(mid);
+
+  chars = createPadding('', rightLength, chars);
+  return chars.slice(0, leftLength) + string + chars;
+}
+
+module.exports = pad;
+
+}).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
+},{"../internal/baseToString":189,"../internal/createPadding":210}],297:[function(require,module,exports){
+var createPadDir = require('../internal/createPadDir');
+
+/**
+ * Pads `string` on the left side if it's shorter than `length`. Padding
+ * characters are truncated if they exceed `length`.
+ *
+ * @static
+ * @memberOf _
+ * @category String
+ * @param {string} [string=''] The string to pad.
+ * @param {number} [length=0] The padding length.
+ * @param {string} [chars=' '] The string used as padding.
+ * @returns {string} Returns the padded string.
+ * @example
+ *
+ * _.padLeft('abc', 6);
+ * // => '   abc'
+ *
+ * _.padLeft('abc', 6, '_-');
+ * // => '_-_abc'
+ *
+ * _.padLeft('abc', 3);
+ * // => 'abc'
+ */
+var padLeft = createPadDir();
+
+module.exports = padLeft;
+
+},{"../internal/createPadDir":209}],298:[function(require,module,exports){
+var createPadDir = require('../internal/createPadDir');
+
+/**
+ * Pads `string` on the right side if it's shorter than `length`. Padding
+ * characters are truncated if they exceed `length`.
+ *
+ * @static
+ * @memberOf _
+ * @category String
+ * @param {string} [string=''] The string to pad.
+ * @param {number} [length=0] The padding length.
+ * @param {string} [chars=' '] The string used as padding.
+ * @returns {string} Returns the padded string.
+ * @example
+ *
+ * _.padRight('abc', 6);
+ * // => 'abc   '
+ *
+ * _.padRight('abc', 6, '_-');
+ * // => 'abc_-_'
+ *
+ * _.padRight('abc', 3);
+ * // => 'abc'
+ */
+var padRight = createPadDir(true);
+
+module.exports = padRight;
+
+},{"../internal/createPadDir":209}],299:[function(require,module,exports){
+(function (global){
+var isIterateeCall = require('../internal/isIterateeCall'),
+    trim = require('./trim');
+
+/** Used to detect hexadecimal string values. */
+var reHasHexPrefix = /^0[xX]/;
+
+/* Native method references for those with the same name as other `lodash` methods. */
+var nativeParseInt = global.parseInt;
+
+/**
+ * Converts `string` to an integer of the specified radix. If `radix` is
+ * `undefined` or `0`, a `radix` of `10` is used unless `value` is a hexadecimal,
+ * in which case a `radix` of `16` is used.
+ *
+ * **Note:** This method aligns with the [ES5 implementation](https://es5.github.io/#E)
+ * of `parseInt`.
+ *
+ * @static
+ * @memberOf _
+ * @category String
+ * @param {string} string The string to convert.
+ * @param {number} [radix] The radix to interpret `value` by.
+ * @param- {Object} [guard] Enables use as a callback for functions like `_.map`.
+ * @returns {number} Returns the converted integer.
+ * @example
+ *
+ * _.parseInt('08');
+ * // => 8
+ *
+ * _.map(['6', '08', '10'], _.parseInt);
+ * // => [6, 8, 10]
+ */
+function parseInt(string, radix, guard) {
+  // Firefox < 21 and Opera < 15 follow ES3 for `parseInt`.
+  // Chrome fails to trim leading <BOM> whitespace characters.
+  // See https://code.google.com/p/v8/issues/detail?id=3109 for more details.
+  if (guard ? isIterateeCall(string, radix, guard) : radix == null) {
+    radix = 0;
+  } else if (radix) {
+    radix = +radix;
+  }
+  string = trim(string);
+  return nativeParseInt(string, radix || (reHasHexPrefix.test(string) ? 16 : 10));
+}
+
+module.exports = parseInt;
+
+}).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
+},{"../internal/isIterateeCall":229,"./trim":306}],300:[function(require,module,exports){
+(function (global){
+var baseToString = require('../internal/baseToString');
+
+/* Native method references for those with the same name as other `lodash` methods. */
+var nativeFloor = Math.floor,
+    nativeIsFinite = global.isFinite;
+
+/**
+ * Repeats the given string `n` times.
+ *
+ * @static
+ * @memberOf _
+ * @category String
+ * @param {string} [string=''] The string to repeat.
+ * @param {number} [n=0] The number of times to repeat the string.
+ * @returns {string} Returns the repeated string.
+ * @example
+ *
+ * _.repeat('*', 3);
+ * // => '***'
+ *
+ * _.repeat('abc', 2);
+ * // => 'abcabc'
+ *
+ * _.repeat('abc', 0);
+ * // => ''
+ */
+function repeat(string, n) {
+  var result = '';
+  string = baseToString(string);
+  n = +n;
+  if (n < 1 || !string || !nativeIsFinite(n)) {
+    return result;
+  }
+  // Leverage the exponentiation by squaring algorithm for a faster repeat.
+  // See https://en.wikipedia.org/wiki/Exponentiation_by_squaring for more details.
+  do {
+    if (n % 2) {
+      result += string;
+    }
+    n = nativeFloor(n / 2);
+    string += string;
+  } while (n);
+
+  return result;
+}
+
+module.exports = repeat;
+
+}).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
+},{"../internal/baseToString":189}],301:[function(require,module,exports){
+var createCompounder = require('../internal/createCompounder');
+
+/**
+ * Converts `string` to [snake case](https://en.wikipedia.org/wiki/Snake_case).
+ *
+ * @static
+ * @memberOf _
+ * @category String
+ * @param {string} [string=''] The string to convert.
+ * @returns {string} Returns the snake cased string.
+ * @example
+ *
+ * _.snakeCase('Foo Bar');
+ * // => 'foo_bar'
+ *
+ * _.snakeCase('fooBar');
+ * // => 'foo_bar'
+ *
+ * _.snakeCase('--foo-bar');
+ * // => 'foo_bar'
+ */
+var snakeCase = createCompounder(function(result, word, index) {
+  return result + (index ? '_' : '') + word.toLowerCase();
+});
+
+module.exports = snakeCase;
+
+},{"../internal/createCompounder":205}],302:[function(require,module,exports){
+var createCompounder = require('../internal/createCompounder');
+
+/**
+ * Converts `string` to [start case](https://en.wikipedia.org/wiki/Letter_case#Stylistic_or_specialised_usage).
+ *
+ * @static
+ * @memberOf _
+ * @category String
+ * @param {string} [string=''] The string to convert.
+ * @returns {string} Returns the start cased string.
+ * @example
+ *
+ * _.startCase('--foo-bar');
+ * // => 'Foo Bar'
+ *
+ * _.startCase('fooBar');
+ * // => 'Foo Bar'
+ *
+ * _.startCase('__foo_bar__');
+ * // => 'Foo Bar'
+ */
+var startCase = createCompounder(function(result, word, index) {
+  return result + (index ? ' ' : '') + (word.charAt(0).toUpperCase() + word.slice(1));
+});
+
+module.exports = startCase;
+
+},{"../internal/createCompounder":205}],303:[function(require,module,exports){
+var baseToString = require('../internal/baseToString');
+
+/* Native method references for those with the same name as other `lodash` methods. */
+var nativeMin = Math.min;
+
+/**
+ * Checks if `string` starts with the given target string.
+ *
+ * @static
+ * @memberOf _
+ * @category String
+ * @param {string} [string=''] The string to search.
+ * @param {string} [target] The string to search for.
+ * @param {number} [position=0] The position to search from.
+ * @returns {boolean} Returns `true` if `string` starts with `target`, else `false`.
+ * @example
+ *
+ * _.startsWith('abc', 'a');
+ * // => true
+ *
+ * _.startsWith('abc', 'b');
+ * // => false
+ *
+ * _.startsWith('abc', 'b', 1);
+ * // => true
+ */
+function startsWith(string, target, position) {
+  string = baseToString(string);
+  position = position == null
+    ? 0
+    : nativeMin(position < 0 ? 0 : (+position || 0), string.length);
+
+  return string.lastIndexOf(target, position) == position;
+}
+
+module.exports = startsWith;
+
+},{"../internal/baseToString":189}],304:[function(require,module,exports){
+var assignOwnDefaults = require('../internal/assignOwnDefaults'),
+    assignWith = require('../internal/assignWith'),
+    attempt = require('../utility/attempt'),
+    baseAssign = require('../internal/baseAssign'),
+    baseToString = require('../internal/baseToString'),
+    baseValues = require('../internal/baseValues'),
+    escapeStringChar = require('../internal/escapeStringChar'),
+    isError = require('../lang/isError'),
+    isIterateeCall = require('../internal/isIterateeCall'),
+    keys = require('../object/keys'),
+    reInterpolate = require('../internal/reInterpolate'),
+    templateSettings = require('./templateSettings');
+
+/** Used to match empty string literals in compiled template source. */
+var reEmptyStringLeading = /\b__p \+= '';/g,
+    reEmptyStringMiddle = /\b(__p \+=) '' \+/g,
+    reEmptyStringTrailing = /(__e\(.*?\)|\b__t\)) \+\n'';/g;
+
+/** Used to match [ES template delimiters](http://ecma-international.org/ecma-262/6.0/#sec-template-literal-lexical-components). */
+var reEsTemplate = /\$\{([^\\}]*(?:\\.[^\\}]*)*)\}/g;
+
+/** Used to ensure capturing order of template delimiters. */
+var reNoMatch = /($^)/;
+
+/** Used to match unescaped characters in compiled string literals. */
+var reUnescapedString = /['\n\r\u2028\u2029\\]/g;
+
+/**
+ * Creates a compiled template function that can interpolate data properties
+ * in "interpolate" delimiters, HTML-escape interpolated data properties in
+ * "escape" delimiters, and execute JavaScript in "evaluate" delimiters. Data
+ * properties may be accessed as free variables in the template. If a setting
+ * object is provided it takes precedence over `_.templateSettings` values.
+ *
+ * **Note:** In the development build `_.template` utilizes
+ * [sourceURLs](http://www.html5rocks.com/en/tutorials/developertools/sourcemaps/#toc-sourceurl)
+ * for easier debugging.
+ *
+ * For more information on precompiling templates see
+ * [lodash's custom builds documentation](https://lodash.com/custom-builds).
+ *
+ * For more information on Chrome extension sandboxes see
+ * [Chrome's extensions documentation](https://developer.chrome.com/extensions/sandboxingEval).
+ *
+ * @static
+ * @memberOf _
+ * @category String
+ * @param {string} [string=''] The template string.
+ * @param {Object} [options] The options object.
+ * @param {RegExp} [options.escape] The HTML "escape" delimiter.
+ * @param {RegExp} [options.evaluate] The "evaluate" delimiter.
+ * @param {Object} [options.imports] An object to import into the template as free variables.
+ * @param {RegExp} [options.interpolate] The "interpolate" delimiter.
+ * @param {string} [options.sourceURL] The sourceURL of the template's compiled source.
+ * @param {string} [options.variable] The data object variable name.
+ * @param- {Object} [otherOptions] Enables the legacy `options` param signature.
+ * @returns {Function} Returns the compiled template function.
+ * @example
+ *
+ * // using the "interpolate" delimiter to create a compiled template
+ * var compiled = _.template('hello <%= user %>!');
+ * compiled({ 'user': 'fred' });
+ * // => 'hello fred!'
+ *
+ * // using the HTML "escape" delimiter to escape data property values
+ * var compiled = _.template('<b><%- value %></b>');
+ * compiled({ 'value': '<script>' });
+ * // => '<b>&lt;script&gt;</b>'
+ *
+ * // using the "evaluate" delimiter to execute JavaScript and generate HTML
+ * var compiled = _.template('<% _.forEach(users, function(user) { %><li><%- user %></li><% }); %>');
+ * compiled({ 'users': ['fred', 'barney'] });
+ * // => '<li>fred</li><li>barney</li>'
+ *
+ * // using the internal `print` function in "evaluate" delimiters
+ * var compiled = _.template('<% print("hello " + user); %>!');
+ * compiled({ 'user': 'barney' });
+ * // => 'hello barney!'
+ *
+ * // using the ES delimiter as an alternative to the default "interpolate" delimiter
+ * var compiled = _.template('hello ${ user }!');
+ * compiled({ 'user': 'pebbles' });
+ * // => 'hello pebbles!'
+ *
+ * // using custom template delimiters
+ * _.templateSettings.interpolate = /{{([\s\S]+?)}}/g;
+ * var compiled = _.template('hello {{ user }}!');
+ * compiled({ 'user': 'mustache' });
+ * // => 'hello mustache!'
+ *
+ * // using backslashes to treat delimiters as plain text
+ * var compiled = _.template('<%= "\\<%- value %\\>" %>');
+ * compiled({ 'value': 'ignored' });
+ * // => '<%- value %>'
+ *
+ * // using the `imports` option to import `jQuery` as `jq`
+ * var text = '<% jq.each(users, function(user) { %><li><%- user %></li><% }); %>';
+ * var compiled = _.template(text, { 'imports': { 'jq': jQuery } });
+ * compiled({ 'users': ['fred', 'barney'] });
+ * // => '<li>fred</li><li>barney</li>'
+ *
+ * // using the `sourceURL` option to specify a custom sourceURL for the template
+ * var compiled = _.template('hello <%= user %>!', { 'sourceURL': '/basic/greeting.jst' });
+ * compiled(data);
+ * // => find the source of "greeting.jst" under the Sources tab or Resources panel of the web inspector
+ *
+ * // using the `variable` option to ensure a with-statement isn't used in the compiled template
+ * var compiled = _.template('hi <%= data.user %>!', { 'variable': 'data' });
+ * compiled.source;
+ * // => function(data) {
+ * //   var __t, __p = '';
+ * //   __p += 'hi ' + ((__t = ( data.user )) == null ? '' : __t) + '!';
+ * //   return __p;
+ * // }
+ *
+ * // using the `source` property to inline compiled templates for meaningful
+ * // line numbers in error messages and a stack trace
+ * fs.writeFileSync(path.join(cwd, 'jst.js'), '\
+ *   var JST = {\
+ *     "main": ' + _.template(mainText).source + '\
+ *   };\
+ * ');
+ */
+function template(string, options, otherOptions) {
+  // Based on John Resig's `tmpl` implementation (http://ejohn.org/blog/javascript-micro-templating/)
+  // and Laura Doktorova's doT.js (https://github.com/olado/doT).
+  var settings = templateSettings.imports._.templateSettings || templateSettings;
+
+  if (otherOptions && isIterateeCall(string, options, otherOptions)) {
+    options = otherOptions = undefined;
+  }
+  string = baseToString(string);
+  options = assignWith(baseAssign({}, otherOptions || options), settings, assignOwnDefaults);
+
+  var imports = assignWith(baseAssign({}, options.imports), settings.imports, assignOwnDefaults),
+      importsKeys = keys(imports),
+      importsValues = baseValues(imports, importsKeys);
+
+  var isEscaping,
+      isEvaluating,
+      index = 0,
+      interpolate = options.interpolate || reNoMatch,
+      source = "__p += '";
+
+  // Compile the regexp to match each delimiter.
+  var reDelimiters = RegExp(
+    (options.escape || reNoMatch).source + '|' +
+    interpolate.source + '|' +
+    (interpolate === reInterpolate ? reEsTemplate : reNoMatch).source + '|' +
+    (options.evaluate || reNoMatch).source + '|$'
+  , 'g');
+
+  // Use a sourceURL for easier debugging.
+  var sourceURL = 'sourceURL' in options ? '//# sourceURL=' + options.sourceURL + '\n' : '';
+
+  string.replace(reDelimiters, function(match, escapeValue, interpolateValue, esTemplateValue, evaluateValue, offset) {
+    interpolateValue || (interpolateValue = esTemplateValue);
+
+    // Escape characters that can't be included in string literals.
+    source += string.slice(index, offset).replace(reUnescapedString, escapeStringChar);
+
+    // Replace delimiters with snippets.
+    if (escapeValue) {
+      isEscaping = true;
+      source += "' +\n__e(" + escapeValue + ") +\n'";
+    }
+    if (evaluateValue) {
+      isEvaluating = true;
+      source += "';\n" + evaluateValue + ";\n__p += '";
+    }
+    if (interpolateValue) {
+      source += "' +\n((__t = (" + interpolateValue + ")) == null ? '' : __t) +\n'";
+    }
+    index = offset + match.length;
+
+    // The JS engine embedded in Adobe products requires returning the `match`
+    // string in order to produce the correct `offset` value.
+    return match;
+  });
+
+  source += "';\n";
+
+  // If `variable` is not specified wrap a with-statement around the generated
+  // code to add the data object to the top of the scope chain.
+  var variable = options.variable;
+  if (!variable) {
+    source = 'with (obj) {\n' + source + '\n}\n';
+  }
+  // Cleanup code by stripping empty strings.
+  source = (isEvaluating ? source.replace(reEmptyStringLeading, '') : source)
+    .replace(reEmptyStringMiddle, '$1')
+    .replace(reEmptyStringTrailing, '$1;');
+
+  // Frame code as the function body.
+  source = 'function(' + (variable || 'obj') + ') {\n' +
+    (variable
+      ? ''
+      : 'obj || (obj = {});\n'
+    ) +
+    "var __t, __p = ''" +
+    (isEscaping
+       ? ', __e = _.escape'
+       : ''
+    ) +
+    (isEvaluating
+      ? ', __j = Array.prototype.join;\n' +
+        "function print() { __p += __j.call(arguments, '') }\n"
+      : ';\n'
+    ) +
+    source +
+    'return __p\n}';
+
+  var result = attempt(function() {
+    return Function(importsKeys, sourceURL + 'return ' + source).apply(undefined, importsValues);
+  });
+
+  // Provide the compiled function's source by its `toString` method or
+  // the `source` property as a convenience for inlining compiled templates.
+  result.source = source;
+  if (isError(result)) {
+    throw result;
+  }
+  return result;
+}
+
+module.exports = template;
+
+},{"../internal/assignOwnDefaults":150,"../internal/assignWith":151,"../internal/baseAssign":152,"../internal/baseToString":189,"../internal/baseValues":191,"../internal/escapeStringChar":218,"../internal/isIterateeCall":229,"../internal/reInterpolate":239,"../lang/isError":260,"../object/keys":282,"../utility/attempt":312,"./templateSettings":305}],305:[function(require,module,exports){
+var escape = require('./escape'),
+    reEscape = require('../internal/reEscape'),
+    reEvaluate = require('../internal/reEvaluate'),
+    reInterpolate = require('../internal/reInterpolate');
+
+/**
+ * By default, the template delimiters used by lodash are like those in
+ * embedded Ruby (ERB). Change the following template settings to use
+ * alternative delimiters.
+ *
+ * @static
+ * @memberOf _
+ * @type Object
+ */
+var templateSettings = {
+
+  /**
+   * Used to detect `data` property values to be HTML-escaped.
+   *
+   * @memberOf _.templateSettings
+   * @type RegExp
+   */
+  'escape': reEscape,
+
+  /**
+   * Used to detect code to be evaluated.
+   *
+   * @memberOf _.templateSettings
+   * @type RegExp
+   */
+  'evaluate': reEvaluate,
+
+  /**
+   * Used to detect `data` property values to inject.
+   *
+   * @memberOf _.templateSettings
+   * @type RegExp
+   */
+  'interpolate': reInterpolate,
+
+  /**
+   * Used to reference the data object in the template text.
+   *
+   * @memberOf _.templateSettings
+   * @type string
+   */
+  'variable': '',
+
+  /**
+   * Used to import variables into the compiled template.
+   *
+   * @memberOf _.templateSettings
+   * @type Object
+   */
+  'imports': {
+
+    /**
+     * A reference to the `lodash` function.
+     *
+     * @memberOf _.templateSettings.imports
+     * @type Function
+     */
+    '_': { 'escape': escape }
+  }
+};
+
+module.exports = templateSettings;
+
+},{"../internal/reEscape":237,"../internal/reEvaluate":238,"../internal/reInterpolate":239,"./escape":293}],306:[function(require,module,exports){
 var baseToString = require('../internal/baseToString'),
     charsLeftIndex = require('../internal/charsLeftIndex'),
     charsRightIndex = require('../internal/charsRightIndex'),
@@ -24412,7 +26500,225 @@ function trim(string, chars, guard) {
 
 module.exports = trim;
 
-},{"../internal/baseToString":180,"../internal/charsLeftIndex":187,"../internal/charsRightIndex":188,"../internal/isIterateeCall":212,"../internal/trimmedLeftIndex":225,"../internal/trimmedRightIndex":226}],269:[function(require,module,exports){
+},{"../internal/baseToString":189,"../internal/charsLeftIndex":196,"../internal/charsRightIndex":197,"../internal/isIterateeCall":229,"../internal/trimmedLeftIndex":244,"../internal/trimmedRightIndex":245}],307:[function(require,module,exports){
+var baseToString = require('../internal/baseToString'),
+    charsLeftIndex = require('../internal/charsLeftIndex'),
+    isIterateeCall = require('../internal/isIterateeCall'),
+    trimmedLeftIndex = require('../internal/trimmedLeftIndex');
+
+/**
+ * Removes leading whitespace or specified characters from `string`.
+ *
+ * @static
+ * @memberOf _
+ * @category String
+ * @param {string} [string=''] The string to trim.
+ * @param {string} [chars=whitespace] The characters to trim.
+ * @param- {Object} [guard] Enables use as a callback for functions like `_.map`.
+ * @returns {string} Returns the trimmed string.
+ * @example
+ *
+ * _.trimLeft('  abc  ');
+ * // => 'abc  '
+ *
+ * _.trimLeft('-_-abc-_-', '_-');
+ * // => 'abc-_-'
+ */
+function trimLeft(string, chars, guard) {
+  var value = string;
+  string = baseToString(string);
+  if (!string) {
+    return string;
+  }
+  if (guard ? isIterateeCall(value, chars, guard) : chars == null) {
+    return string.slice(trimmedLeftIndex(string));
+  }
+  return string.slice(charsLeftIndex(string, (chars + '')));
+}
+
+module.exports = trimLeft;
+
+},{"../internal/baseToString":189,"../internal/charsLeftIndex":196,"../internal/isIterateeCall":229,"../internal/trimmedLeftIndex":244}],308:[function(require,module,exports){
+var baseToString = require('../internal/baseToString'),
+    charsRightIndex = require('../internal/charsRightIndex'),
+    isIterateeCall = require('../internal/isIterateeCall'),
+    trimmedRightIndex = require('../internal/trimmedRightIndex');
+
+/**
+ * Removes trailing whitespace or specified characters from `string`.
+ *
+ * @static
+ * @memberOf _
+ * @category String
+ * @param {string} [string=''] The string to trim.
+ * @param {string} [chars=whitespace] The characters to trim.
+ * @param- {Object} [guard] Enables use as a callback for functions like `_.map`.
+ * @returns {string} Returns the trimmed string.
+ * @example
+ *
+ * _.trimRight('  abc  ');
+ * // => '  abc'
+ *
+ * _.trimRight('-_-abc-_-', '_-');
+ * // => '-_-abc'
+ */
+function trimRight(string, chars, guard) {
+  var value = string;
+  string = baseToString(string);
+  if (!string) {
+    return string;
+  }
+  if (guard ? isIterateeCall(value, chars, guard) : chars == null) {
+    return string.slice(0, trimmedRightIndex(string) + 1);
+  }
+  return string.slice(0, charsRightIndex(string, (chars + '')) + 1);
+}
+
+module.exports = trimRight;
+
+},{"../internal/baseToString":189,"../internal/charsRightIndex":197,"../internal/isIterateeCall":229,"../internal/trimmedRightIndex":245}],309:[function(require,module,exports){
+var baseToString = require('../internal/baseToString'),
+    isIterateeCall = require('../internal/isIterateeCall'),
+    isObject = require('../lang/isObject'),
+    isRegExp = require('../lang/isRegExp');
+
+/** Used as default options for `_.trunc`. */
+var DEFAULT_TRUNC_LENGTH = 30,
+    DEFAULT_TRUNC_OMISSION = '...';
+
+/** Used to match `RegExp` flags from their coerced string values. */
+var reFlags = /\w*$/;
+
+/**
+ * Truncates `string` if it's longer than the given maximum string length.
+ * The last characters of the truncated string are replaced with the omission
+ * string which defaults to "...".
+ *
+ * @static
+ * @memberOf _
+ * @category String
+ * @param {string} [string=''] The string to truncate.
+ * @param {Object|number} [options] The options object or maximum string length.
+ * @param {number} [options.length=30] The maximum string length.
+ * @param {string} [options.omission='...'] The string to indicate text is omitted.
+ * @param {RegExp|string} [options.separator] The separator pattern to truncate to.
+ * @param- {Object} [guard] Enables use as a callback for functions like `_.map`.
+ * @returns {string} Returns the truncated string.
+ * @example
+ *
+ * _.trunc('hi-diddly-ho there, neighborino');
+ * // => 'hi-diddly-ho there, neighbo...'
+ *
+ * _.trunc('hi-diddly-ho there, neighborino', 24);
+ * // => 'hi-diddly-ho there, n...'
+ *
+ * _.trunc('hi-diddly-ho there, neighborino', {
+ *   'length': 24,
+ *   'separator': ' '
+ * });
+ * // => 'hi-diddly-ho there,...'
+ *
+ * _.trunc('hi-diddly-ho there, neighborino', {
+ *   'length': 24,
+ *   'separator': /,? +/
+ * });
+ * // => 'hi-diddly-ho there...'
+ *
+ * _.trunc('hi-diddly-ho there, neighborino', {
+ *   'omission': ' [...]'
+ * });
+ * // => 'hi-diddly-ho there, neig [...]'
+ */
+function trunc(string, options, guard) {
+  if (guard && isIterateeCall(string, options, guard)) {
+    options = undefined;
+  }
+  var length = DEFAULT_TRUNC_LENGTH,
+      omission = DEFAULT_TRUNC_OMISSION;
+
+  if (options != null) {
+    if (isObject(options)) {
+      var separator = 'separator' in options ? options.separator : separator;
+      length = 'length' in options ? (+options.length || 0) : length;
+      omission = 'omission' in options ? baseToString(options.omission) : omission;
+    } else {
+      length = +options || 0;
+    }
+  }
+  string = baseToString(string);
+  if (length >= string.length) {
+    return string;
+  }
+  var end = length - omission.length;
+  if (end < 1) {
+    return omission;
+  }
+  var result = string.slice(0, end);
+  if (separator == null) {
+    return result + omission;
+  }
+  if (isRegExp(separator)) {
+    if (string.slice(end).search(separator)) {
+      var match,
+          newEnd,
+          substring = string.slice(0, end);
+
+      if (!separator.global) {
+        separator = RegExp(separator.source, (reFlags.exec(separator) || '') + 'g');
+      }
+      separator.lastIndex = 0;
+      while ((match = separator.exec(substring))) {
+        newEnd = match.index;
+      }
+      result = result.slice(0, newEnd == null ? end : newEnd);
+    }
+  } else if (string.indexOf(separator, end) != end) {
+    var index = result.lastIndexOf(separator);
+    if (index > -1) {
+      result = result.slice(0, index);
+    }
+  }
+  return result + omission;
+}
+
+module.exports = trunc;
+
+},{"../internal/baseToString":189,"../internal/isIterateeCall":229,"../lang/isObject":268,"../lang/isRegExp":270}],310:[function(require,module,exports){
+var baseToString = require('../internal/baseToString'),
+    unescapeHtmlChar = require('../internal/unescapeHtmlChar');
+
+/** Used to match HTML entities and HTML characters. */
+var reEscapedHtml = /&(?:amp|lt|gt|quot|#39|#96);/g,
+    reHasEscapedHtml = RegExp(reEscapedHtml.source);
+
+/**
+ * The inverse of `_.escape`; this method converts the HTML entities
+ * `&amp;`, `&lt;`, `&gt;`, `&quot;`, `&#39;`, and `&#96;` in `string` to their
+ * corresponding characters.
+ *
+ * **Note:** No other HTML entities are unescaped. To unescape additional HTML
+ * entities use a third-party library like [_he_](https://mths.be/he).
+ *
+ * @static
+ * @memberOf _
+ * @category String
+ * @param {string} [string=''] The string to unescape.
+ * @returns {string} Returns the unescaped string.
+ * @example
+ *
+ * _.unescape('fred, barney, &amp; pebbles');
+ * // => 'fred, barney, & pebbles'
+ */
+function unescape(string) {
+  string = baseToString(string);
+  return (string && reHasEscapedHtml.test(string))
+    ? string.replace(reEscapedHtml, unescapeHtmlChar)
+    : string;
+}
+
+module.exports = unescape;
+
+},{"../internal/baseToString":189,"../internal/unescapeHtmlChar":246}],311:[function(require,module,exports){
 var baseToString = require('../internal/baseToString'),
     isIterateeCall = require('../internal/isIterateeCall');
 
@@ -24444,7 +26750,7 @@ var reWords = (function() {
  */
 function words(string, pattern, guard) {
   if (guard && isIterateeCall(string, pattern, guard)) {
-    pattern = null;
+    pattern = undefined;
   }
   string = baseToString(string);
   return string.match(pattern || reWords) || [];
@@ -24452,70 +26758,41 @@ function words(string, pattern, guard) {
 
 module.exports = words;
 
-},{"../internal/baseToString":180,"../internal/isIterateeCall":212}],270:[function(require,module,exports){
-(function (global){
-/** Used to detect DOM support. */
-var document = (document = global.window) ? document.document : null;
+},{"../internal/baseToString":189,"../internal/isIterateeCall":229}],312:[function(require,module,exports){
+var isError = require('../lang/isError'),
+    restParam = require('../function/restParam');
 
 /**
- * An object environment feature flags.
- *
- * @static
- * @memberOf _
- * @type Object
- */
-var support = {};
-
-(function(x) {
-  var Ctor = function() { this.x = x; },
-      object = { '0': x, 'length': x },
-      props = [];
-
-  Ctor.prototype = { 'valueOf': x, 'y': x };
-  for (var key in new Ctor) { props.push(key); }
-
-  /**
-   * Detect if the DOM is supported.
-   *
-   * @memberOf _.support
-   * @type boolean
-   */
-  try {
-    support.dom = document.createDocumentFragment().nodeType === 11;
-  } catch(e) {
-    support.dom = false;
-  }
-}(1, 0));
-
-module.exports = support;
-
-}).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{}],271:[function(require,module,exports){
-/**
- * Creates a function that returns `value`.
+ * Attempts to invoke `func`, returning either the result or the caught error
+ * object. Any additional arguments are provided to `func` when it is invoked.
  *
  * @static
  * @memberOf _
  * @category Utility
- * @param {*} value The value to return from the new function.
- * @returns {Function} Returns the new function.
+ * @param {Function} func The function to attempt.
+ * @returns {*} Returns the `func` result or error object.
  * @example
  *
- * var object = { 'user': 'fred' };
- * var getter = _.constant(object);
+ * // avoid throwing errors for invalid selectors
+ * var elements = _.attempt(function(selector) {
+ *   return document.querySelectorAll(selector);
+ * }, '>_>');
  *
- * getter() === object;
- * // => true
+ * if (_.isError(elements)) {
+ *   elements = [];
+ * }
  */
-function constant(value) {
-  return function() {
-    return value;
-  };
-}
+var attempt = restParam(function(func, args) {
+  try {
+    return func.apply(undefined, args);
+  } catch(e) {
+    return isError(e) ? e : new Error(e);
+  }
+});
 
-module.exports = constant;
+module.exports = attempt;
 
-},{}],272:[function(require,module,exports){
+},{"../function/restParam":135,"../lang/isError":260}],313:[function(require,module,exports){
 /**
  * This method returns the first argument provided to it.
  *
@@ -24537,7 +26814,7 @@ function identity(value) {
 
 module.exports = identity;
 
-},{}],273:[function(require,module,exports){
+},{}],314:[function(require,module,exports){
 var baseProperty = require('../internal/baseProperty'),
     basePropertyDeep = require('../internal/basePropertyDeep'),
     isKey = require('../internal/isKey');
@@ -24570,7 +26847,7 @@ function property(path) {
 
 module.exports = property;
 
-},{"../internal/baseProperty":171,"../internal/basePropertyDeep":172,"../internal/isKey":213}],274:[function(require,module,exports){
+},{"../internal/baseProperty":180,"../internal/basePropertyDeep":181,"../internal/isKey":230}],315:[function(require,module,exports){
 'use strict';
 
 function ToObject(val) {
@@ -24598,7 +26875,7 @@ module.exports = Object.assign || function (target, source) {
 	return to;
 };
 
-},{}],275:[function(require,module,exports){
+},{}],316:[function(require,module,exports){
 (function (global){
 
 var rng;
@@ -24633,7 +26910,7 @@ module.exports = rng;
 
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{}],276:[function(require,module,exports){
+},{}],317:[function(require,module,exports){
 //     uuid.js
 //
 //     Copyright (c) 2010-2012 Robert Kieffer
@@ -24818,18 +27095,19 @@ uuid.unparse = unparse;
 
 module.exports = uuid;
 
-},{"./rng":275}],277:[function(require,module,exports){
+},{"./rng":316}],318:[function(require,module,exports){
 module.exports={
   "name": "focusjs-components",
-  "version": "0.2.0",
+  "version": "0.4.0",
   "description": "Focus component repository.",
   "main": "index.js",
   "scripts": {
     "test": "exit 0",
     "example": "node static-server.js",
-    "build": "gulp browserify",
+    "build": "sh ./build.sh",
     "watch": "gulp watchify",
-    "prepublish": "gulp build"
+    "prepublish": "gulp build",
+    "serve": "sh ./build.sh && node static-server.js"
   },
   "repository": {
     "type": "git",
@@ -24894,6 +27172,10 @@ module.exports={
       "path": "common/field"
     },
     {
+      "name": "role",
+      "path": "common/role"
+    },
+    {
       "name": "icon",
       "path": "common/icon"
     },
@@ -24904,6 +27186,10 @@ module.exports={
     {
       "name": "detail",
       "path": "common/detail"
+    },
+    {
+      "name": "autocomplete",
+      "path": "common/autocomplete"
     },
     {
       "name": "input-text",
@@ -25010,6 +27296,10 @@ module.exports={
       "path": "common/block"
     },
     {
+      "name": "list-page",
+      "path": "page/list"
+    },
+    {
       "name": "quick-search",
       "path": "page/search/quick-search"
     },
@@ -25040,20 +27330,23 @@ module.exports={
   ],
   "homepage": "https://github.com/KleeGroup/focus-components",
   "dependencies": {
-    "focusjs": "^0.5.5",
+    "focusjs": "^0.7.0",
     "immutable": "^3.7.3",
     "lodash": "^3.9.1",
+    "moment": "^2.10.6",
     "object-assign": "^2.0.0",
     "react": "^0.13.3",
     "uuid": "^2.0.1"
   },
   "devDependencies": {
+    "babel-eslint": "^3.1.26",
     "babel-jest": "^4.0.0",
     "babelify": "^5.0.3",
     "bootstrap-material": "^0.1.5",
     "browser-sync": "^2.2.1",
     "browserify": "^9.0.3",
-    "eslint": "^0.17.1",
+    "eslint": "1.0.0-rc-1",
+    "eslint-plugin-react": "^2.7.1",
     "express": "^4.12.0",
     "gulp": "^3.8.11",
     "gulp-babel": "^4.0.0",
@@ -25088,7 +27381,7 @@ module.exports={
   }
 }
 
-},{}],278:[function(require,module,exports){
+},{}],319:[function(require,module,exports){
 "use strict";
 
 var saveBehaviour = require("./mixin/save-behaviour");
@@ -25100,7 +27393,7 @@ var detailMixin = {
 };
 module.exports = { mixin: detailMixin };
 
-},{"../mixin/cartridge-behaviour":282,"./mixin/save-behaviour":279,"./mixin/validate-behaviour":280}],279:[function(require,module,exports){
+},{"../mixin/cartridge-behaviour":324,"./mixin/save-behaviour":320,"./mixin/validate-behaviour":321}],320:[function(require,module,exports){
 "use strict";
 
 var _defineProperty = function (obj, key, value) { return Object.defineProperty(obj, key, { value: value, enumerable: true, configurable: true, writable: true }); };
@@ -25120,7 +27413,7 @@ module.exports = {
   }
 };
 
-},{"lodash/lang/isFunction":242,"object-assign":274}],280:[function(require,module,exports){
+},{"lodash/lang/isFunction":262,"object-assign":315}],321:[function(require,module,exports){
 "use strict";
 
 var _defineProperty = function (obj, key, value) { return Object.defineProperty(obj, key, { value: value, enumerable: true, configurable: true, writable: true }); };
@@ -25150,7 +27443,7 @@ module.exports = {
   }
 };
 
-},{"lodash/lang":227,"object-assign":274}],281:[function(require,module,exports){
+},{"lodash/lang":247,"object-assign":315}],322:[function(require,module,exports){
 // Dependencies
 
 "use strict";
@@ -25163,6 +27456,7 @@ module.exports = {
   detail: detailMixin,
   search: require("./search"),
   mixin: require("./mixin"),
+  list: require("./list"),
   /**
    * Helper to creates a detail page.
    * @param {object} config - The page configuration.
@@ -25179,7 +27473,140 @@ module.exports = {
   }
 };
 
-},{"./detail":278,"./mixin":283,"./search":289}],282:[function(require,module,exports){
+},{"./detail":319,"./list":323,"./mixin":325,"./search":335}],323:[function(require,module,exports){
+//The purpose of this module is to deal with autonomous lists.
+//If you need lists inside a form please see the listFor helper function in a form.
+//The following lists can
+//- be loaded from a criteria (or without) (the criteria can be the result of a form)
+//- be paginated
+//- be displayed in any list container.
+"use strict";
+
+var _require = require("lodash/string");
+
+var camelCase = _require.camelCase;
+var capitalize = _require.capitalize;
+
+var _require$component = window.Focus.component;
+
+var types = _require$component.types;
+var builder = _require$component.builder;
+
+var actionBuilder = window.Focus.list.actionBuilder;
+var type = types;
+var assign = require("object-assign");
+
+var STORE_NODE = ["criteria", "groupingKey", "sortBy", "sortAsc", "dataList", "totalCount"];
+var DEFAULT_LIST_COMPONENT = require("../../list/table/list").component;
+/**
+ * Cretes a name for the property listener.
+ * @param  {string} node - Node name.
+ * @return {string} the built property.
+ */
+function _listenerProp(node) {
+    return "add" + capitalize(camelCase(node)) + "ChangeListener";
+}
+/**
+ * Mixin to deal the list page.
+ * @type {Object}
+ */
+var listPageMixin = {
+    getDefaultProps: function getDefaultProps() {
+        return {
+            ListComponent: DEFAULT_LIST_COMPONENT,
+            pickProps: function pickProps(props) {
+                return props;
+            }
+        };
+    },
+    getInitialState: function getInitialState() {
+        return {};
+    },
+    /** @inheritdoc */
+    propTypes: {
+        //Store object.
+        pickProps: type("func"),
+        service: type("func"),
+        store: type("object").isRequired
+    },
+    /**
+     *  Build the action from.
+     */
+    _buildAction: function _buildAction() {
+        var _this = this;
+
+        this._action = this.props.action || actionBuilder({
+            service: this.props.service,
+            identifier: this.props.store.identifier,
+            getListOptions: function () {
+                return _this.props.store.getValue.call(_this.props.store);
+            } // Binding the store in the function call
+        });
+    },
+    /**
+     * Read the state from the store.
+     * @return {object} - The object read from the store.
+     */
+    _getStateFromStore: function _getStateFromStore() {
+        var store = this.props.store;
+        return store.getValue();
+    },
+    /**
+     * Hanlde the list store change.
+     */
+    _handleStoreChanged: function _handleStoreChanged() {
+        this.setState(this._getStateFromStore());
+    },
+    /**
+     * Register the store nodes.
+     */
+    _registerStoreNode: function _registerStoreNode() {
+        var _this = this;
+
+        STORE_NODE.forEach(function (node) {
+            //Maybe this is a bit too much, a global change event could be more efficient as almost all store props change.
+            _this.props.store[_listenerProp(node)](_this._handleStoreChanged);
+        });
+        //When the criteria is changed, the search is triggered.
+        this.props.store.addCriteriaChangeListener(function () {
+            _this._action.load();
+        });
+    },
+    /**
+     * build the list props.
+     * @return {object} - the list property.
+     */
+    _buildListProps: function _buildListProps() {
+        var _ref = this;
+
+        var props = _ref.props;
+        var state = _ref.state;
+        var dataList = state.dataList;
+        var totalCount = state.totalCount;
+
+        dataList = dataList || [];
+        return assign(props, state, {
+            data: dataList,
+            fetchNextPage: this._action.load,
+            hasMoreData: dataList.length < totalCount
+        });
+    },
+    /** @inheritdoc */
+    componentWillMount: function componentWillMount() {
+        this._registerStoreNode();
+        this._buildAction();
+        this._action.load();
+    },
+    /** @inheritdoc */
+    render: function render() {
+        var listProps = this._buildListProps();
+        return React.createElement(this.props.ListComponent, listProps);
+    }
+};
+
+module.exports = builder(listPageMixin);
+
+},{"../../list/table/list":86,"lodash/string":288,"object-assign":315}],324:[function(require,module,exports){
 "use strict";
 
 var isFunction = require("lodash/lang/isFunction");
@@ -25213,226 +27640,336 @@ module.exports = {
   }
 };
 
-},{"../../common/empty":26,"lodash/lang/isFunction":242}],283:[function(require,module,exports){
+},{"../../common/empty":30,"lodash/lang/isFunction":262}],325:[function(require,module,exports){
 "use strict";
 
 module.exports = {
   cartridgeBehaviour: require("./cartridge-behaviour")
 };
 
-},{"./cartridge-behaviour":282}],284:[function(require,module,exports){
+},{"./cartridge-behaviour":324}],326:[function(require,module,exports){
 // Dependencies
 
 "use strict";
 
 var builder = window.Focus.component.builder;
-var React = window.React;
-var assign = require("object-assign");
-var reduce = require("lodash/collection/reduce");
-var includes = require("lodash/collection/includes");
+var clone = require("lodash/lang/clone");
+
+// Components
+
+var ListActionBar = require("../../../list/action-bar/index").component;
+
+//Mixins
+
+var i18nMixin = require("../../../common/i18n/mixin");
+
+var Bar = {
+    mixins: [i18nMixin],
+    /**
+     * Get the default props
+     * @return {object} the default props
+     */
+    getDefaultProps: function getDefaultProps() {
+        return {
+            orderableColumnList: {},
+            groupableColumnList: {},
+            orderSelected: undefined,
+            selectionStatus: undefined,
+            selectionAction: undefined,
+            groupingKey: undefined,
+            selectedFacets: {},
+            action: undefined,
+            lineOperationList: undefined
+        };
+    },
+    /**
+     * Filter the facet list so that the scope facet is not displayed
+     * @return {object} The filtered facet list
+     */
+    _filterFacetList: function _filterFacetList() {
+        var facetList = {};
+        for (var key in this.props.selectedFacets) {
+            if (key !== "FCT_SCOPE") {
+                var facet = this.props.selectedFacets[key];
+                facetList[key] = {
+                    label: this.i18n("live.filter.facets." + key),
+                    value: facet.data.label
+                };
+            }
+        }
+        return facetList;
+    },
+    /**
+     * On facet click, remove it from the selected facets, and update the store
+     * @param  {string} key The facet key to remove
+     */
+    _onFacetClick: function _onFacetClick(key) {
+        var selectedFacets = clone(this.props.selectedFacets);
+        delete selectedFacets[key];
+        this.props.action.updateProperties({ selectedFacets: selectedFacets });
+    },
+    /**
+     * Update the store to ask for a new results order
+     * @param  {string} key   the filed key to sort by
+     * @param  {boolean} order the sort direciton, ascending or descending
+     */
+    _orderAction: function _orderAction(key, order) {
+        this.props.action.updateProperties({
+            sortBy: key,
+            sortAsc: order
+        });
+    },
+    /**
+     * Group by the given key
+     * @param  {string} key The facet key to base the grouping on
+     */
+    _groupAction: function _groupAction(key) {
+        this.props.action.updateProperties({
+            groupingKey: key
+        });
+    },
+    /**
+     * Render the component
+     * @return {HTML} the rendered component
+     */
+    render: function render() {
+        return React.createElement(ListActionBar, {
+            "data-focus": "advanced-search-action-bar",
+            groupLabelPrefix: "live.filter.facets.",
+            selectionStatus: this.props.selectionStatus,
+            selectionAction: this.props.selectionAction,
+            orderableColumnList: this.props.orderableColumnList,
+            orderAction: this._orderAction,
+            orderSelected: this.props.sortBy,
+            groupableColumnList: this.props.groupableColumnList,
+            groupAction: this._groupAction,
+            groupSelectedKey: this.props.groupingKey,
+            facetList: this._filterFacetList(),
+            facetClickAction: this._onFacetClick,
+            operationList: this.props.lineOperationList
+        });
+    }
+};
+
+module.exports = builder(Bar);
+
+},{"../../../common/i18n/mixin":39,"../../../list/action-bar/index":73,"lodash/lang/clone":248}],327:[function(require,module,exports){
+// Dependencies
+
+"use strict";
+
+var builder = window.Focus.component.builder;
+var keys = require("lodash/object/keys");
 
 // Components
 
 var FacetBox = require("../../../search/facet-box").component;
-var ListActionBar = require("../../../list/action-bar/index").component;
-var ListSummary = require("../../../list/summary/index").component;
+
+var scopeFacetKey = "FCT_SCOPE";
+
+var Box = {
+    /**
+     * Get the default props
+     * @return {object} the default props
+     */
+    getDefaultProps: function getDefaultProps() {
+        return {
+            facets: {},
+            selectedFacets: {},
+            facetConfig: {},
+            action: undefined,
+            scopesConfig: undefined
+        };
+    },
+    /**
+     * Facet selection handler
+     * @param  {object}  facetComponentData The new facet box state, given by the FacetBox component
+     * @param  {Boolean} isDisableGroup     override the groupinKey ?
+     */
+    _onFacetSelection: function _onFacetSelection(facetComponentData, isDisableGroup) {
+        if (keys(facetComponentData.selectedFacetList).length === 1 && facetComponentData.selectedFacetList[scopeFacetKey]) {
+            this.props.action.updateProperties({
+                scope: this.props.scopesConfig[facetComponentData.selectedFacetList[scopeFacetKey].key]
+            });
+        } else {
+            delete facetComponentData.selectedFacetList[scopeFacetKey];
+            var newProperties = {
+                selectedFacets: facetComponentData.selectedFacetList
+            };
+            if (isDisableGroup) {
+                newProperties.groupingKey = undefined;
+            }
+            this.props.action.updateProperties(newProperties);
+        }
+    },
+    /**
+     * Render the component
+     * @return {HTML} the rendered component
+     */
+    render: function render() {
+        return React.createElement(FacetBox, {
+            "data-focus": "advanced-search-facet-box",
+            facetList: this.props.facets,
+            selectedFacetList: this.props.selectedFacets,
+            config: this.props.facetConfig,
+            dataSelectionHandler: this._onFacetSelection
+        });
+    }
+};
+
+module.exports = builder(Box);
+
+},{"../../../search/facet-box":344,"lodash/object/keys":282}],328:[function(require,module,exports){
+// Dependencies
+
+"use strict";
+
+var builder = window.Focus.component.builder;
+var camel = require("lodash/string/camelCase");
+var capitalize = require("lodash/string/capitalize");
+
+// Components
+
+var FacetBox = require("./facet-box").component;
+var ListActionBar = require("./action-bar").component;
+var ListSummary = require("./list-summary").component;
+var Results = require("../common/component/results").component;
+
 var BackToTopComponent = require("../../../common/button/back-to-top").component;
+
 // Store
 
-var SearchStore = window.Focus.store.SearchStore;
+var advancedSearchStore = Focus.search.builtInStore.advancedSearchStore;
 
 // Mixins
 
-var ScrollInfoMixin = require("../common/scroll-info-mixin").mixin;
-var GroupByMixin = require("../common/group-by-mixin").mixin;
-var SearchMixin = require("../common/search-mixin").mixin;
 var CartridgeBehaviour = require("../../mixin/cartridge-behaviour");
 var type = window.Focus.component.types;
+
+// Actions
+
+var actionBuilder = Focus.search.actionBuilder;
+
 /**
  * Page mixin of the advanced search.
  * @type {Object}
  */
 var AdvancedSearch = {
-    mixins: [ScrollInfoMixin, GroupByMixin, SearchMixin, CartridgeBehaviour],
+    /**
+     * Component's mixins
+      * @type {Array}
+     */
+    mixins: [CartridgeBehaviour],
     /**
      * Display name.
      */
     displayName: "advanced-search",
     /**
-     * Component initialisation
-     */
-    componentDidMount: function componentDidMount() {
-        this._registerListeners();
-        this.search();
-    },
-    /**
-     * Actions before component will unmount.
-     * @constructor
-     */
-    componentWillUnmount: function componentWillUnmount() {
-        this._unRegisterListeners();
-    },
-    /** @inheritedDoc
+     * Get the default props
+     * @return {object} the default props
      */
     getDefaultProps: function getDefaultProps() {
         return {
             facetConfig: {},
-            idField: "id", //To remove?
+            scopesConfig: {},
             isSelection: true,
             hasBackToTop: true,
-            BackToTopComponent: BackToTopComponent
+            backToTopComponent: BackToTopComponent,
+            store: advancedSearchStore,
+            action: undefined,
+            service: undefined,
+            orderableColumnList: {},
+            lineOperationList: {},
+            exportAction: {},
+            groupComponent: undefined,
+            lineComponentMapper: undefined,
+            scrollParentSelector: undefined,
+            onLineClick: undefined
         };
     },
+    /**
+     * Props validation
+     * @type {Object}
+     */
     propTypes: {
+        scopesConfig: type("object"),
         facetConfig: type("object"),
-        idField: type("string"),
-        isSelection: type("bool"),
-        scope: type("string"),
-        query: type("string"),
-        exportAction: type(["function", "object"]),
-        unselectedScopeAction: type(["function", "object"])
+        isSelection: type("boolean"),
+        hasBackToTop: type("boolean"),
+        backToTopComponent: type("object"),
+        store: type("object"),
+        action: type("object"),
+        service: type("object"),
+        orderableColumnList: type("object"),
+        lineOperationList: type("object"),
+        exportAction: type("function"),
+        groupComponent: type("object"),
+        lineComponentMapper: type("function"),
+        scrollParentSelector: type("string"),
+        onLineClick: type("function")
     },
-    /**
-     * Init default state.
-     * @returns {object} Initialized state.
-     */
     getInitialState: function getInitialState() {
-        return assign({
-            facetList: {},
-            selectedFacetList: {},
-            openedFacetList: this.props.openedFacetList,
-            selectionStatus: "none",
-            orderSelected: undefined,
-            groupSelectedKey: undefined,
-            scope: this.props.scope,
-            query: this.props.query
+        return this._getNewStateFromStore();
+    },
+    /**
+     * Register the store listeners
+     */
+    componentWillMount: function componentWillMount() {
+        var _this = this;
+
+        ["query", "scope", "selected-facets", "grouping-key", "sort-by", "sort-asc"].forEach(function (node) {
+            _this.props.store["add" + capitalize(camel(node)) + "ChangeListener"](_this._onStoreChangeWithSearch);
+        });
+        ["facets", "results", "total-count"].forEach(function (node) {
+            _this.props.store["add" + capitalize(camel(node)) + "ChangeListener"](_this._onStoreChangeWithoutSearch);
+        });
+        this._action = this.props.action || actionBuilder({
+            service: this.props.service,
+            identifier: this.props.store.identifier,
+            getSearchOptions: function () {
+                return _this.props.store.getValue.call(_this.props.store);
+            } // Binding the store in the function call
         });
     },
-    componentWillReceiveProps: function componentWillReceiveProps(nextProps) {
-        this.setState(reduce(nextProps, function (newState, key, value) {
-            if (includes(["scope", "query"], key)) {
-                newState[key] = value;
-            }
-            return newState;
-        }, {}));
+    componentDidMount: function componentDidMount() {
+        this._action.search();
     },
     /**
-     * Get the state from store.
-     * @returns {object} Dtat to update store.
+     * Un-register the store listeners
      */
-    _getStateFromStore: function _getStateFromStore() {
-        if (this.props.store) {
-            var data = this.props.store.get();
-            return assign({
-                facetList: data.facet
-            }, this.getScrollState());
-        }
-    },
+    componentWillUnmount: function componentWillUnmount() {
+        var _this = this;
 
-    /**
-     * Register a listener on the store.
-     * @private
-     */
-    _registerListeners: function _registerListeners() {
-        if (this.props.store) {
-            this.props.store.addSearchChangeListener(this._onSearchChange);
-        }
-    },
-    /**
-     * Unregister a listener on the store.
-     * @private
-     */
-    _unRegisterListeners: function _unRegisterListeners() {
-        if (this.props.store) {
-            this.props.store.removeSearchChangeListener(this._onSearchChange);
-        }
-    },
-
-    /**
-     * Handler when store emit a change event.
-     */
-    _onSearchChange: function _onSearchChange() {
-        this.setState(this._getStateFromStore());
-    },
-    /**
-     * Get the list of facet to print into the top bar.
-     * @returns {{}} Facets object : [facet1: 'Label of facet1', facet2: 'Label of facet2'}.
-     * @private
-     */
-    _getFacetListForBar: function _getFacetListForBar() {
-        var facetList = {};
-        for (var key in this.state.selectedFacetList) {
-            var facet = this.state.selectedFacetList[key];
-            facetList[key] = facet.data.label;
-        }
-        return facetList;
-    },
-    /**
-     * Click on bar facet action handler.
-     * @param key [string}  Key of the clicked facet.
-     * @private
-     */
-    _facetBarClick: function _facetBarClick(key) {
-        var selectedFacetList = this.state.selectedFacetList;
-        delete selectedFacetList[key];
-
-        this.state.selectedFacetList = selectedFacetList;
-        this.setState(assign({ selectedFacetList: selectedFacetList }, this.getNoFetchState()), this.search);
-    },
-    /**
-     * Group action click handler.
-     * @param {string} key Name of the column to group (if null => ungroup action).
-     * @private
-     */
-    _groupClick: function _groupClick(key) {
-        console.log("Group by : " + key);
-        this.setState(assign({ groupSelectedKey: key }, this.getNoFetchState()), this.search);
-    },
-    /**
-     * Order action click handler.
-     * @param {string} key Column to order.
-     * @param {string} order Order  asc/desc
-     * @private
-     */
-    _orderClick: function _orderClick(key, order) {
-        console.log("Order : " + key + " - " + order);
-        this.setState(assign({ orderSelected: { key: key, order: order } }, this.getNoFetchState()), this.search);
-    },
-    /**
-     * Selection action handler.
-     * @param selectionStatus Current selection status.
-     * @private
-     */
-    _selectionGroupLineClick: function _selectionGroupLineClick(selectionStatus) {
-        console.log("Selection status : " + selectionStatus);
-        this.setState({
-            selectionStatus: selectionStatus
+        ["query", "scope", "selected-facets", "grouping-key", "sort-by", "sort-asc"].forEach(function (node) {
+            _this.props.store["remove" + capitalize(camel(node)) + "ChangeListener"](_this._onStoreChangeWithSearch);
+        });
+        ["facets", "results", "total-count"].forEach(function (node) {
+            _this.props.store["remove" + capitalize(camel(node)) + "ChangeListener"](_this._onStoreChangeWithoutSearch);
         });
     },
     /**
-     * Handler called when facet is selected.
-     * @param facetComponentData Data of facet.
+     * Store changed, update the state, trigger a search after update
      */
-    _facetSelectionClick: function _facetSelectionClick(facetComponentData, isDisableGroup) {
-        console.warn("Facet selection ");
-        console.log(facetComponentData.selectedFacetList);
-
-        var newState = {
-            selectedFacetList: facetComponentData.selectedFacetList,
-            openedFacetList: facetComponentData.openedFacetList
-        };
-        if (isDisableGroup) {
-            newState.groupSelectedKey = undefined;
-        }
-
-        this.setState(assign(newState, this.getNoFetchState()), this.search);
+    _onStoreChangeWithSearch: function _onStoreChangeWithSearch() {
+        this.setState(this._getNewStateFromStore(), this._action.search);
     },
     /**
-     * Line selection handler.
-     * @param item Line checked/unchecked.
+     * Store changed, update the state, do not trigger a search after update
      */
-    _selectItem: function _selectItem(item) {
-        this.setState({ selectionStatus: "partial" });
+    _onStoreChangeWithoutSearch: function _onStoreChangeWithoutSearch() {
+        this.setState(this._getNewStateFromStore());
+    },
+    _getNewStateFromStore: function _getNewStateFromStore() {
+        var query = this.props.store.getQuery();
+        var scope = this.props.store.getScope();
+        var selectedFacets = this.props.store.getSelectedFacets() || {};
+        var groupingKey = this.props.store.getGroupingKey();
+        var sortBy = this.props.store.getSortBy();
+        var sortAsc = this.props.store.getSortAsc();
+        var facets = this.props.store.getFacets();
+        var results = this.props.store.getResults();
+        var totalCount = this.props.store.getTotalCount();
+        return { query: query, scope: scope, selectedFacets: selectedFacets, groupingKey: groupingKey, sortBy: sortBy, sortAsc: sortAsc, facets: facets, results: results, totalCount: totalCount };
     },
     /**
      * Export action handler.
@@ -25441,10 +27978,84 @@ var AdvancedSearch = {
         this.props.exportAction();
     },
     /**
-     * Click on scope action handler.
+     * Render the facet box.
+     * @returns {HTML} the rendered component
      */
-    _scopeClick: function _scopeClick() {
-        this.props.unselectScopeAction();
+    _renderFacetBox: function _renderFacetBox() {
+        return React.createElement(FacetBox, {
+            facets: this.state.facets,
+            selectedFacets: this.state.selectedFacets,
+            facetConfig: this.props.facetConfig,
+            action: this._action,
+            scopesConfig: this.props.scopesConfig
+        });
+    },
+    /**
+     * Render the list summary component.
+     * @returns {HTML} the rendered component
+     */
+    _renderListSummary: function _renderListSummary() {
+        return React.createElement(ListSummary, {
+            totalCount: this.state.totalCount,
+            query: this.state.query,
+            action: this._action,
+            scope: this.state.scope
+        });
+    },
+    /**
+     * Render the action bar.
+     * @returns {HTML} the rendered component
+     */
+    _renderActionBar: function _renderActionBar() {
+        var _this = this;
+
+        var groupableColumnList = this.state.facets ? Object.keys(this.state.facets).reduce(function (result, facetKey) {
+            result[facetKey] = facetKey;
+            return result;
+        }, {}) : {};
+        var selectionAction = function (selectionStatus) {
+            _this.setState({ selectionStatus: selectionStatus });
+        };
+        return React.createElement(ListActionBar, {
+            selectionStatus: this.state.selectionStatus,
+            selectionAction: selectionAction,
+            orderableColumnList: this.props.orderableColumnList,
+            orderSelected: this.state.sortBy,
+            groupableColumnList: groupableColumnList,
+            groupSelectedKey: this.state.groupingKey,
+            selectedFacets: this.state.selectedFacets,
+            operationList: this.props.lineOperationList,
+            action: this._action
+        });
+    },
+    /**
+     * Render the results component
+     * @return {HTML} the rendered component
+     */
+    _renderResults: function _renderResults() {
+        return React.createElement(Results, {
+            action: this._action,
+            store: this.props.store,
+            resultsMap: this.state.results,
+            totalCount: this.state.totalCount,
+            groupComponent: this.props.groupComponent,
+            lineComponentMapper: this.props.lineComponentMapper,
+            isSelection: this.props.isSelection,
+            lineSelectionHandler: this._selectItem,
+            lineClickHandler: this._lineClick,
+            lineOperationList: this.props.lineOperationList,
+            scrollParentSelector: this.props.scrollParentSelector,
+            selectionStatus: this.state.selectionStatus,
+            groupingKey: this.state.groupingKey,
+            resultsFacets: this.state.facets,
+            renderSingleGroupDecoration: false
+        });
+    },
+    /**
+     * Line selection handler
+     */
+    _selectItem: function _selectItem() {
+        this.setState({ selectionStatus: "partial" });
     },
     /**
      * Action on line click.
@@ -25456,78 +28067,9 @@ var AdvancedSearch = {
         }
     },
     /**
-     * Render the show all button  seect the group corresponding facet.
-     * @param groupKey Group key.
-     * @returns {Function} Function to select the facet.
+     * Render the component
+     * @return {HTML} the rendered component
      */
-    showAllGroupListHandler: function showAllGroupListHandler(groupKey) {
-        var _this = this;
-
-        return function (event) {
-            var selectedFacetList = _this.state.selectedFacetList;
-
-            var facet = _this.props.store.getFacet();
-            selectedFacetList[_this.state.groupSelectedKey] = {
-                data: facet[_this.state.groupSelectedKey][groupKey],
-                key: groupKey
-            };
-            _this._facetSelectionClick({
-                selectedFacetList: selectedFacetList,
-                facetComponentData: _this.state.openedFacetList
-            }, true);
-        };
-    },
-
-    /**
-     * Render the facet box.
-     * @returns {XML} Render the facetBox.
-     */
-    getFacetBoxComponent: function getFacetBoxComponent() {
-        return React.createElement(FacetBox, {
-            "data-focus": "advanced-search-facet-box",
-            facetList: this.state.facetList,
-            selectedFacetList: this.state.selectedFacetList,
-            openedFacetList: this.state.openedFacetList,
-            config: this.props.facetConfig,
-            dataSelectionHandler: this._facetSelectionClick
-        });
-    },
-    /**
-     * Render the list summary component.
-     * @returns {XML} Htm code.
-     */
-    getListSummaryComponent: function getListSummaryComponent() {
-        var scopeList = { scope: this.props.scope };
-        return React.createElement(ListSummary, {
-            "data-focus": "advanced-search-list-summary",
-            nb: this.state.totalRecords,
-            queryText: this.props.query,
-            scopeList: scopeList,
-            scopeClickAction: this._scopeClick,
-            exportAction: this._exportHandler });
-    },
-    /**
-     * Render the action bar.
-     * @returns {XML} Rendering of the action bar.
-     */
-    getActionBarComponent: function getActionBarComponent() {
-        var groupableColumnList = Object.keys(this.state.facetList).reduce(function (result, facetKey) {
-            result[facetKey] = facetKey;
-            return result;
-        }, {});
-        return React.createElement(ListActionBar, { "data-focus": "advanced-search-action-bar",
-            selectionStatus: this.state.selectionStatus,
-            selectionAction: this._selectionGroupLineClick,
-            orderableColumnList: this.props.orderableColumnList,
-            orderAction: this._orderClick,
-            orderSelected: this.state.orderSelected,
-            groupableColumnList: groupableColumnList,
-            groupAction: this._groupClick,
-            groupSelectedKey: this.state.groupSelectedKey,
-            facetList: this._getFacetListForBar(),
-            facetClickAction: this._facetBarClick,
-            operationList: this.props.lineOperationList });
-    },
     render: function render() {
         return React.createElement(
             "div",
@@ -25535,44 +28077,93 @@ var AdvancedSearch = {
             React.createElement(
                 "div",
                 { "data-focus": "facet-container" },
-                this.getFacetBoxComponent()
+                this._renderFacetBox()
             ),
             React.createElement(
                 "div",
                 { "data-focus": "result-container" },
-                this.getListSummaryComponent(),
-                this.getActionBarComponent(),
-                this.getResultListComponent(true)
+                this._renderListSummary(),
+                this._renderActionBar(),
+                this._renderResults()
             ),
-            this.props.hasBackToTop && React.createElement(this.props.BackToTopComponent, null)
+            this.props.hasBackToTop && React.createElement(this.props.backToTopComponent, null)
         );
     }
 };
 
 module.exports = builder(AdvancedSearch);
 
-},{"../../../common/button/back-to-top":19,"../../../list/action-bar/index":67,"../../../list/summary/index":77,"../../../search/facet-box":298,"../../mixin/cartridge-behaviour":282,"../common/group-by-mixin":285,"../common/scroll-info-mixin":286,"../common/search-mixin":287,"lodash/collection/includes":109,"lodash/collection/reduce":116,"object-assign":274}],285:[function(require,module,exports){
+},{"../../../common/button/back-to-top":23,"../../mixin/cartridge-behaviour":324,"../common/component/results":333,"./action-bar":326,"./facet-box":327,"./list-summary":329,"lodash/string/camelCase":289,"lodash/string/capitalize":290}],329:[function(require,module,exports){
 // Dependencies
 
 "use strict";
 
-var isArray = require("lodash/lang/isArray");
-var keys = require("lodash/object/keys");
-var checkIsNotNull = window.Focus.util.object.checkIsNotNull;
-var ArgumentNullException = window.Focus.exception.ArgumentNullException;
+var builder = window.Focus.component.builder;
 
 // Components
 
-var SingleGroupComponent = require("./single-group-component").component;
-var ListSelection = require("../../../list/selection").list.component;
+var ListSummary = require("../../../list/summary/index").component;
+
+var scopeAll = "ALL";
+
+var Summary = {
+    /**
+     * Get the default props
+     * @return {object} the default props
+     */
+    getDefaultProps: function getDefaultProps() {
+        return {
+            totalCount: 0,
+            query: "",
+            action: undefined,
+            scope: undefined
+        };
+    },
+    /**
+     * Scope click handler
+     * Set the scope to ALL.
+     */
+    _onScopeClick: function _onScopeClick() {
+        this.props.action.updateProperties({
+            scope: scopeAll,
+            selectedFacets: {},
+            groupingKey: undefined
+        });
+    },
+    /**
+     * Render the component
+     * @return {HTML} the rendered component
+     */
+    render: function render() {
+        var scope = this.props.scope !== scopeAll ? { scope: {
+                code: this.props.scope,
+                label: "Scope",
+                value: this.props.scope
+            } } : undefined;
+        return React.createElement(ListSummary, {
+            "data-focus": "advanced-search-list-summary",
+            nb: this.props.totalCount,
+            queryText: this.props.query,
+            scopeList: scope,
+            scopeClickAction: this._onScopeClick
+        });
+    }
+};
+
+module.exports = builder(Summary);
+
+},{"../../../list/summary/index":83}],330:[function(require,module,exports){
+// Dependencies
+
+"use strict";
+
+var builder = window.Focus.component.builder;
 
 // Mixins
 
-var i18nMixin = require("../../../common/i18n/mixin");
-//Empty Result component to be mututalized.
-var EmptyComponent = React.createClass({
-    displayName: "EmptyComponent",
+var i18nMixin = require("../../../../common/i18n/mixin");
 
+var DefaultEmpty = {
     mixins: [i18nMixin],
     render: function render() {
         return React.createElement(
@@ -25581,309 +28172,385 @@ var EmptyComponent = React.createClass({
             this.i18n("search.empty")
         );
     }
-});
-/**
- * Mixin used in order to create a block.
- * @type {Object}
- */
-var GroupByMixin = {
-    mixins: [i18nMixin],
-    /**
-     * Init default props.
-     * @returns {object} Default props.
-     */
-    getDefaultProps: function getDefaultProps() {
-        return {
-            lineOperationList: [],
-            orderableColumnList: {},
-            lineComponentMapper: function lineComponentMapper() {
-                throw new ArgumentNullException("Please provide a inferLineComponentFromList(list) function.");
-            },
-            emptyComponent: EmptyComponent
-        };
-    },
-    /**
-     * Change the max rows of a group.
-     * @param {string} groupKey Key of the group.
-     * @param {int} maxRows Number of needed rows.
-     * @returns {Function} The function wich will change the max rows of the group.
-     */
-    changeGroupByMaxRows: function changeGroupByMaxRows(groupKey, maxRows) {
-        var _this = this;
-
-        return function (event) {
-            _this.refs[groupKey].changeGroupByMaxRows(maxRows);
-        };
-    },
-    getResultListComponent: function getResultListComponent(advancedSearch) {
-        var _this = this;
-
-        // First check if there is any result
-        if (this.state.totalRecords === 0) {
-            return this.props.emptyComponent;
-        }
-        var isBounded = keys(this.state.map).length > 1;
-        var noDecoration = keys(this.state.map).length === 1;
-        if (noDecoration && advancedSearch) {
-            var groupKey = keys(this.state.map)[0];
-            return this._getSingleTypeResultList(groupKey, this.state.map[groupKey], isBounded && this.props.groupMaxRows);
-        } else {
-            var groupList = keys(this.state.map).map(function (groupKey) {
-                return React.createElement(SingleGroupComponent, {
-                    "data-focus": "results-group",
-                    key: groupKey,
-                    ref: groupKey,
-                    renderGroupBy: _this.renderGroupByBlock,
-                    list: _this.state.map[groupKey],
-                    groupKey: groupKey,
-                    maxRows: isBounded && _this.props.groupMaxRows
-                });
-            });
-            return groupList;
-        }
-    },
-    _getSingleTypeResultList: function _getSingleTypeResultList(groupKey, list, maxRows) {
-        if (list.length === 0) {
-            return React.createElement(this.emptyComponent, null);
-        }
-        if (maxRows) {
-            list = list.slice(0, maxRows);
-        }
-        return React.createElement(ListSelection, {
-            "data-focus": "results-list",
-            data: list,
-            ref: groupKey,
-            idField: this.props.idField,
-            isSelection: this.props.isSelection,
-            onSelection: this._selectItem,
-            onLineClick: this._lineClick,
-            fetchNextPage: this.fetchNextPage,
-            hasMoreData: this.state.hasMoreData,
-            isLoading: this.state.isLoading,
-            operationList: this.props.lineOperationList,
-            lineComponent: this.props.lineComponentMapper(list),
-            parentSelector: this.props.parentSelector,
-            selectionStatus: this.state.selectionStatus
-        });
-    },
-    renderGroupByBlock: function renderGroupByBlock(groupKey, list, maxRows) {
-        var GroupWrapper = this.props.groupComponent;
-        return React.createElement(
-            GroupWrapper,
-            { "data-focus": "group-result-container", groupKey: groupKey, query: this.state.query, showAll: this.changeGroupByMaxRows },
-            this._getSingleTypeResultList(groupKey, list, maxRows)
-        );
-    }
 };
 
-module.exports = { mixin: GroupByMixin };
+module.exports = builder(DefaultEmpty);
 
-},{"../../../common/i18n/mixin":35,"../../../list/selection":74,"./single-group-component":288,"lodash/lang/isArray":234,"lodash/object/keys":261}],286:[function(require,module,exports){
-"use strict";
-
-var assign = require("object-assign");
-var keys = require("lodash/object/keys");
-/**
- * Infinite scroll mixin.
- * @type {Object}
- */
-var InfiniteScrollPageMixin = {
-    /**
-     * Initial state for a scrolling page.
-     * @returns {*} the initial state
-     */
-    getInitialState: function getInitialState() {
-        return assign({
-            hasMoreData: false,
-            currentPage: 1
-        }, this.getScrollState());
-    },
-
-    /**
-     * current state of the scrolling list.
-     * @returns {*} the scroll state
-     */
-    getScrollState: function getScrollState() {
-        if (this.props.store) {
-            var data = this.props.store.get();
-            var hasMoreData = data.pageInfos && data.map && data.pageInfos.totalPages && data.pageInfos.currentPage < data.pageInfos.totalPages && keys(data.map).length === 1;
-            var totalRecords = data.pageInfos ? data.pageInfos.totalRecords : undefined;
-            return {
-                map: data.map,
-                hasMoreData: hasMoreData,
-                totalRecords: totalRecords,
-                isLoading: false
-            };
-        } else {
-            return {};
-        }
-    }
-};
-
-module.exports = { mixin: InfiniteScrollPageMixin };
-
-},{"lodash/object/keys":261,"object-assign":274}],287:[function(require,module,exports){
-"use strict";
-
-var isFunction = require("lodash/lang/isFunction");
-var BuiltInSearchStore = Focus.search.builtInStore;
-
-var SearchMixin = {
-    getDefaultProps: function getDefaultProps() {
-        return {
-            store: BuiltInSearchStore
-        };
-    },
-    /**
-     * Next page fetch action handler.
-     */
-    fetchNextPage: function fetchNextPage() {
-        this.setState({
-            isLoading: true,
-            currentPage: this.state.currentPage + 1
-        }, this.search);
-    },
-    /**
-     * State for a no fetch search.
-     * @returns {object} current page set to 1.
-     */
-    getNoFetchState: function getNoFetchState() {
-        return {
-            currentPage: 1
-        };
-    },
-    /**
-     * Returns the search criteria sent to the store.
-     * @param {string} scope Current scope.
-     * @param {string} query Current query.
-     * @param {object} facets Selected facets.
-     * @returns {object} Formatted criteria {criteria:{}, pagesInfos:{}, facets:{}}.
-     */
-    _buildSearchCriteria: function _buildSearchCriteria(scope, query, facets) {
-        return {
-            criteria: { scope: scope, query: query },
-            pageInfos: {
-                page: this.state.currentPage,
-                order: this.state.orderSelected,
-                group: this.state.groupSelectedKey
-            },
-            facets: facets
-        };
-    },
-    getSearchCriteria: function getSearchCriteria() {
-        var _this = this;
-
-        var facets = [];
-        if (this.state.selectedFacetList) {
-            facets = Object.keys(this.state.selectedFacetList).map(function (selectedFacetKey) {
-                var selectedFacet = _this.state.selectedFacetList[selectedFacetKey];
-                return {
-                    key: selectedFacetKey,
-                    value: selectedFacet.key
-                };
-            });
-        }
-        if (!isFunction(this.props.searchAction)) {
-            console.warn("Your page seems to miss a search action, add in your props a {searchAction: function(scope, query, facets){}}", this.props.searchAction);
-        }
-        return this._buildSearchCriteria(this.state.scope, this.state.query, facets);
-    },
-    search: function search() {
-
-        this.props.searchAction(this.getSearchCriteria());
-    }
-};
-
-module.exports = {
-    mixin: SearchMixin
-};
-
-},{"lodash/lang/isFunction":242}],288:[function(require,module,exports){
+},{"../../../../common/i18n/mixin":39}],331:[function(require,module,exports){
 // Dependencies
 
 "use strict";
 
 var builder = window.Focus.component.builder;
-var ArgumentNullException = window.Focus.exception.ArgumentNullException;
+var clone = require("lodash/lang/clone");
 
-/**
- * Component of a single group, used in the group-by-mixin.
- * @type {Object}
- */
-var groupByComponent = {
-    /**
-     * Display name.
-     */
-    displayName: "group-by",
-    /**
-     * Init default props.
-     * @returns {object} Default props.
-     */
+var GroupWrapper = {
     getDefaultProps: function getDefaultProps() {
         return {
-            renderGroupBy: function renderGroupBy(groupKey, list, maxRows) {
-                throw new ArgumentNullException("Please implement renderGroupBy() function.");
-            },
-            list: undefined,
+            groupComponent: undefined,
             groupKey: undefined,
-            maxRows: 3
+            count: undefined,
+            isUnique: false,
+            showAllHandler: undefined,
+            list: undefined,
+            renderResultsList: undefined
         };
     },
-    /**
-     * Init default state.
-     * @returns {object} Initialized state.
-     */
     getInitialState: function getInitialState() {
         return {
-            maxRows: this.props.maxRows
+            resultsDisplayedCount: 3
         };
     },
-    /**
-     * Change the number of maxRows displayed.
-     * @param {int} maxRows New value.
-     */
-    changeGroupByMaxRows: function changeGroupByMaxRows(maxRows) {
-        this.setState({ maxRows: maxRows });
+    _showMoreHandler: function _showMoreHandler() {
+        this.setState({
+            resultsDisplayedCount: this.state.resultsDisplayedCount + 3 <= this.props.list.length ? this.state.resultsDisplayedCount + 3 : this.props.list.length
+        });
     },
-    /**
-     * Render the group by block.
-     * @returns {XML} Content.
-     */
     render: function render() {
-        return this.props.renderGroupBy(this.props.groupKey, this.props.list, this.state.maxRows);
+        var listClone = clone(this.props.list);
+        var list = this.props.isUnique ? listClone : listClone.splice(0, this.state.resultsDisplayedCount);
+        return React.createElement(
+            this.props.groupComponent,
+            { canShowMore: this.props.list.length > this.state.resultsDisplayedCount, count: this.props.count, isUnique: this.props.isUnique, groupKey: this.props.groupKey, list: list, showAllHandler: this.props.showAllHandler, showMoreHandler: this._showMoreHandler },
+            this.props.renderResultsList(list, this.props.groupKey, this.props.count, this.props.isUnique)
+        );
     }
 };
 
-module.exports = builder(groupByComponent);
+module.exports = builder(GroupWrapper);
 
-},{}],289:[function(require,module,exports){
+},{"lodash/lang/clone":248}],332:[function(require,module,exports){
+"use strict";
+
+module.exports = {
+    defaultEmptyComponent: require("./default-empty-component"),
+    groupWrapper: require("./group-wrapper"),
+    results: require("./results")
+};
+
+},{"./default-empty-component":330,"./group-wrapper":331,"./results":333}],333:[function(require,module,exports){
+"use strict";
+
+var _defineProperty = function (obj, key, value) { return Object.defineProperty(obj, key, { value: value, enumerable: true, configurable: true, writable: true }); };
+
+// Dependencies
+
+var builder = window.Focus.component.builder;
+var omit = require("lodash/object/omit");
+var map = require("lodash/collection/map");
+var reduce = require("lodash/collection/reduce");
+var clone = require("lodash/lang/clone");
+var keys = require("lodash/object/keys");
+var forEach = require("lodash/collection/forEach");
+var isEqual = require("lodash/lang/isEqual");
+var assign = require("lodash/object/assign");
+
+// Components
+
+var DefaultEmpty = require("./default-empty-component").component;
+var ListSelection = require("../../../../list/selection").list.component;
+var GroupWrapper = require("./group-wrapper").component;
+
+// Mixins
+
+var i18nMixin = require("../../../../common/i18n/mixin");
+
+/**
+ * Results component, used to render the results, grouped or ungrouped
+ * @type {Object}
+ */
+var Results = {
+    mixins: [i18nMixin],
+    /**
+     * By default, an empty component is picked.
+     * @return {Object} the default props
+     */
+    getDefaultProps: function getDefaultProps() {
+        return {
+            emptyComponent: DefaultEmpty,
+            renderSingleGroupDecoration: true,
+            initialRowsCount: 3,
+            showMoreAdditionalRows: 5,
+            scopeFacetKey: "FCT_SCOPE",
+            action: undefined,
+            store: undefined,
+            resultsMap: undefined,
+            totalCount: undefined,
+            groupComponent: undefined,
+            lineComponentMapper: undefined,
+            idField: undefined,
+            isSelection: undefined,
+            lineSelectionHandler: undefined,
+            lineClickHandler: undefined,
+            lineOperationList: undefined,
+            scrollParentSelector: undefined,
+            selectionStatus: undefined,
+            groupingKey: undefined,
+            resultsFacets: undefined
+        };
+    },
+    getInitialState: function getInitialState() {
+        return {
+            loading: false
+        };
+    },
+    componentWillReceiveProps: function componentWillReceiveProps() {
+        if (this.state.loading) {
+            this.setState({
+                loading: false
+            });
+        }
+    },
+
+    /**
+     * Render a single group of results, using the group component given as a prop.
+     * @param  {array} list the results list
+     * @param  {string} key  the group key
+     * @param  {int} count  the group's results count
+     * @param  {bool} isUnique  is this the only rendered group
+     * @return {HMTL}      the rendered group
+     */
+    _renderSingleGroup: function _renderSingleGroup(list, key, count, isUnique) {
+        if (isUnique) {
+            if (this.props.renderSingleGroupDecoration) {
+                return React.createElement(GroupWrapper, {
+                    count: count,
+                    groupComponent: this.props.groupComponent,
+                    isUnique: true,
+                    groupKey: key,
+                    list: list,
+                    renderResultsList: this._renderResultsList
+                });
+            } else {
+                return this._renderResultsList(list, key, count, true);
+            }
+        } else {
+            return React.createElement(GroupWrapper, {
+                count: count,
+                groupComponent: this.props.groupComponent,
+                groupKey: key,
+                list: list,
+                renderResultsList: this._renderResultsList,
+                showAllHandler: this._showAllHandler
+            });
+        }
+    },
+    /**
+     * Render the empty component given as a prop when the result map is empty.
+     * @return {HMTL}      the rendered component
+     */
+    _renderEmptyResults: function _renderEmptyResults() {
+        return React.createElement(this.props.emptyComponent, null);
+    },
+    /**
+     * Render the results list
+     * @param  {Array}  list     the results list
+     * @param  {string}  key      the group key
+     * @param  {integer}  count    the group count
+     * @param  {Boolean} isUnique true if this is the only group rendered
+     * @return {HTML}          the rendered component
+     */
+    _renderResultsList: function _renderResultsList(list, key, count, isUnique) {
+        var LineComponent = this.props.lineComponentMapper(key, list);
+        var hasMoreData = isUnique !== undefined && isUnique && list.length < count;
+        return React.createElement(
+            "div",
+            null,
+            React.createElement(ListSelection, {
+                "data-focus": "results-list",
+                data: list,
+                idField: this.props.idField,
+                isSelection: this.props.isSelection,
+                onSelection: this.props.lineSelectionHandler,
+                onLineClick: this.props.lineClickHandler,
+                fetchNextPage: this._onScrollReachedBottom,
+                hasMoreData: hasMoreData,
+                operationList: this.props.lineOperationList,
+                lineComponent: LineComponent,
+                parentSelector: this.props.scrollParentSelector,
+                selectionStatus: this.props.selectionStatus
+            }),
+            this.state.loading && React.createElement(
+                "div",
+                { "data-focus": "loading-more-results" },
+                React.createElement("i", { className: "fa fa-spinner" }),
+                this.i18n("search.loadingMore")
+            )
+        );
+    },
+
+    /**
+     * Construct the show all action
+     * @param  {string} key the group key where the show all has been clicked
+     * @return {function}     the show all handler
+     */
+    _showAllHandler: function _showAllHandler(key) {
+        if (this.props.resultsFacets[this.props.scopeFacetKey]) {
+            this._scopeSelectionHandler(key);
+        } else {
+            var facetKey = this.props.groupingKey;
+            var facetValue = key;
+            this._facetSelectionHandler(facetKey, facetValue);
+        }
+    },
+    /**
+     * Construct the show more handler
+     * @param  {string} key the group key where the show more has been clicked
+     * @return {function}     the show more handler
+     */
+    _getShowMoreHandler: function _getShowMoreHandler(key) {
+        var _this = this;
+
+        return function () {
+            var groupsRowsCounts = clone(_this.state.groupsRowsCounts);
+            groupsRowsCounts[key] = groupsRowsCounts[key] ? groupsRowsCounts[key] + _this.props.showMoreAdditionalRows : _this.props.initialRowsCount;
+            _this.setState({ groupsRowsCounts: groupsRowsCounts });
+        };
+    },
+    /**
+     * Get the group counts object
+     * @param  {object} resultsMap the results map
+     * @return {object}           the counts map
+     */
+    _getGroupCounts: function _getGroupCounts(resultsMap) {
+        var groupKeys = keys(resultsMap);
+        if (groupKeys.length === 1) {
+            return _defineProperty({}, groupKeys[0], {
+                count: this.props.totalCount
+            });
+        }
+        var targetFacetData = undefined;
+        forEach(this.props.resultsFacets, function (facetData) {
+            if (isEqual(keys(facetData).sort(), groupKeys.sort())) {
+                targetFacetData = facetData;
+                return false;
+            }
+        });
+        return reduce(targetFacetData, function (result, data, key) {
+            result[key] = data.count;
+            return result;
+        }, {});
+    },
+    /**
+     * Scope selection handler
+     * @param  {string} key the scope key
+     */
+    _scopeSelectionHandler: function _scopeSelectionHandler(key) {
+        this.props.action.updateProperties({
+            scope: key
+        });
+    },
+    /**
+     * Facet selection handler
+     * @param  {string} key the facet key
+     */
+    _facetSelectionHandler: function _facetSelectionHandler(key, value) {
+        var selectedFacets = assign({}, this.props.store.getSelectedFacets(), _defineProperty({}, key, {
+            key: value,
+            data: {
+                label: value,
+                count: 0
+            }
+        }));
+        this.props.action.updateProperties({
+            groupingKey: undefined,
+            selectedFacets: selectedFacets
+        });
+    },
+    /**
+     * Scroll reached bottom handler
+     */
+    _onScrollReachedBottom: function _onScrollReachedBottom() {
+        var _this = this;
+
+        if (!this.state.loading) {
+            this.setState({
+                loading: true
+            }, function () {
+                _this.props.action.search(true);
+            });
+        }
+    },
+    /**
+     * Render the whole component
+     * @return {HMTL}      the rendered component
+     */
+    render: function render() {
+        var _this = this;
+
+        // If there is no result, render the given empty component
+        if (this.props.totalCount === 0) {
+            return this._renderEmptyResults();
+        }
+        // Filter groups with no results
+        var resultsMap = omit(this.props.resultsMap, function (list) {
+            return list.length === 0;
+        });
+        // Get the count for each group
+        var groupCounts = this._getGroupCounts(this.props.resultsMap);
+        // Check if there is only one group left
+        if (keys(resultsMap).length === 1) {
+            var key = keys(resultsMap)[0];
+            var list = resultsMap[key];
+            var count = groupCounts[key].count;
+            return this._renderSingleGroup(list, key, count, true);
+        } else {
+            return React.createElement(
+                "div",
+                { "data-focus": "search-results" },
+                map(resultsMap, function (list, key) {
+                    var count = groupCounts[key];
+                    return _this._renderSingleGroup(list, key, count);
+                })
+            );
+        }
+    }
+};
+
+module.exports = builder(Results);
+
+},{"../../../../common/i18n/mixin":39,"../../../../list/selection":80,"./default-empty-component":330,"./group-wrapper":331,"lodash/collection/forEach":112,"lodash/collection/map":120,"lodash/collection/reduce":123,"lodash/lang/clone":248,"lodash/lang/isEqual":259,"lodash/object/assign":281,"lodash/object/keys":282,"lodash/object/omit":284}],334:[function(require,module,exports){
+"use strict";
+
+module.exports = {
+    component: require("./component")
+};
+
+},{"./component":332}],335:[function(require,module,exports){
 "use strict";
 
 module.exports = {
     advancedSearch: require("./advanced-search"),
     quickSearch: require("./quick-search"),
-    searchHeader: require("./search-header")
+    searchHeader: require("./search-header"),
+    common: require("./common")
 };
 
-},{"./advanced-search":284,"./quick-search":290,"./search-header":293}],290:[function(require,module,exports){
+},{"./advanced-search":328,"./common":334,"./quick-search":336,"./search-header":339}],336:[function(require,module,exports){
 // Dependencies
 
 "use strict";
 
-var assign = require("object-assign");
 var type = window.Focus.component.types;
 var builder = window.Focus.component.builder;
-var React = window.React;
 
 // Components
 
 var SearchBar = require("../../../search/search-bar").component;
+var Results = require("../common/component/results").component;
 
 // Mixins
 
-var ScrollInfoMixin = require("../common/scroll-info-mixin").mixin;
-var GroupByMixin = require("../common/group-by-mixin").mixin;
-var SearchMixin = require("../common/search-mixin").mixin;
+var referenceBehaviour = require("../../../common/form/mixin/reference-behaviour");
+var storeBehaviour = require("../../../common/mixin/store-behaviour");
+
+// Actions
+
+var actionBuilder = Focus.search.actionBuilder;
+
+// Stores
+
+var quickSearchStore = Focus.search.builtInStore.quickSearchStore;
 
 /**
  * General search mixin.
@@ -25891,175 +28558,183 @@ var SearchMixin = require("../common/search-mixin").mixin;
  * @type {Object}
  */
 var QuickSearchComponent = {
-    mixins: [ScrollInfoMixin, GroupByMixin, SearchMixin],
+    /**
+     * Component's mixins
+     * @type {Array}
+     */
+    mixins: [referenceBehaviour, storeBehaviour],
     /**
      * Tag name.
      */
     displayName: "quick-search",
     /**
-     * Component initialization
+     * Reference names to be fetched by the reference behaviour
+     * @type {Array}
      */
-    componentDidMount: function componentDidMount() {
-        this._registerListeners();
-    },
-
+    referenceNames: ["scopes"],
     /**
-     * Actions before component will unmount.
-     * @constructor
+     * Get the default props
+     * @return {object} the default props
      */
-    componentWillUnmount: function componentWillUnmount() {
-        this._unRegisterListeners();
-    },
     getDefaultProps: function getDefaultProps() {
         return {
-            isSelection: false,
-            idField: "id",
-            SearchBar: SearchBar,
-            groupMaxRows: 3
+            scopeSelectionHandler: this._scopeSelectionHandler,
+            store: quickSearchStore,
+            scopeFacetKey: "FCT_SCOPE",
+            lineComponentMapper: undefined,
+            lineOperationList: undefined,
+            groupComponent: undefined,
+            service: undefined,
+            action: undefined,
+            onLineClick: undefined,
+            groupMaxRows: undefined,
+            scrollParentSelector: undefined
         };
     },
     /**
-     * properties validation
+     * Prop validation
+     * @type {Object}
      */
     propTypes: {
-        lineMap: type("object"),
-        isSelection: type("bool"),
-        lineOperationList: type("array"),
-        idField: type("string"),
-        SearchBar: type("func"),
+        scopeSelectionHandler: type("function"),
+        store: type("object"),
+        scopeFacetKey: type("string"),
+        lineComponentMapper: type("function"),
+        groupComponent: type("object"),
+        service: type("object"),
+        action: type("object"),
+        onLineClick: type("function"),
         groupMaxRows: type("number")
     },
     /**
-     * Initial state of the list component.
-     * @returns {{list: (*|Array)}} the state
+     * Register the store listeners
      */
-    getInitialState: function getInitialState() {
-        return {
-            isAllSelected: false,
-            selected: []
-        };
-    },
-    getCriteria: function getCriteria() {
-        if (!this.refs.searchBar) {
-            return {};
-        }
-        return this.refs.searchBar.getValue();
-    },
-    /**
-     * Register a listener on the store.
-     * @private
-     */
-    _registerListeners: function _registerListeners() {
-        if (this.props.store) {
-            this.props.store.addSearchChangeListener(this.onSearchChange);
-        } else {
-            console.warn("Search result has no store to listen to. Please provide one as a \"store\" property.");
-        }
+    componentWillMount: function componentWillMount() {
+        var _this = this;
+
+        this._action = this.props.action || actionBuilder({
+            service: this.props.service,
+            identifier: this.props.store.identifier,
+            getSearchOptions: function () {
+                return _this.props.store.getValue.call(_this.props.store);
+            } // Binding the store in the function call
+        });
+        this._loadReference();
+        this.props.store.addQueryChangeListener(this._triggerSearch);
+        this.props.store.addScopeChangeListener(this._triggerSearch);
+        this.props.store.addResultsChangeListener(this._onResultsChange);
     },
     /**
-     * Unregister a listener on the store.
-     * @private
+     * Unregister the store listeners
      */
-    _unRegisterListeners: function _unRegisterListeners() {
-        if (this.props.store) {
-            this.props.store.removeSearchChangeListener(this.onSearchChange);
-        }
+    componentWillUnmount: function componentWillUnmount() {
+        this.props.store.removeQueryChangeListener(this._triggerSearch);
+        this.props.store.removeScopeChangeListener(this._triggerSearch);
+        this.props.store.removeResultsChangeListener(this._onResultsChange);
+    },
+    _triggerSearch: function _triggerSearch() {
+        this._action.search();
     },
     /**
-     * Handler when store emit a change event.
+     * Results change handler
      */
-    onSearchChange: function onSearchChange() {
-        this.setState(assign({ isLoadingSearch: false }, this.getScrollState()));
-    },
-    /**
-     * Action on item selection.
-     * @param {object} item selected
-     */
-    _selectItem: function _selectItem(item) {
-        var selected = this.state.selected;
-        var index = selected.indexOf(item);
-        if (index) {
-            selected.splice(index, index);
-        } else {
-            selected.push(item);
-        }
-        this.setState({ selected: selected });
+    _onResultsChange: function _onResultsChange() {
+        var resultsMap = this.props.store.getResults();
+        var facets = this.props.store.getFacets();
+        var totalCount = this.props.store.getTotalCount();
+        this.setState({ resultsMap: resultsMap, facets: facets, totalCount: totalCount });
     },
     /**
      * Action on line click.
      * @param {object} item  the item clicked
      */
-    _lineClick: function _lineClick(item) {
+    _lineClickHandler: function _lineClickHandler(item) {
         if (this.props.onLineClick) {
             this.props.onLineClick(item);
         }
     },
-    _prepareSearch: function _prepareSearch(searchValues) {
-        var _this = this;
-
-        clearTimeout(this._searchTimeout);
-        this._searchTimeout = setTimeout(function () {
-            _this.setState(assign({ isLoadingSearch: true }, searchValues, _this.getNoFetchState()), _this.search);
-        }, 500);
-    },
     /**
-     * return a SearchBar
-     * @returns {XML} the component
+     * redner the SearchBar
+     * @returns {HTML} the rendered component
      */
-    getSearchBarComponent: function getSearchBarComponent() {
-        return React.createElement(this.props.SearchBar, {
+    _renderSearchBar: function _renderSearchBar() {
+        return React.createElement(SearchBar, {
             "data-focus": "search-bar",
-            handleChange: this._prepareSearch,
             ref: "searchBar",
-            scope: this.props.scope,
-            scopes: this.props.scopeList,
-            loading: this.state.isLoadingSearch
+            scopes: this.state.reference.scopes,
+            loading: this.state.isLoading,
+            action: this._action,
+            store: this.props.store
         });
     },
+    /**
+     * redner the results
+     * @returns {HTML} the rendered component
+     */
+    _renderResults: function _renderResults() {
+        return React.createElement(Results, {
+            resultsMap: this.state.resultsMap,
+            totalCount: this.state.totalCount,
+            resultsFacets: this.state.facets,
+            groupComponent: this.props.groupComponent,
+            lineComponentMapper: this.props.lineComponentMapper,
+            isSelection: false,
+            lineClickHandler: this._lineClickHandler,
+            lineOperationList: this.props.lineOperationList,
+            groupingKey: this.props.scopeFacetKey,
+            initialRowsCount: this.props.groupMaxRows,
+            action: this._action,
+            scrollParentSelector: this.props.scrollParentSelector
+        });
+    },
+    /**
+     * Render the component
+     * @return {HTML} the rendered component
+     */
     render: function render() {
         return React.createElement(
             "div",
             { className: "search-panel", "data-focus": "quick-search" },
-            this.getSearchBarComponent(),
-            this.getResultListComponent()
+            this._renderSearchBar(),
+            this._renderResults()
         );
     }
 };
 
 module.exports = builder(QuickSearchComponent);
 
-},{"../../../search/search-bar":300,"../common/group-by-mixin":285,"../common/scroll-info-mixin":286,"../common/search-mixin":287,"object-assign":274}],291:[function(require,module,exports){
+},{"../../../common/form/mixin/reference-behaviour":37,"../../../common/mixin/store-behaviour":60,"../../../search/search-bar":346,"../common/component/results":333}],337:[function(require,module,exports){
 "use strict";
 
-var DEFAULT_TIMEOUT = 1000; // 1s
+var DEFAULT_TIMEOUT = 500; // 0.5s
 var currentCall = {};
-function actionWrapper(searchAction, context) {
-  return function () {
-    context = context || this || {};
-    var args = arguments;
-    if (currentCall) {
-      //Cancel previous search action.
-      window.clearTimeout(currentCall.timeout);
-      if (currentCall.action && currentCall.action.cancel) {
-        currentCall.action.cancel();
-      }
-    }
-    currentCall.timeout = window.setTimeout(function () {
-      currentCall.action = searchAction.apply(context, args);
-      if (currentCall.action && currentCall.action.cancel) {
-        currentCall.action.then(function () {
-          currentCall = {};
-        });
-      } else {
-        currentCall = {};
-      }
-    }, DEFAULT_TIMEOUT);
-    return currentCall.timeout;
-  };
+function actionWrapper(searchAction, context, timeout) {
+    return function () {
+        context = context || this || {};
+        var args = arguments;
+        if (currentCall) {
+            //Cancel previous search action.
+            window.clearTimeout(currentCall.timeout);
+            if (currentCall.action && currentCall.action.cancel) {
+                currentCall.action.cancel();
+            }
+        }
+        currentCall.timeout = window.setTimeout(function () {
+            currentCall.action = searchAction.apply(context, args);
+            if (currentCall.action && currentCall.action.cancel) {
+                currentCall.action.then(function () {
+                    currentCall = {};
+                });
+            } else {
+                currentCall = {};
+            }
+        }, timeout !== undefined ? timeout : DEFAULT_TIMEOUT);
+        return currentCall.timeout;
+    };
 }
 module.exports = actionWrapper;
 
-},{}],292:[function(require,module,exports){
+},{}],338:[function(require,module,exports){
 // Components
 "use strict";
 
@@ -26083,7 +28758,7 @@ module.exports = React.createClass({
   }
 });
 
-},{"./mixin":294}],293:[function(require,module,exports){
+},{"./mixin":340}],339:[function(require,module,exports){
 "use strict";
 
 module.exports = {
@@ -26092,54 +28767,77 @@ module.exports = {
   summary: require("./summary")
 };
 
-},{"./action-wrapper":291,"./cartridge":292,"./summary":295}],294:[function(require,module,exports){
-
+},{"./action-wrapper":337,"./cartridge":338,"./summary":341}],340:[function(require,module,exports){
 // Mixins
+
 "use strict";
 
 var i18nMixin = require("../../../../common/i18n").mixin;
-var searchBehaviour = require("../../common/search-mixin").mixin;
-var searchWrappedAction = require("../action-wrapper");
-var SearchBar = require("../../../../search/search-bar").component;
 var referenceBehaviour = require("../../../../common/form/mixin/reference-behaviour");
 var storeBehaviour = require("../../../../common/mixin/store-behaviour");
-var React = window.React;
+
+// Components
+
+var SearchBar = require("../../../../search/search-bar").component;
+
+// Actions
+
+var actionBuilder = Focus.search.actionBuilder;
+
+// Store
+
+var advancedSearchStore = Focus.search.builtInStore.advancedSearchStore;
 
 module.exports = {
-  mixins: [i18nMixin, referenceBehaviour, storeBehaviour, searchBehaviour],
-  getDefaultProps: function getDefaultProps() {
-    return {
-      hasScopes: true
-    };
-  },
-  getInitialState: function getInitialState() {
-    return {
-      isLoading: false
-    };
-  },
-  _runSearch: function _runSearch() {
-    var criteria = this.refs.searchBar.getValue();
-    return this.props.searchAction(this._buildSearchCriteria(criteria.scope, criteria.query));
-  },
-  _SearchBarComponent: function _SearchBarComponent() {
-    return React.createElement(SearchBar, {
-      ref: "searchBar",
-      value: this.props.query,
-      scope: this.props.scope,
-      scopes: this.state.reference.scopes,
-      loading: this.state.isLoadingSearch,
-      handleChange: this._wrappedSearch,
-      referenceNames: this.props.referenceNames,
-      hasScopes: this.props.hasScopes
-    });
-  },
-  componentWillMount: function componentWillMount() {
-    this._wrappedSearch = searchWrappedAction(this._runSearch, this);
-    this._loadReference();
-  }
+    mixins: [i18nMixin, referenceBehaviour, storeBehaviour],
+    referenceNames: ["scopes"],
+    getDefaultProps: function getDefaultProps() {
+        return {
+            service: undefined,
+            store: advancedSearchStore,
+            onSearchCriteriaChange: undefined
+        };
+    },
+    getInitialState: function getInitialState() {
+        return {
+            isLoading: false
+        };
+    },
+    componentWillMount: function componentWillMount() {
+        var _this = this;
+
+        this._loadReference();
+        this._action = this.props.action || actionBuilder({
+            service: this.props.service,
+            identifier: this.props.store.identifier,
+            getSearchOptions: function () {
+                return _this.props.store.getValue.call(_this.props.store);
+            } // Binding the store in the function call
+        });
+        advancedSearchStore.addQueryChangeListener(this._onSearchCriteriaChange);
+        advancedSearchStore.addScopeChangeListener(this._onSearchCriteriaChange);
+    },
+    componentWillUnmount: function componentWillUnmount() {
+        advancedSearchStore.removeQueryChangeListener(this._onSearchCriteriaChange);
+        advancedSearchStore.removeScopeChangeListener(this._onSearchCriteriaChange);
+    },
+    _onSearchCriteriaChange: function _onSearchCriteriaChange() {
+        if (this.props.onSearchCriteriaChange) {
+            this.props.onSearchCriteriaChange();
+        }
+    },
+    _SearchBarComponent: function _SearchBarComponent() {
+        return React.createElement(SearchBar, {
+            ref: "searchBar",
+            scopes: this.state.reference.scopes,
+            loading: this.state.isLoading,
+            action: this._action,
+            store: advancedSearchStore
+        });
+    }
 };
 
-},{"../../../../common/form/mixin/reference-behaviour":33,"../../../../common/i18n":34,"../../../../common/mixin/store-behaviour":55,"../../../../search/search-bar":300,"../../common/search-mixin":287,"../action-wrapper":291}],295:[function(require,module,exports){
+},{"../../../../common/form/mixin/reference-behaviour":37,"../../../../common/i18n":38,"../../../../common/mixin/store-behaviour":60,"../../../../search/search-bar":346}],341:[function(require,module,exports){
 // Components
 "use strict";
 
@@ -26154,7 +28852,7 @@ module.exports = React.createClass({
     }
 });
 
-},{"./mixin":294}],296:[function(require,module,exports){
+},{"./mixin":340}],342:[function(require,module,exports){
 // Dependencies
 
 "use strict";
@@ -26165,6 +28863,11 @@ var ArgumentInvalidException = window.Focus.exception.ArgumentInvalidException;
 var numberFormatter = Focus.definition.formatter.number;
 
 var FacetData = {
+    getDefaultProps: function getDefaultProps() {
+        return {
+            type: "text"
+        };
+    },
     /**
      * Display name.
      */
@@ -26201,7 +28904,7 @@ var FacetData = {
 
 module.exports = builder(FacetData);
 
-},{}],297:[function(require,module,exports){
+},{}],343:[function(require,module,exports){
 // Dependencies
 
 "use strict";
@@ -26358,7 +29061,7 @@ var Facet = {
 
 module.exports = builder(Facet);
 
-},{"../../common/i18n/mixin":35,"./facet-data":296,"lodash/object/keys":261}],298:[function(require,module,exports){
+},{"../../common/i18n/mixin":39,"./facet-data":342,"lodash/object/keys":282}],344:[function(require,module,exports){
 "use strict";
 
 var _defineProperty = function (obj, key, value) { return Object.defineProperty(obj, key, { value: value, enumerable: true, configurable: true, writable: true }); };
@@ -26543,7 +29246,7 @@ var FacetBox = {
 
 module.exports = builder(FacetBox);
 
-},{"../../common/i18n/mixin":35,"../../common/img":37,"../../mixin/stylable":85,"./facet":297,"lodash/object/omit":263,"object-assign":274}],299:[function(require,module,exports){
+},{"../../common/i18n/mixin":39,"../../common/img":41,"../../mixin/stylable":91,"./facet":343,"lodash/object/omit":284,"object-assign":315}],345:[function(require,module,exports){
 "use strict";
 
 module.exports = {
@@ -26551,7 +29254,7 @@ module.exports = {
   searchBar: require("./search-bar")
 };
 
-},{"./facet-box":298,"./search-bar":300}],300:[function(require,module,exports){
+},{"./facet-box":344,"./search-bar":346}],346:[function(require,module,exports){
 // Dependencies
 
 "use strict";
@@ -26559,7 +29262,7 @@ module.exports = {
 var builder = window.Focus.component.builder;
 var type = window.Focus.component.types;
 var React = window.React;
-var words = require("lodash/string/words");
+var actionWrapper = require("../../page/search/search-header/action-wrapper");
 
 // Components
 
@@ -26580,18 +29283,19 @@ var SearchBar = {
     getDefaultProps: function getDefaultProps() {
         return {
             placeholder: "Enter your search here...",
-            value: "",
             scopes: [],
             minChar: 0,
             loading: false,
             helpTranslationPath: "search.bar.help",
-            hasScopes: true
+            hasScopes: true,
+            identifier: undefined,
+            store: undefined,
+            action: undefined
         };
     },
     propTypes: {
         placeholder: type("string"),
         value: type("string"),
-        scope: type(["string", "number"]),
         scopes: type("array"),
         minChar: type("number"),
         loading: type("bool"),
@@ -26600,65 +29304,69 @@ var SearchBar = {
     },
     getInitialState: function getInitialState() {
         return {
-            value: this.props.value,
-            scope: this.props.scope,
-            loading: this.props.loading
+            loading: this.props.loading,
+            scope: this.props.store.getScope(),
+            query: this.props.store.getQuery()
         };
-    },
-    componentWillReceiveProps: function componentWillReceiveProps(newProps) {
-        if (newProps && newProps.loading !== undefined) {
-            this.setState({ loading: newProps.loading, scope: newProps.scope });
-        }
     },
     componentDidMount: function componentDidMount() {
         React.findDOMNode(this.refs.query).focus();
     },
-    getValue: function getValue() {
-        if (this.props.hasScopes) {
-            return {
-                scope: this.refs.scope.getValue(),
-                query: React.findDOMNode(this.refs.query).value
-            };
-        } else {
-            return {
-                query: React.findDOMNode(this.refs.query).value
-            };
-        }
+    componentWillMount: function componentWillMount() {
+        this.props.store.addQueryChangeListener(this._onQueryChangeFromStore);
+        this.props.store.addScopeChangeListener(this._onScopeChangeFromStore);
+    },
+    componentWillUnmoun: function componentWillUnmoun() {
+        this.props.store.removeQueryChangeListener(this._onQueryChangeFromStore);
+        this.props.store.removeScopeChangeListener(this._onScopeChangeFromStore);
+    },
+    _onQueryChangeFromStore: function _onQueryChangeFromStore() {
+        this.setState({
+            query: this.props.store.getQuery()
+        });
+    },
+    _onScopeChangeFromStore: function _onScopeChangeFromStore() {
+        this.setState({
+            scope: this.props.store.getScope()
+        });
     },
     _getClassName: function _getClassName() {
         return "form-control";
     },
-    _handleChange: function _handleChange() {
-        if (this.props.handleChange) {
-            return this.props.handleChange(this.getValue());
-        }
-    },
-    _handleKeyUp: function _handleKeyUp(event) {
+    _broadcastQueryChange: function _broadcastQueryChange() {
         var _this = this;
 
-        this.setState({ value: event.target.value }, function () {
-            if (_this.state.value.length >= _this.props.minChar) {
-                if (_this.props.handleKeyUp) {
-                    _this.props.handleKeyUp(event);
-                }
-                _this._handleChange();
-            }
-        });
+        actionWrapper(function () {
+            _this.props.action.updateProperties({
+                query: React.findDOMNode(_this.refs.query).value
+            });
+        })();
     },
-    _handleChangeScope: function _handleChangeScope(event) {
+    _onInputChange: function _onInputChange(event) {
+        this.setState({ query: event.target.value });
+        if (event.target.value.length >= this.props.minChar) {
+            this._broadcastQueryChange();
+        }
+    },
+    _onScopeSelection: function _onScopeSelection(scope) {
         this._focusQuery();
-        //If query not empty
-        var query = this.getValue().query;
-        if (!query || 0 === query.length) {
-            return;
-        }
-        if (this.props.handleChangeScope) {
-            this.props.handleChangeScope(event);
-        }
-        this._handleChange();
+        this.props.action.updateProperties({
+            scope: scope,
+            selectedFacets: {},
+            groupingKey: undefined
+        });
+        this.setState({ scope: scope });
     },
-    _handleOnClickScope: function _handleOnClickScope() {
-        this.setState({ scope: this.refs.scope.getValue() }, this._handleChangeScope(event));
+    _handleInputKeyPress: function _handleInputKeyPress(event) {
+        var _this = this;
+
+        if (event.key === "Enter") {
+            actionWrapper(function () {
+                _this.props.action.updateProperties({
+                    query: React.findDOMNode(_this.refs.query).value
+                });
+            }, null, 0)();
+        }
     },
     _renderHelp: function _renderHelp() {
         return React.createElement(
@@ -26670,23 +29378,21 @@ var SearchBar = {
     _focusQuery: function _focusQuery() {
         React.findDOMNode(this.refs.query).focus();
     },
-    setStateFromSubComponent: function setStateFromSubComponent() {
-        return this.setState(this.getValue(), this._focusQuery);
-    },
     render: function render() {
         var loadingClassName = this.props.loading ? "sb-loading" : "";
+        var scopeClassName = this.props.hasScopes ? "withScopes" : "noScopes";
         return React.createElement(
             "div",
-            { className: "" + this._getStyleClassName(), "data-focus": "search-bar" },
+            { className: "" + this._getStyleClassName() + " " + scopeClassName, "data-focus": "search-bar" },
             this.props.hasScopes && React.createElement(
                 "div",
                 { className: "sb-scope-choice" },
-                React.createElement(Scope, { handleOnClick: this._handleOnClickScope, list: this.props.scopes, ref: "scope", value: this.state.scope })
+                React.createElement(Scope, { onScopeSelection: this._onScopeSelection, list: this.props.scopes, ref: "scope", value: this.state.scope })
             ),
             React.createElement(
                 "div",
                 { className: "sb-input-search" },
-                React.createElement("input", { autofocus: true, className: this._getClassName(), onChange: this._handleKeyUp, ref: "query", type: "search", placeholder: this.props.placeholder, value: this.state.value }),
+                React.createElement("input", { autofocus: true, className: this._getClassName(), onKeyPress: this._handleInputKeyPress, onChange: this._onInputChange, ref: "query", type: "search", placeholder: this.props.placeholder, value: this.state.query }),
                 React.createElement("div", { className: "sb-spinner three-quarters-loader " + loadingClassName })
             ),
             this._renderHelp()
@@ -26696,15 +29402,13 @@ var SearchBar = {
 
 module.exports = builder(SearchBar);
 
-},{"../../common/i18n/mixin":35,"../../mixin/stylable":85,"./scope":301,"lodash/string/words":269}],301:[function(require,module,exports){
+},{"../../common/i18n/mixin":39,"../../mixin/stylable":91,"../../page/search/search-header/action-wrapper":337,"./scope":347}],347:[function(require,module,exports){
 "use strict";
 
 var builder = window.Focus.component.builder;
 var type = window.Focus.component.types;
-var React = window.React;
-
-var find = require("lodash/collection/find");
 var uuid = require("uuid");
+var find = require("lodash/collection/find");
 
 var scopeMixin = {
     /**
@@ -26719,11 +29423,9 @@ var scopeMixin = {
         return {
             list: [],
             value: undefined,
-            isDeployed: false
+            isDeployed: false,
+            onScopeSelection: undefined
         };
-    },
-    componentWillReceiveProps: function componentWillReceiveProps(nextProps) {
-        this.setState({ value: nextProps.value });
     },
     /**
      * Scope property validation.
@@ -26739,53 +29441,35 @@ var scopeMixin = {
      */
     getInitialState: function getInitialState() {
         return {
-            isDeployed: this.props.isDeployed,
-            value: this.props.value
+            isDeployed: this.props.isDeployed
         };
-    },
-    /**
-     * Get the value of the scope.
-     */
-    getValue: function getValue() {
-        return this.state.value;
     },
     _getClassName: function _getClassName() {
         return "form-control " + (this.props.className ? this.props.className : "");
     },
-    /**
-     * Internal function which handles the click on the scope line element and call the real handleOnclick if it is defined.
-     * @param {object} event - Event trigger by the search.
-     */
-    _handleOnClick: function _handleOnClick(event) {
-        var val = event.target.hasAttribute("value") ? event.target.getAttribute("value") : undefined;
-        this.setState({
-            value: val,
-            isDeployed: false
-        }, this.props.handleOnClick);
+    _onScopeClickHandler: function _onScopeClickHandler(scope) {
+        var _this = this;
+
+        return function () {
+            _this.setState({
+                isDeployed: false
+            });
+            _this.props.onScopeSelection(scope.code);
+        };
     },
     /**
      * Handle the click on the scope element.
      */
-    handleDeployClick: function handleDeployClick() {
+    _handleDeployClick: function _handleDeployClick() {
         this.setState({
             isDeployed: !this.state.isDeployed
-        });
-    },
-    /**
-     * Get the current active scope.
-     */
-    getActiveScope: function getActiveScope() {
-        var _this = this;
-
-        return find(this.props.list, function (scope) {
-            return scope.code === _this.state.value;
         });
     },
     /**
      * Return the css class for the scope.
      */
     scopeStyle: function scopeStyle() {
-        var activeScope = this.getActiveScope();
+        var activeScope = find(this.props.list, { code: this.props.value });
         if (!activeScope) {
             return "sb-scope-none";
         }
@@ -26798,7 +29482,7 @@ var scopeMixin = {
             return;
         }
         var scopes = this.props.list.map(function (scope) {
-            var selectedValue = _this.state.value === scope.code ? "active" : "";
+            var selectedValue = _this.props.value === scope.code ? "active" : "";
             //Add defaut Style to scope if not define
             var scopeCss = scope.style;
             if (!scopeCss) {
@@ -26808,7 +29492,7 @@ var scopeMixin = {
 
             return React.createElement(
                 "li",
-                { key: scope.code || uuid.v4(), value: scope.code, className: "" + selectedValue + " " + scope.style, onClick: _this._handleOnClick },
+                { key: scope.code || uuid.v4(), className: "" + selectedValue + " " + scope.style, onClick: _this._onScopeClickHandler(scope) },
                 scope.label
             );
         });
@@ -26829,7 +29513,7 @@ var scopeMixin = {
             { className: this._getClassName(), "data-focus": "scope" },
             React.createElement(
                 "div",
-                { className: cssClass, onClick: this.handleDeployClick },
+                { className: cssClass, onClick: this._handleDeployClick },
                 React.createElement("div", { className: this.scopeStyle() })
             ),
             this.renderScopeList()
@@ -26839,5 +29523,5 @@ var scopeMixin = {
 
 module.exports = builder(scopeMixin);
 
-},{"lodash/collection/find":100,"uuid":276}]},{},[1])(1)
+},{"lodash/collection/find":107,"uuid":317}]},{},[1])(1)
 });
