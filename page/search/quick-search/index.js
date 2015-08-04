@@ -1,19 +1,25 @@
 // Dependencies
 
-let assign = require('object-assign');
 let type = require('focus').component.types;
 let builder = require('focus').component.builder;
-let React = require('react');
 
 // Components
 
-let SearchBar  = require('../../../search/search-bar').component;
+let SearchBar = require('../../../search/search-bar').component;
+let Results = require('../common/component/results').component;
 
 // Mixins
 
-let ScrollInfoMixin = require('../common/scroll-info-mixin').mixin;
-let GroupByMixin= require('../common/group-by-mixin').mixin;
-let SearchMixin = require('../common/search-mixin').mixin;
+let referenceBehaviour = require('../../../common/form/mixin/reference-behaviour');
+let storeBehaviour = require('../../../common/mixin/store-behaviour');
+
+// Actions
+
+let actionBuilder = Focus.search.actionBuilder;
+
+// Stores
+
+let quickSearchStore = Focus.search.builtInStore.quickSearchStore;
 
 /**
  * General search mixin.
@@ -21,143 +27,144 @@ let SearchMixin = require('../common/search-mixin').mixin;
  * @type {Object}
  */
 let QuickSearchComponent = {
-    mixins: [ScrollInfoMixin, GroupByMixin, SearchMixin],
+    /**
+     * Component's mixins
+     * @type {Array}
+     */
+    mixins: [referenceBehaviour, storeBehaviour],
     /**
      * Tag name.
      */
     displayName: 'quick-search',
     /**
-     * Component initialization
+     * Reference names to be fetched by the reference behaviour
+     * @type {Array}
      */
-    componentDidMount(){
-        this._registerListeners();
-    },
-
+    referenceNames: ['scopes'],
     /**
-     * Actions before component will unmount.
-     * @constructor
+     * Get the default props
+     * @return {object} the default props
      */
-    componentWillUnmount(){
-        this._unRegisterListeners();
-    },
-    getDefaultProps(){
+    getDefaultProps() {
         return {
-            isSelection: false,
-            idField: 'id',
-            SearchBar: SearchBar,
-            groupMaxRows: 3
+            scopeSelectionHandler: this._scopeSelectionHandler,
+            store: quickSearchStore,
+            scopeFacetKey: 'FCT_SCOPE',
+            lineComponentMapper: undefined,
+            lineOperationList: undefined,
+            groupComponent: undefined,
+            service: undefined,
+            action: undefined,
+            onLineClick: undefined,
+            groupMaxRows: undefined,
+            scrollParentSelector: undefined
         };
     },
     /**
-     * properties validation
+     * Prop validation
+     * @type {Object}
      */
     propTypes: {
-        lineMap: type('object'),
-        isSelection: type('bool'),
-        lineOperationList: type('array'),
-        idField: type('string'),
-        SearchBar: type('func'),
+        scopeSelectionHandler: type('function'),
+        store: type('object'),
+        scopeFacetKey: type('string'),
+        lineComponentMapper: type('function'),
+        groupComponent: type('object'),
+        service: type('object'),
+        action: type('object'),
+        onLineClick: type('function'),
         groupMaxRows: type('number')
     },
     /**
-     * Initial state of the list component.
-     * @returns {{list: (*|Array)}} the state
+     * Register the store listeners
      */
-    getInitialState() {
-        return {
-            isAllSelected: false,
-            selected: []
-        };
-    },
-    getCriteria() {
-      if(!this.refs.searchBar){
-        return {};
-      }
-      return this.refs.searchBar.getValue();
+    componentWillMount() {
+        this._action = this.props.action || actionBuilder({
+            service: this.props.service,
+            identifier: this.props.store.identifier,
+            getSearchOptions: () => {return this.props.store.getValue.call(this.props.store); } // Binding the store in the function call
+        });
+        this._loadReference();
+        this.props.store.addQueryChangeListener(this._triggerSearch);
+        this.props.store.addScopeChangeListener(this._triggerSearch);
+        this.props.store.addResultsChangeListener(this._onResultsChange);
     },
     /**
-     * Register a listener on the store.
-     * @private
+     * Unregister the store listeners
      */
-    _registerListeners(){
-        if(this.props.store){
-            this.props.store.addSearchChangeListener(this.onSearchChange);
-        } else {
-            console.warn('Search result has no store to listen to. Please provide one as a "store" property.');
-        }
+    componentWillUnmount() {
+        this.props.store.removeQueryChangeListener(this._triggerSearch);
+        this.props.store.removeScopeChangeListener(this._triggerSearch);
+        this.props.store.removeResultsChangeListener(this._onResultsChange);
+    },
+    _triggerSearch() {
+        this._action.search();
     },
     /**
-     * Unregister a listener on the store.
-     * @private
+     * Results change handler
      */
-    _unRegisterListeners(){
-        if(this.props.store){
-            this.props.store.removeSearchChangeListener(this.onSearchChange);
-        }
-    },
-    /**
-     * Handler when store emit a change event.
-     */
-    onSearchChange() {
-        this.setState(assign({isLoadingSearch: false}, this.getScrollState()));
-    },
-    /**
-     * Action on item selection.
-     * @param {object} item selected
-     */
-    _selectItem(item){
-        let selected = this.state.selected;
-        let index = selected.indexOf(item);
-        if(index){
-            selected.splice(index, index);
-        }else{
-            selected.push(item);
-        }
-        this.setState({selected});
+    _onResultsChange() {
+        let resultsMap = this.props.store.getResults();
+        let facets = this.props.store.getFacets();
+        let totalCount = this.props.store.getTotalCount();
+        this.setState({resultsMap, facets, totalCount});
     },
     /**
      * Action on line click.
      * @param {object} item  the item clicked
      */
-    _lineClick(item){
-        if(this.props.onLineClick){
+    _lineClickHandler(item) {
+        if (this.props.onLineClick) {
             this.props.onLineClick(item);
         }
     },
-    _prepareSearch(searchValues){
-        clearTimeout(this._searchTimeout);
-        this._searchTimeout = setTimeout(() => {
-            this.setState(
-                assign(
-                    {isLoadingSearch: true},
-                    searchValues,
-                    this.getNoFetchState()
-                ),
-                this.search
-            );
-        }, 500);
+    /**
+     * redner the SearchBar
+     * @returns {HTML} the rendered component
+     */
+    _renderSearchBar() {
+        return (
+            <SearchBar
+                data-focus='search-bar'
+                ref='searchBar'
+                scopes={this.state.reference.scopes}
+                loading={this.state.isLoading}
+                action={this._action}
+                store={this.props.store}
+                />
+        );
     },
     /**
-     * return a SearchBar
-     * @returns {XML} the component
+     * redner the results
+     * @returns {HTML} the rendered component
      */
-    getSearchBarComponent() {
+    _renderResults() {
         return (
-            <this.props.SearchBar
-                data-focus='search-bar'
-                handleChange={this._prepareSearch}
-                ref='searchBar'
-                scope={this.props.scope}
-                scopes={this.props.scopeList}
-                loading={this.state.isLoadingSearch}
+            <Results
+                resultsMap={this.state.resultsMap}
+                totalCount={this.state.totalCount}
+                resultsFacets={this.state.facets}
+                groupComponent={this.props.groupComponent}
+                lineComponentMapper={this.props.lineComponentMapper}
+                isSelection={false}
+                lineClickHandler={this._lineClickHandler}
+                lineOperationList={this.props.lineOperationList}
+                groupingKey={this.props.scopeFacetKey}
+                initialRowsCount={this.props.groupMaxRows}
+                action={this._action}
+                scrollParentSelector={this.props.scrollParentSelector}
             />
         );
     },
+    /**
+     * Render the component
+     * @return {HTML} the rendered component
+     */
     render() {
         return (
-            <div className="search-panel" data-focus="quick-search">
-                {this.getSearchBarComponent()}
-                {this.getResultListComponent()}
+            <div className='search-panel' data-focus='quick-search'>
+                {this._renderSearchBar()}
+                {this._renderResults()}
             </div>
         );
     }

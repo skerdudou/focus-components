@@ -3,7 +3,7 @@
 let builder = require('focus').component.builder;
 let type = require('focus').component.types;
 let React = require('react');
-let words = require('lodash/string/words');
+let actionWrapper = require('../../page/search/search-header/action-wrapper');
 
 // Components
 
@@ -24,18 +24,19 @@ let SearchBar = {
     getDefaultProps() {
         return {
             placeholder: 'Enter your search here...',
-            value: '',
             scopes: [],
             minChar: 0,
             loading: false,
             helpTranslationPath: 'search.bar.help',
-            hasScopes: true
+            hasScopes: true,
+            identifier: undefined,
+            store: undefined,
+            action: undefined
         };
     },
     propTypes: {
         placeholder: type('string'),
         value: type('string'),
-        scope: type(['string', 'number']),
         scopes: type('array'),
         minChar: type('number'),
         loading: type('bool'),
@@ -44,65 +45,65 @@ let SearchBar = {
     },
     getInitialState() {
         return {
-            value: this.props.value,
-            scope: this.props.scope,
-            loading: this.props.loading
+            loading: this.props.loading,
+            scope: this.props.store.getScope(),
+            query: this.props.store.getQuery()
         };
-    },
-    componentWillReceiveProps(newProps) {
-        if (newProps && newProps.loading !== undefined) {
-            this.setState({loading: newProps.loading, scope: newProps.scope});
-        }
     },
     componentDidMount() {
         React.findDOMNode(this.refs.query).focus();
     },
-    getValue() {
-        if (this.props.hasScopes) {
-            return {
-                scope: this.refs.scope.getValue(),
-                query: React.findDOMNode(this.refs.query).value
-            }
-        } else {
-            return {
-                query: React.findDOMNode(this.refs.query).value
-            }
-        }
+    componentWillMount() {
+        this.props.store.addQueryChangeListener(this._onQueryChangeFromStore);
+        this.props.store.addScopeChangeListener(this._onScopeChangeFromStore);
+    },
+    componentWillUnmoun() {
+        this.props.store.removeQueryChangeListener(this._onQueryChangeFromStore);
+        this.props.store.removeScopeChangeListener(this._onScopeChangeFromStore);
+    },
+    _onQueryChangeFromStore() {
+        this.setState({
+            query: this.props.store.getQuery()
+        });
+    },
+    _onScopeChangeFromStore() {
+        this.setState({
+            scope: this.props.store.getScope()
+        });
     },
     _getClassName() {
         return `form-control`;
     },
-    _handleChange() {
-        if (this.props.handleChange) {
-            return this.props.handleChange(this.getValue());
+    _broadcastQueryChange() {
+        actionWrapper(() => {
+            this.props.action.updateProperties({
+                query: React.findDOMNode(this.refs.query).value
+            });
+        })();
+    },
+    _onInputChange(event) {
+        this.setState({query: event.target.value});
+        if (event.target.value.length >= this.props.minChar) {
+            this._broadcastQueryChange();
         }
     },
-    _handleKeyUp(event) {
-
-          this.setState({value: event.target.value}, ()=>{
-            if (this.state.value.length >= this.props.minChar) {
-              if (this.props.handleKeyUp) {
-                  this.props.handleKeyUp(event);
-              }
-              this._handleChange();
-            }
-          });
-
-    },
-    _handleChangeScope(event) {
+    _onScopeSelection(scope) {
         this._focusQuery();
-        //If query not empty
-        let query = this.getValue().query;
-        if (!query || 0 === query.length) {
-            return;
-        }
-        if (this.props.handleChangeScope) {
-            this.props.handleChangeScope(event);
-        }
-        this._handleChange();
+        this.props.action.updateProperties({
+            scope,
+            selectedFacets: {},
+            groupingKey: undefined
+        });
+        this.setState({scope});
     },
-    _handleOnClickScope() {
-        this.setState({scope: this.refs.scope.getValue()}, this._handleChangeScope(event));
+    _handleInputKeyPress(event) {
+        if (event.key === 'Enter') {
+            actionWrapper(() => {
+                this.props.action.updateProperties({
+                    query: React.findDOMNode(this.refs.query).value
+                });
+            }, null, 0)();
+        }
     },
     _renderHelp() {
         return (
@@ -112,20 +113,18 @@ let SearchBar = {
     _focusQuery() {
         React.findDOMNode(this.refs.query).focus();
     },
-    setStateFromSubComponent() {
-        return this.setState(this.getValue(), this._focusQuery);
-    },
     render() {
         let loadingClassName = this.props.loading ? 'sb-loading' : '';
+        let scopeClassName = this.props.hasScopes ? 'withScopes' : 'noScopes';
         return (
-            <div className={`${this._getStyleClassName()}`} data-focus='search-bar'>
+            <div className={`${this._getStyleClassName()} ${scopeClassName}`} data-focus='search-bar'>
                 {this.props.hasScopes &&
                     <div className='sb-scope-choice'>
-                        <Scope handleOnClick={this._handleOnClickScope} list={this.props.scopes} ref='scope' value={this.state.scope}/>
+                        <Scope onScopeSelection={this._onScopeSelection} list={this.props.scopes} ref='scope' value={this.state.scope}/>
                     </div>
                 }
                 <div className='sb-input-search'>
-                    <input autofocus className={this._getClassName()} onChange={this._handleKeyUp} ref='query'  type='search' placeholder={this.props.placeholder} value={this.state.value} />
+                    <input autofocus className={this._getClassName()} onKeyPress={this._handleInputKeyPress} onChange={this._onInputChange} ref='query' type='search' placeholder={this.props.placeholder} value={this.state.query}/>
                     <div className={`sb-spinner three-quarters-loader ${loadingClassName}`}></div>
                 </div>
                 {this._renderHelp()}
