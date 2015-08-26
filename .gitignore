@@ -1,8 +1,8 @@
 # Logs
 logs
 *.log
-exacd .mple/focus-components.js
-example/focus-components.css
+dist
+
 .idea
 
 
