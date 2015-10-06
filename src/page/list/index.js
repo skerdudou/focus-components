@@ -5,8 +5,8 @@
 //- be paginated
 //- be displayed in any list container.
 let {camelCase, capitalize} = require('lodash/string');
-let {types, builder} = require('focus').component;
-let actionBuilder = require('focus').list.actionBuilder;
+let {types, builder} = require('focus-core').component;
+let actionBuilder = require('focus-core').list.actionBuilder;
 let type = types;
 let assign = require('object-assign');
 
@@ -86,7 +86,7 @@ let listPageMixin = {
         let {props, state} = this;
         let {dataList, totalCount} = state;
         dataList = dataList || [];
-        return assign(props, state, {
+        return assign({}, props, state, {
             data: dataList,
             fetchNextPage: this._action.load,
             hasMoreData: dataList.length < totalCount

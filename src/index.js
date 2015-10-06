@@ -1,6 +1,7 @@
 //Generator http://patorjk.com/software/taag/#p=display&h=1&f=Banner4&t=Focus-COMPONENTS
 const infos = require('../package.json');
-
+import './style';
+import components from './components';
 /**
 * Display information data for Focus-COMPONENTS
 */
@@ -21,7 +22,6 @@ const infosFn = function infos(){
         `
     );
 };
-
 module.exports = {
     VERSION: infos.version,
     AUTHORS: infos.author,
@@ -37,12 +37,12 @@ module.exports = {
         console.log(`repository: ${infos.repository.url}`);
         console.log(`issues: ${infos.bugs.url}`);
     },
-    showcase: require('./showcase'),
     common: require('./common'),
     list: require('./list'),
     search: require('./search'),
     page: require('./page'),
     message: require('./message'),
     application: require('./application'),
-    infos: infosFn
+    infos: infosFn,
+    components
 };

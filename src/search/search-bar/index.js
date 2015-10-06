@@ -1,7 +1,9 @@
 // Dependencies
-const builder = require('focus').component.builder;
-const type = require('focus').component.types;
+const builder = require('focus-core').component.builder;
+const type = require('focus-core').component.types;
 const React = require('react');
+const ReactDOM = require('react-dom');
+
 const actionWrapper = require('../../page/search/search-header/action-wrapper');
 
 // Components
@@ -152,7 +154,7 @@ const SearchBar = {
      * Focus the query input field
      */
     _focusQuery() {
-        React.findDOMNode(this.refs.query).focus();
+        ReactDOM.findDOMNode(this.refs.query).focus();
     },
     /**
     * Render the component.

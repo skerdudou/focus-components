@@ -1,7 +1,8 @@
 /* globals Awesomplete */
-
+const React = require('react');
+const ReactDOM = require('react-dom');
 // Dependencies
-let Focus = require('focus');
+const Focus = require('focus-core');
 let {builder, types} = Focus.component;
 let find = require('lodash/collection/find');
 const InputText = require('../input/text').component;
@@ -29,11 +30,12 @@ let Autocomplete = {
      */
     componentDidMount() {
         let {inputText: input} = this.refs.input.refs;
-        let {pickList} = this.props;
-        this._awesomeplete = new Awesomplete(React.findDOMNode(input), {
+        let {code, codeResolver, pickList} = this.props;
+        this._awesomeplete = new Awesomplete(ReactDOM.findDOMNode(input), {
             list: this._extractListFromData(pickList)
         });
         this._awesomeplete.input.addEventListener('awesomplete-select', event => this._selectionHandler(event.text));
+        this._resolveValueFromPicklistOrCodeResolver(code, pickList);
     },
     /**
      * Default props.
@@ -52,12 +54,13 @@ let Autocomplete = {
      * @type {Object}
      */
     propTypes: {
+        allowUnmatchedValue: types('bool'), // restrict user input to values of the list, or allow freestyle
         code: types('string'), // the field code value
         inputChangeHandler: types('func'), // callback when input changed
+        onInputBlur: types('func'),
         pickList: types('array'), // list of values, looking like [{code: '', value: ''}, {code: '', value: ''}, ...]
         selectionHandler: types('func'), // selection callback
-        timeoutDuration: types('number'), // the throttle duration of the input rate
-        allowUnmatchedValue: types('bool') // restrict user input to values of the list, or allow freestyle
+        timeoutDuration: types('number') // the throttle duration of the input rate
     },
     /**
      * Initial state.
@@ -75,13 +78,26 @@ let Autocomplete = {
      * Update the pick list, and try to resolve the new value.
      * @param  {Object} nextProps new props
      */
-    componentWillReceiveProps(nextProps) {
-        let {pickList, code} = nextProps;
+    componentWillReceiveProps({pickList, code}) {
         if (code !== this.props.code) {
-            const value = this._getValueFromCode(code, pickList);
-            this.setState({value});
+            this._resolveValueFromPicklistOrCodeResolver(code, pickList);
         }
         this._awesomeplete._list = this._extractListFromData(pickList);
+    },
+    _resolveValueFromPicklistOrCodeResolver(code, pickList) {
+        const {codeResolver} = this.props;
+        const value = this._getValueFromCode(code, pickList);
+        if ('' !== value) {
+            this.setState({value}); // eslint-disable-line
+        } else if (codeResolver) {
+            codeResolver(code).then(resolvedValue => {
+                if ('' !== resolvedValue) {
+                    this.setState({value: resolvedValue}, () => {
+                        this.props.inputChangeHandler(resolvedValue);
+                    }); // eslint-disable-line
+                }
+            });
+        }
     },
     /**
      * Selection handler.
@@ -135,7 +151,7 @@ let Autocomplete = {
         const {value} = this.state;
         const {allowUnmatchedValue} = this.props;
         const computedValue = this._getCodeFromValue(value);
-        return computedValue ? computedValue : allowUnmatchedValue ? value : undefined;
+        return computedValue ? computedValue : allowUnmatchedValue ? value : this.props.code;
     },
     /**
      * On input blur.
@@ -143,7 +159,7 @@ let Autocomplete = {
      */
     _onInputBlur() {
         const {value} = this.state;
-        const {allowUnmatchedValue, pickList, selectionHandler} = this.props;
+        const {allowUnmatchedValue, onInputBlur, pickList, selectionHandler} = this.props;
         const selectedPick = find(pickList, {value});
         const code = this._getCodeFromValue(value);
         if (selectedPick && !this._isSelecting && selectionHandler) {
@@ -151,6 +167,9 @@ let Autocomplete = {
         }
         if (!code && !allowUnmatchedValue && !this._isSelecting) {
             this.setState({value: ''});
+        }
+        if (onInputBlur) {
+            onInputBlur();
         }
         this._isSelecting = false;
     },
@@ -177,8 +196,8 @@ let Autocomplete = {
      * @return {HTML} rendered element
      */
     render() {
-        let {value} = this.state;
-        let {_onInputBlur, _onInputChange} = this;
+        const {value} = this.state;
+        const {_onInputBlur, _onInputChange} = this;
         return (
             <div data-focus='autocomplete'>
                 <InputText onBlur={_onInputBlur} onChange={_onInputChange} ref='input' value={value}/>

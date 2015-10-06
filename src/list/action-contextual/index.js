@@ -1,6 +1,6 @@
 // Dependencies
 
-const {builder} = require('focus').component;
+const {builder} = require('focus-core').component;
 const {reduce} = require('lodash/collection');
 
 // Components

@@ -1,7 +1,7 @@
 
 let i18nMixin = require('../../i18n').mixin;
-let validate = require('focus').definition.validator.validate;
-let {isNull, isUndefined} = require('lodash/lang');
+let validate = require('focus-core').definition.validator.validate;
+let {isNull, isUndefined, isFunction} = require('lodash/lang');
 let validationMixin ={
     mixins: [i18nMixin],
     /** @inheritdoc */
@@ -41,20 +41,25 @@ let validationMixin ={
                     validator
                 )
             );
-            if(true !== validStat){
+            if(true !== validStat) {
                 validStat = this.i18n(validStat);
             }
             return validStat;
         }
         return true;
     },
+    _customValidate({validate: componentValidation}) {
+        const {isValid, message} = componentValidation();
+        return isValid ? true : this.i18n(message);
+    },
     /**
     * Validate the field.
     * @return {object} - undefined if valid, {name: "errors"} if not valid.
     */
-    validate: function validateField() {
-        let validationStatus = this.validateInput();
-        if(true !== validationStatus){
+    validate() {
+        const shouldComponentHandleValidation = this.refs && this.refs.input && isFunction(this.refs.input.validate);
+        let validationStatus = shouldComponentHandleValidation ? this._customValidate(this.refs.input) : this.validateInput();
+        if(true !== validationStatus) {
             this.setError(validationStatus);
             return validationStatus;
         }

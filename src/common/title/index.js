@@ -1,6 +1,6 @@
 // Dependencies
-const builder = require('focus').component.builder;
-const type = require('focus').component.types;
+const builder = require('focus-core').component.builder;
+const type = require('focus-core').component.types;
 const {uniqueId} = require('lodash/utility');
 
 

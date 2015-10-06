@@ -10,7 +10,8 @@ const GOOGLE_MATERIAL_JS = 'https://storage.googleapis.com/code.getmdl.io/1.0.4/
 const AWESOMPLETE_JS = 'https://rawgit.com/LeaVerou/awesomplete/gh-pages/awesomplete.js',
     AWESOMPLETE_CSS = 'https://rawgit.com/LeaVerou/awesomplete/gh-pages/awesomplete.css';
 //React
-const REACT_JS = 'https://fb.me/react-0.13.3.js',
+const REACT_JS = 'https://fb.me/react-with-addons-0.14.0-rc1.js',
+REACT_DOM_JS = 'https://cdnjs.cloudflare.com/ajax/libs/react/0.14.0-rc1/react-dom.js',
 BABEL_TRANSFORMER = 'https://cdnjs.cloudflare.com/ajax/libs/babel-core/5.6.15/browser.js';
 //Lodash
 const LODASH = 'https://cdnjs.cloudflare.com/ajax/libs/lodash.js/3.9.3/lodash.js';
@@ -34,16 +35,18 @@ const FOCUS_INIT = '/js/initFocus.js';
  */
 function loadJS(){
 
-    function focusPromise(){return loadScript(FOCUS_JS).then(()=>{return loadScript(FOCUS_COMPONENTS_JS); })}
+    function focusPromise(){ return loadScript(FOCUS_COMPONENTS_JS); }
+
     return Promise.all([
         loadScript(JQUERY),
-        loadScript(REACT_JS),
+        // loadScript(REACT_JS),
         loadScript(AWESOMPLETE_JS),
         loadScript(LODASH),
         loadScript(BABEL_TRANSFORMER)
     ])
     .then(()=>{
         return Promise.all([
+            // loadScript(REACT_DOM_JS),
             loadScript(GOOGLE_MATERIAL_JS),
             loadScript(BACKBONE),
             loadScript(I18N),
@@ -53,7 +56,6 @@ function loadJS(){
         ]);
     })
     .then(()=>{return focusPromise(); })
-    .then(()=>{return loadScript(FOCUS_INIT); });
 }
 /**
  * Load all CSS dependencies.
@@ -73,7 +75,7 @@ function loadAssets(){
     return Promise.all([loadJS(), loadCSS()]).then((s)=>{
         console.info('All style and scripts loaded', s);
     }, (err)=>{
-        console.error('A problem occurs on the loadin of one or sevral scripts of style files.', err);
+        console.error('A problem occured while loading one or several style files scripts.', err);
     });
 }
 

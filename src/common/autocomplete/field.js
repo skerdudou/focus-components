@@ -1,18 +1,18 @@
 // Dependencies
-
-let builder = Focus.component.builder;
-let types = Focus.component.types;
-let find = require('lodash/collection/find');
+const React = require('react');
+const builder = require('focus-core').component.builder;
+const types = require('focus-core').component.types;
+const find = require('lodash/collection/find');
 
 // Components
 
-let Autocomplete = require('./awesomplete').component;
+const Autocomplete = require('./awesomplete').component;
 
 /**
  * Autocomplete for component
  * @type {Object}
  */
-let AutocompleteFor = {
+const AutocompleteFor = {
     /**
      * Default props
      * @return {Object} default props
@@ -31,12 +31,13 @@ let AutocompleteFor = {
     propTypes: {
         AutocompleteComp: types('func'),
         allowUnmatchedValue: types('bool'),
-        value: types('string'),
         codeResolver: types('func'),
         isEdit: types('bool'),
+        onInputBlur: types('func'),
         pickList: types('array'),
+        searcher: types('func'),
         selectionHandler: types('func'),
-        searcher: types('func')
+        value: types('string')
     },
     /**
      * Get initial state
@@ -50,8 +51,8 @@ let AutocompleteFor = {
      * Component will mount, load the list
      */
     componentWillMount() {
-        const {value, codeResolver} = this.props;
-        if (value && codeResolver) {
+        const {isEdit, value, codeResolver} = this.props;
+        if (!isEdit && value && codeResolver) { // Resolve the code if in consult
             codeResolver(value).then(resolvedCode => this.setState({value: resolvedCode}));
         } else {
             this._doLoad();
@@ -78,20 +79,22 @@ let AutocompleteFor = {
      */
     getValue() {
         let {autocomplete} = this.refs;
-        return autocomplete.getValue();
+        return autocomplete ? autocomplete.getValue() : this.state.value;
     },
     /**
      * Render the edit mode
      * @return {HTML} rendered element
      */
     _renderEdit() {
-        let {AutocompleteComp, allowUnmatchedValue, selectionHandler, value: code} = this.props;
-        let {pickList, value} = this.state;
+        let {AutocompleteComp, allowUnmatchedValue, codeResolver, onInputBlur, selectionHandler, value: code} = this.props;
+        let {pickList} = this.state;
         return (
             <AutocompleteComp
                 allowUnmatchedValue={allowUnmatchedValue}
                 code={code}
+                codeResolver={codeResolver}
                 inputChangeHandler={this._doLoad}
+                onInputBlur={onInputBlur}
                 pickList={pickList}
                 ref='autocomplete'
                 selectionHandler={selectionHandler}

@@ -1,16 +1,16 @@
 // Dependencies
 
 const React = require('react');
-const type = require('focus').component.types;
+const type = require('focus-core').component.types;
 const find = require('lodash/collection/find');
 const result = require('lodash/object/result');
 const assign = require('object-assign');
 // Components
 
 const Autocomplete = require('../../autocomplete/field').component;
-const InputText = require('../../input/text').component;
+const InputText = require('../../../components/input/text');
 const DisplayText = require('../../display/text').component;
-const SelectClassic = require('../../select/classic').component;
+const SelectClassic = require('../../../components/input/select');
 const Label = require('../../label').component;
 
 // Mixins
@@ -80,10 +80,10 @@ const fieldBuiltInComponentsMixin = {
     * @returns {Component} - The builded label component.
     */
     label() {
-        const {name} = this.props;
+        const {name, label} = this.props;
         return (
             <div className ={`${this._getLabelGridClassName()}`} data-focus='field-label-container'>
-                <Label name={name} />
+                <Label name={name} text={label} />
             </div>
         );
     },

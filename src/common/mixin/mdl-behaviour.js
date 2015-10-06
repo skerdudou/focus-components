@@ -1,5 +1,6 @@
 //https://github.com/google/material-design-lite/blob/master/src/mdlComponentHandler.js#L333
-const componentHandler = window.componentHandler;
+const React = require('react');
+const ReactDOM = require('react-dom');
 
 const mdlBehaviourMixin = {
 
@@ -7,8 +8,8 @@ const mdlBehaviourMixin = {
     * Called when component is mounted.
     */
     componentDidMount() {
-        if (React.findDOMNode(this)) {
-            componentHandler.upgradeElement(React.findDOMNode(this));
+        if (ReactDOM.findDOMNode(this)) {
+            componentHandler.upgradeElement(ReactDOM.findDOMNode(this));
         }
     },
 
@@ -16,8 +17,8 @@ const mdlBehaviourMixin = {
     * Called before component is unmounted.
     */
     componentWillUnmount() {
-        if (React.findDOMNode(this)) {
-            componentHandler.downgradeElements(React.findDOMNode(this));
+        if (ReactDOM.findDOMNode(this)) {
+            componentHandler.downgradeElements(ReactDOM.findDOMNode(this));
         }
     }
 

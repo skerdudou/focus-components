@@ -1,8 +1,8 @@
 // Dependencies
 
-const {builder} = require('focus').component;
+const {builder} = require('focus-core').component;
 const Backbone = require('backbone');
-const {types} = require('focus').component;
+const {types} = require('focus-core').component;
 
 // Mixins
 

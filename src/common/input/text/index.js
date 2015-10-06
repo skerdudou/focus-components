@@ -1,6 +1,7 @@
 // Dependencies.
-
-const {builder, types} = require('focus').component;
+const React = require('react');
+const ReactDOM = require('react-dom');
+const {builder, types} = require('focus-core').component;
 const assign = require('object-assign');
 const mdlBehaviour = require('../../mixin/mdl-behaviour');
 const i18nBehaviour = require('../../i18n/mixin');
@@ -53,6 +54,9 @@ const inputTextComponent = {
             value: formatter(value)
         };
     },
+    componentWillMount(){
+        console.warn('FocusComponents 0.7.0: this component is deprecated, please use FocusComponents.components.input.Text');
+    },
     /**
     * Update the component.
     * @param {object} newProps - The new props to update.
@@ -65,7 +69,7 @@ const inputTextComponent = {
     * @return {object} - The value of the formatter.
     */
     getValue() {
-        return this.props.unformatter(React.findDOMNode(this.refs.inputText).value);
+        return this.props.unformatter(ReactDOM.findDOMNode(this.refs.inputText).value);
     },
     /**
     * Handle the change value of the input.

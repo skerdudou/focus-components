@@ -12,6 +12,9 @@ showcase/js
 showcase/css
 src/showcase/catalog/components.json
 
+# Test
+coverage
+
 # Dependency directory
 node_modules
 

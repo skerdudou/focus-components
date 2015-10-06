@@ -1,8 +1,9 @@
 /* globals babel */
 
 // Dependencies
-
-const {types} = Focus.component;
+const React = require('react');
+const {types} = require('focus-core').component;
+import babel from 'babel-core/browser';
 
 const LivePreview = React.createClass({
     displayName: 'LivePreview',
@@ -10,7 +11,7 @@ const LivePreview = React.createClass({
         code: types('string'),
         style: types('object')
     },
-    style: {
+    /*style: {
         title: {
             margin: '15px',
             color: '#372B3F'
@@ -18,7 +19,7 @@ const LivePreview = React.createClass({
         component: {
             padding: '5px'
         }
-    },
+    },*/
     /**
     * Render the component.
     * @return {HTML} the rendered component
@@ -29,21 +30,13 @@ const LivePreview = React.createClass({
         let content;
         try {
             /* eslint-disable */
-            content = eval(babel.transform(`(function(){${code}})()`).code);
+            content = eval(babel.transform(`(function(){${code}})()`, {stage: 0}).code);
             /* eslint-enable */
         } catch (e) {
             content = e.toString();
         }
 
-        return (
-            <div className='mdl-shadow--2dp' style={mainStyle}>
-                <h1 style={style.title}>Aperçu du composant</h1>
-                <hr/>
-                <div style={style.component}>
-                    {content}
-                </div>
-            </div>
-        );
+        return <div>{content}</div>;
     }
 });
 

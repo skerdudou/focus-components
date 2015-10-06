@@ -2,7 +2,7 @@
 //dependencies
 const React = require('react');
 const {Component} = React;
-const types = require('focus').component.types;
+const types = require('focus-core').component.types;
 /**
  * Grid component.
  */
@@ -12,9 +12,9 @@ class Grid extends Component{
     }
     /** @inheriteDoc */
     render() {
-        const {children} = this.props;
+        const {children, ...otherProps} = this.props;
         return (
-            <div className='mdl-grid'>
+            <div className='mdl-grid' {...otherProps}>
                 {children}
             </div>
         );

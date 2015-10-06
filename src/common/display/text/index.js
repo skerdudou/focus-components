@@ -1,7 +1,6 @@
 //Dependencies.
-const builder = require('focus').component.builder;
+const {builder, types} = require('focus-core').component;
 const React = require('react');
-const type = require('focus').component.types;
 const i18nBehaviour = require('../../i18n/mixin');
 
 /**
@@ -19,10 +18,10 @@ const displayTextMixin = {
     },
     /** @inheritdoc */
     propTypes: {
-        type: type('string'),
-        value: type(['string', 'number']),
-        name: type('string'),
-        style: type('object')
+        type: types('string'),
+        value: types(['string', 'number']),
+        name: types('string'),
+        style: types('object')
     },
     /**
     * Render the value.

@@ -1,8 +1,8 @@
 const React = require('react');
-const builder = require('focus').component.builder;
+const builder = require('focus-core').component.builder;
 //var i18nMixin = require('../i18n').mixin;
 const Scrollspy = require('../scrollspy').component;
-const type = require('focus').component.types;
+const type = require('focus-core').component.types;
 const stylable = require('../../mixin/stylable');
 const DefaultBackToTopComponent = require('../button/back-to-top').component;
 /**
@@ -41,6 +41,9 @@ var detailMixin = {
             {this.props.children}
             </div>
         );
+    },
+     componentWillMount(){
+     console.warn('FocusComponents 0.7.0: this component is deprecated, please use FocusComponents.components.ScrollspyContainer');
     },
     /** @inheritedDoc */
     render() {

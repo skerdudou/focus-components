@@ -1,4 +1,4 @@
-let builder = require('focus').component.builder;
+let builder = require('focus-core').component.builder;
 let React = require('react');
 
 // Common mixins.

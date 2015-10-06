@@ -1,7 +1,7 @@
 //Dependencies.
-const builder = require('focus').component.builder;
+const {builder, types} = require('focus-core').component;
 const React = require('react');
-const types = require('focus').component.types;
+const ReactDOM = require('react-dom');
 const i18nMixin = require('../../i18n/mixin');
 const stylableMixin = require('../../../mixin/stylable');
 const union = require('lodash/array/union');
@@ -25,7 +25,8 @@ const selectMixin = {
             multiple: false,
             values: [],
             valueKey: 'code',
-            hasUndefined: true
+            hasUndefined: true,
+            disabled: false
         };
     },
     /** @inheritdoc */
@@ -37,7 +38,11 @@ const selectMixin = {
         onChange: types('function'),
         value: types(['number', 'string', 'array']),
         values: types('array'),
-        valueKey: types('string')
+        valueKey: types('string'),
+        disabled: types('bool')
+    },
+    componentWillMount(){
+        console.warn('FocusComponents 0.7.0: this component is deprecated, please use FocusComponents.components.input.Select');
     },
     /** @inheritdoc */
     getInitialState() {
@@ -55,14 +60,14 @@ const selectMixin = {
         this.setState({value: newProps.value});
     },
     /**
-     * Get the value of the component.
-     * @return {object} - Return the value of the component.
-     */
+    * Get the value of the component.
+    * @return {object} - Return the value of the component.
+    */
     getValue() {
         const {select} = this.refs;
-        const domValue = React.findDOMNode(select).value;
-        let value = this.state.isNumber ? +domValue : domValue;
-        return value !== UNSELECTED_KEY ? value : null;
+        const domValue = ReactDOM.findDOMNode(select).value;
+        if(domValue === UNSELECTED_KEY){ return null; }
+        return this.state.isNumber ? +domValue : domValue;
     },
     /**
     * Handle the change value of the input.
@@ -110,15 +115,16 @@ const selectMixin = {
     */
     render() {
         const {props, state, _getStyleClassName, _handleOnChange} = this;
-        const {error, multiple, name} = props;
+        const {disabled, error, multiple, name} = props;
         const {value} = state;
-        const selectProps = {multiple, value: `${value}`, name, onChange: _handleOnChange, className: _getStyleClassName(), ref: 'select'};
+        const disabledProps = disabled ? {disabled: 'disabled'} : {};
+        const selectProps = {...{multiple, value: `${value}`, name, onChange: _handleOnChange, className: _getStyleClassName(), ref: 'select'}, ...disabledProps};
         return (
             <div data-focus='select' data-valid={!error}>
-                <select {...selectProps}>
-                    {this.renderOptions()}
-                </select>
-                {error && <div className='label-error' ref='error'>{error}</div>}
+            <select {...selectProps}>
+            {this.renderOptions()}
+            </select>
+            {error && <div className='label-error' ref='error'>{error}</div>}
             </div>
         );
     }

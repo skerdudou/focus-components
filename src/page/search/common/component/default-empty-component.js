@@ -1,6 +1,6 @@
 // Dependencies
 
-let builder = require('focus').component.builder;
+let builder = require('focus-core').component.builder;
 
 // Mixins
 

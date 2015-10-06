@@ -1,6 +1,6 @@
 // Dependencies.
 
-const {builder, types} = require('focus').component;
+const {builder, types} = require('focus-core').component;
 const moment = require('moment');
 
 // Components
@@ -63,6 +63,9 @@ const InputDateMixin = {
             locale: defaultLocale,
             value: moment()
         };
+    },
+     componentWillMount(){
+        console.warn('FocusComponents 0.7.0: this component is deprecated, please use FocusComponents.components.input.Date');
     },
     /** @inheritdoc */
     propTypes: {

@@ -1,10 +1,10 @@
 // Dependencies
 
-const builder = require('focus').component.builder;
+const builder = require('focus-core').component.builder;
 
 // Stores
 
-const applicationStore = require('focus').application.builtInStore;
+const applicationStore = require('focus-core').application.builtInStore;
 
 // Mixins
 
