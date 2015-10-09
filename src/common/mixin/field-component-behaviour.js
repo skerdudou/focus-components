@@ -43,12 +43,15 @@ const fieldBehaviourMixin = {
             domain: options.domain || def.domain,
             error: context.state.error ? context.state.error[name] : undefined,
             locale: def.locale,
+            format: def.format,
             //Mode
             isEdit: isEdit,
             hasLabel: hasLabel,
             isRequired: (!isUndefined(options.isRequired) && options.isRequired) || def.isRequired || def.required, //legacy on required on model generation.
             //Style
             style: options.style,
+			// Type
+			type: def.type,
             //Methods
             validator: def.validator,
             formatter: def.formatter || identity,
