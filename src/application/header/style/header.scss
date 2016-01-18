@@ -1,4 +1,3 @@
-//Header.css
 /*@mixin transition($transition-property, $transition-time) {
   -webkit-transition: $transition-property $transition-time;
   -moz-transition: $transition-property $transition-time;
@@ -7,10 +6,7 @@
   transition: $transition-property $transition-time;
 }*/
 $header-shadow-color: #EAEAEA;
-@mixin shadow() {
-  -moz-box-shadow: 0px 1px 10px 2px $header-shadow-color;
-  -webkit-box-shadow: 0px 1px 10px 2px $header-shadow-color;
-  -o-box-shadow: 0px 1px 10px 2px $header-shadow-color;
+@define-mixin shadow() {
   box-shadow: 0px 1px 10px 2px $header-shadow-color;
   filter: progid:DXImageTransform.Microsoft.Shadow(color=$header-shadow-color, Direction=180, Strength=10);
 }
@@ -49,7 +45,7 @@ header[data-focus='header'] {
     }
   }
 
-  //When the size is min  don't show the cartridge
+  /*When the size is min  don't show the cartridge*/
   &[data-size="small"] {
     height: 120px;
     [data-focus="content-bar"] {
@@ -117,37 +113,38 @@ header[data-focus='header'] {
     background-color: rgba(255, 255, 255, 1);
   }
 
-  //&.header-tall {
-    //div.content-bar {
-      //min-height: 250px;
-      //background-color: #2600D4;
-      //color: white;
-      //@include transition(min-height, $duration);
-   // }
+  /*
+  &.header-tall {
+    div.content-bar {
+     min-height: 250px;
+      background-color: #2600D4;
+      color: white;
+      @include transition(min-height, $duration);
+    }
 
-  //}
-  //&.header-medium {
-    //div.content-bar {
-      //min-height: 150px;
-      //background-color: #0073D4;
-      //color: white;
-      //@include transition(min-height, $duration);
-    //}
+  }
+  &.header-medium {
+    div.content-bar {
+      min-height: 150px;
+      background-color: #0073D4;
+      color: white;
+      @include transition(min-height, $duration);
+    }
 
-  //}
-  //&.header-small {
-    /*div.entete-tall {
+  }
+  &.header-small {
+  div.entete-tall {
       display: none;
-    }*/
-    //div.content-bar {
-      //min-height: 60px;
-      //color: white;
-      //background-color: #00bcd4;
-      /*@include transition(min-height, $duration);*/
-    //}
+    }
+    div.content-bar {
+      min-height: 60px;
+      color: white;
+      background-color: #00bcd4;
+      @include transition(min-height, $duration);
+    }
 
-  //}
-
+  }
+*/
   [data-focus="content-actions"] {
     margin: 0 0 0 60px;
     position: relative;
@@ -156,4 +153,3 @@ header[data-focus='header'] {
     padding-right: 200px;
   }
 }
-

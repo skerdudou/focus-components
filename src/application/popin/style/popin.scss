@@ -12,12 +12,12 @@ $fill-height-popin-margin: 200px;
 
 // Mixins
 
-@mixin set-popin-window-size($width, $type, $level) {
+@define-mixin set-popin-window-size($width, $type, $level) {
   &>div>[data-focus='popin-window'] {
 
     // Full popin type
     @if $type == 'full' {
-      min-width: #{$width}vw;
+      min-width: 12vw;
       min-height: #{$width}vh;
     }
 
@@ -49,7 +49,7 @@ $fill-height-popin-margin: 200px;
   }
 }
 
-@mixin all-popin-sizes ($type:'full', $level:'0') {
+@define-mixin all-popin-sizes ($type:'full', $level:'0') {
   &[data-size='small'] {
     @include set-popin-window-size($small-size, #{$type},  #{$level});
   }

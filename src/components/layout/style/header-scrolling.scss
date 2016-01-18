@@ -10,10 +10,7 @@ $header-scrolling-shadow-color: #D0D0D0;
 $header-actions-height: 56px;
 $header-top-row-height: 60px;
 $header-top-row-zindex: 1001;
-@mixin shadow() {
-    -moz-box-shadow: 0px 1px 10px 2px $header-scrolling-shadow-color;
-    -webkit-box-shadow: 0px 1px 10px 2px $header-scrolling-shadow-color;
-    -o-box-shadow: 0px 1px 10px 2px $header-scrolling-shadow-color;
+@define-mixin shadow() {
     box-shadow: 0px 1px 10px 2px $header-scrolling-shadow-color;
     filter: progid:DXImageTransform.Microsoft.Shadow(color=$header-scrollspy-shadow-color, Direction=180, Strength=10);
 }
@@ -45,7 +42,7 @@ to { height: auto; }
         display: inline;
     }
 
-    // When the header is deployed, don't show the summary.
+    /* When the header is deployed, don't show the summary.*/
     &[data-deployed="true"] {
         z-index: $header-top-row-zindex;
 
@@ -61,7 +58,7 @@ to { height: auto; }
         }
     }
 
-    // When the header is collasped, don't show the cartridge.
+    /* When the header is collasped, don't show the cartridge.*/
     &[data-deployed="false"] {
         z-index: inherit;
         overflow-y: hidden;
@@ -103,7 +100,7 @@ to { height: auto; }
     }
 }
 
-// TODO: put this variable in a global variable.scss
+/* TODO: put this variable in a global variable.scss*/
 $media-tablet-breakpoint: 480px !default;
 $media-desktop-breakpoint: 840px !default;
 
