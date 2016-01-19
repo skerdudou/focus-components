@@ -8,16 +8,7 @@ const customConfig = {
         'react-dom': 'ReactDOM',
         moment: 'moment',
         jquery: 'jQuery',
-        numeral: 'numeral',
-        'i18next-client': 'i18n'
-    },
-    module: {
-        preLoaders: [
-            {
-                test: /material-design-lite\/material/,
-                loader: 'exports?componentHandler'
-            }
-        ]
+        numeral: 'numeral'
     }
 };
 module.exports = configBuilder(customConfig);

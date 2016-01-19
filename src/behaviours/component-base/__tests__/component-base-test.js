@@ -1,18 +1,18 @@
 import ComponentBaseBehaviour from '../';
 import React from 'react';
 import ReactDOM from 'react-dom';
-import i18n from 'i18next-client';
+import {translate, init} from 'focus-core/translation';
 
 describe('The component base behaviour', () => {
     let renderedComponent;
     before((done) => {
-        i18n.init({resStore: {}}, () => {
+        init({resStore: {}}, () => {
             @ComponentBaseBehaviour
             class TestComponent extends React.Component {
                 render() {
                     return (
                         <div>
-                            {this.i18n('my.translation.path')}
+                            {translate('my.translation.path')}
                         </div>
                     );
                 }
