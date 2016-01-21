@@ -1,17 +1,17 @@
-import date from './date';
-import text from './text';
-import textarea from './textarea';
-import checkbox from './checkbox';
-import toggle from './toggle';
-import select from './select';
 import AutocompleteSelect from './autocomplete-select/field';
+import Checkbox from './checkbox';
+import Date from './date';
+import Select from './select';
+import Text from './text';
+import Textarea from './textarea';
+import Toggle from './toggle';
 
 export default {
-    Checkbox: checkbox,
-    Date: date,
-    Text: text,
-    Toggle: toggle,
-    Select: select,
-    Textarea: textarea,
-    AutocompleteSelect
+    AutocompleteSelect,
+    Checkbox,
+    Date,
+    Select,
+    Text,
+    Textarea,
+    Toggle
 };
