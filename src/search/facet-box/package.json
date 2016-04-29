@@ -1,5 +1,5 @@
 {
-    "name": "Facet box",
+    "name": "Facet Box",
     "version": "1.0.0",
     "description": "Facet box. Displayed as a panel where the user can select facet values.",
     "main": "index.js",

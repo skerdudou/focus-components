@@ -1,5 +1,5 @@
 {
-    "name": "quick-search",
+    "name": "Quick Search",
     "version": "1.0.0",
     "description": "Quick search page. Puts a search bar and the corresponding results list.",
     "main": "index.js",

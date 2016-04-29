@@ -1,5 +1,5 @@
 {
-  "name": "panel",
+  "name": "Panel",
   "version": "1.0.0",
   "description": "Panel component, used to make a card with a title and some content inside. Used to be called Block in the past.",
   "main": "index.js",

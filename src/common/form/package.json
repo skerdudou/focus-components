@@ -1,5 +1,5 @@
 {
-  "name": "form",
+  "name": "Form",
   "version": "1.0.0",
   "description": "Form component, used to display entities and edit them. Comes with two modes, a consult and an edit mode. Mainly used with panels.",
   "main": "index.js",

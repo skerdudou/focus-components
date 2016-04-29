@@ -1,5 +1,5 @@
 {
-  "name": "Input toggle",
+  "name": "Input Toggle",
   "version": "1.0.0",
   "description": "Input toggle component. Used to display boolean values, follows the material design specification.",
   "keywords": [

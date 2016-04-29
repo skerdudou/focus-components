@@ -1,5 +1,5 @@
 {
-  "name": "Scrollspy container",
+  "name": "Scrollspy Container",
   "version": "1.0.0",
   "description": "Scrollable container which displays a navigation pane on the left hand side. The navigation pane is used as a quick access to the page's panels.",
   "main": "index.js",

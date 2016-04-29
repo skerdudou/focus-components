@@ -1,5 +1,5 @@
 {
-  "name": "Input text",
+  "name": "Input Text",
   "version": "1.0.0",
   "description": "Standard html input. Used to display anything that is not specific, ie not a date nor a boolean.",
   "keywords": [
